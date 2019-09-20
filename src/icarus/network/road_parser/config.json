@@ -1,0 +1,44 @@
+{
+    "sourcepath": "/home/Shared/matsim/run1/input/netwrok.xml",
+    "resume": false,
+    "create_idxs": true,
+    "database": {
+        "user": "validation",
+        "host": "localhost",
+        "db": "network",
+        "unix_socket": "/home/mysql/mysql.sock",
+        "password": "",
+        "tables": {
+            "nodes": {
+                "schema": [
+                    "node_id INT UNSIGNED",
+                    "pt POINT NOT NULL"
+                ],
+                "primary_idx": [ "node_id" ],
+                "btree_idxs": {},
+                "hash_idxs": {},
+                "spatial_idxs": {
+                    "pt": [ "pt" ]
+                }
+            },
+            "links": {
+                "schema": [
+                    "link_id MEDIUMINT UNSIGNED",
+                    "src_node INT UNSIGNED",
+                    "term_node INT UNSIGNED",
+                    "length FLOAT",
+                    "freespeed FLOAT",
+                    "capacity FLOAT",
+                    "permlanes FLOAT",
+                    "oneway BOOL",
+                    "modes VARCHAR(200)"
+                ],
+                "primary_idx": [ "link_id" ],
+                "btree_idxs": {},
+                "hash_idxs": {},
+                "spatial_idxs": {}
+            }
+        }
+    },
+    "encoding": {}
+}

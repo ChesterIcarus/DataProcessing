@@ -1,0 +1,25 @@
+{
+    "input_db": "input",
+    "output_db": "output_run2_it20",
+    "silent": false,
+    "stats": [
+        "rmse",
+        "rmspe",
+        "coeff",
+        "bias",
+        "variance",
+        "covariance"
+    ],
+    "fields": [
+        [ "routes", "dur_time" ],
+        [ "activities", "dur_time" ]
+    ],
+    "database": {
+        "user": "validation",
+        "host": "localhost",
+        "db": "output_run2_it20",
+        "unix_socket": "/home/mysql/mysql.sock",
+        "password": ""
+    },
+    "encoding": {}
+}

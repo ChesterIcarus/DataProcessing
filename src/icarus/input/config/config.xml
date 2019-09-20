@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE config SYSTEM "http://www.matsim.org/files/dtd/config_v2.dtd">
+<config>
+    <module name="network">
+        <param name="inputNetworkFile" value="/home/Shared/matsim/run1/input/network.xml" />
+    </module>
+    <module name="plans">
+        <param name="inputPlansFile" value="/home/Shared/matsim/run1/input/plans.xml" />
+    </module>
+
+    <module name="qsim">
+        <param name="useLanes" value="true" />
+    </module>
+
+    <module name="global">
+        <param name="coordinateSystem" value="EPSG:2223" />
+        <param name="numberOfThreads" value="20" />
+    </module>
+
+    <module name="controler">
+        <param name="outputDirectory" value="/home/Shared/matsim/run1/output/" />
+		<param name="overwriteFiles" value="deleteDirectoryIfExists" />
+		<param name="firstIteration" value="0" />
+        <param name="lastIteration" value="20" />
+        <param name="writePlansInterval" value="5" />
+		<param name="writeEventsInterval" value="20" />
+    </module>
+
+    <module name="JDEQSim" >
+		<param name="carSize" value="7.5" />
+		<param name="endTime" value="undefined" />
+		<param name="flowCapacityFactor" value="1.0" />
+		<param name="gapTravelSpeed" value="15.0" />
+		<param name="minimumInFlowCapacity" value="1800.0" />
+		<param name="squeezeTime" value="1800.0" />
+		<param name="storageCapacityFactor" value="1.0" />
+	</module>
+
+	<module name="planscalcroute">
+		<param name="networkModes" value="car" />
+	</module>
+
+	<module name="strategy">
+		<parameterset type="strategysettings">
+			<param name="strategyName" value="ReRoute" />
+			<param name="weight" value="0.25" />
+		</parameterset>
+		<parameterset type="strategysettings">
+			<param name="strategyName" value="BestScore" />
+			<param name="weight" value="0.75" />
+		</parameterset>
+	</module>
+
+    <module name="planCalcScore">
+		<parameterset type="scoringParameters">
+		
+			<param name="performing" value="6.0" />
+
+			<parameterset type="modeParams">
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+				<param name="monetaryDistanceRate" value="0.0" />
+				<param name="mode" value="car" />
+			</parameterset>
+
+			<parameterset type="modeParams">
+				<param name="constant" value="0.0" />
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+				<param name="marginalUtilityOfTraveling_util_hr" value="0.0" />
+				<param name="monetaryDistanceRate" value="0.0" />
+				<param name="mode" value="pt" />
+			</parameterset>
+
+	    	<parameterset type="activityParams">
+				<param name="activityType" value="home" />
+				<param name="scoringThisActivityAtAll" value="false" />
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="workplace" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="university" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="school" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="escort" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="school_escort" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="rideshare" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="other_escort" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="shopping" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="other_maintenence" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="eating" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="breakfast" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="lunch" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="dinner" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="visiting" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="other_discretionary" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="special_event" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="work" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="work_business" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="work_lunch" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="work_other" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="work_related" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+			<parameterset type="activityParams">
+				<param name="activityType" value="asu_related" />
+				<param name="scoringThisActivityAtAll" value="false" />	
+				<param name="typicalDuration" value="12:00:00" />
+			</parameterset>
+		</parameterset>	
+	</module>
+
+</config>

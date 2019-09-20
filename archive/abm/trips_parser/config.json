@@ -1,0 +1,51 @@
+{
+    "WORKSTATION": {
+        "sourcepath": "/home/Shared/source/abm/trips.csv",
+        "resume": false,
+        "create_indexes": true,
+        "database": {
+            "user": "validation",
+            "host": "localhost",
+            "db": "abm",
+            "unix_socket": "/home/mysql/mysql.sock",
+            "password": "",
+            "tables": {
+                "trips": {
+                    "schema": [
+                        "trip_id INT UNSIGNED",
+                        "household_id MEDIUMINT UNSIGNED",
+                        "household_index TINYINT UNSIGNED",
+                        "agent_id MEDIUMINT UNSIGNED",
+                        "agent_index TINYINT UNSIGNED",
+                        "joint_index TINYINT UNSIGNED",
+                        "mode TINYINT UNSIGNED",
+                        "origin_act SMALLINT UNSIGNED",
+                        "dest_act SMALLINT UNSIGNED",
+                        "origin_maz SMALLINT UNSIGNED",
+                        "dest_maz SMALLINT UNSIGNED",
+                        "start_interval TINYINT UNSIGNED",
+                        "start_time MEDIUMINT UNSIGNED",
+                        "end_interval TINYINT UNSIGNED",
+                        "end_time MEDIUMINT UNSIGNED",
+                        "trav_time MEDIUMINT UNSIGNED",
+                        "act_time MEDIUMINT SIGNED"
+                    ],
+                    "btree_idxs": {
+                        "trip": [ "trip_id" ],
+                        "household": [
+                            "household_id",
+                            "household_index"
+                        ],
+                        "agent": [
+                            "agent_id",
+                            "agent_index"
+                        ]
+                    },
+                    "hash_idxs": {},
+                    "spatial_idxs" : {}
+                }
+            }
+        },
+        "encoding": {}
+    }
+}
