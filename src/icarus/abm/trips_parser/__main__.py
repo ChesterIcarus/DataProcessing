@@ -6,12 +6,12 @@ from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
 from icarus.util.print import Printer as pr
-from icarus.abm.parser.parser import AbmParser
+from icarus.abm.trips_parser.parser import TripsParser
 
-parser = ArgumentParser(prog='AgentsParser',
+parser = ArgumentParser(prog='TripsParser',
     description='Parse ABM trips CSV file into table in a SQL database.')
 parser.add_argument('--config', type=str,  dest='config',
-    default=resource_filename('icarus', 'abm/parser/config.json'),
+    default=resource_filename('icarus', 'abm/trips_parser/config.json'),
     help=('Specify a config file location; default is "config.json" in '
         'the current working directory.'))
 parser.add_argument('--log', type=str, dest='log',
@@ -32,7 +32,7 @@ try:
     database['password'] = getpass(
         f'SQL password for {database["user"]}@localhost: ')
 
-    parser = AbmParser(database, encoding)
+    parser = TripsParser(database, encoding)
 
     if not config['resume']:
         for table in database['tables'].keys():

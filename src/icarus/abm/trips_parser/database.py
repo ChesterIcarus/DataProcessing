@@ -1,7 +1,7 @@
 
 from icarus.util.database import DatabaseHandle
 
-class AbmParserDatabase(DatabaseHandle):
+class TripsParserDatabase(DatabaseHandle):
     def write_trips(self, trips):
         self.write_rows(trips, 'trips')
 

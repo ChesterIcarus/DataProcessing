@@ -4,12 +4,12 @@ import csv
 from getpass import getpass
 from argparse import ArgumentParser
 
-from icarus.abm.parser.database import AbmParserDatabase
+from icarus.abm.trips_parser.database import TripsParserDatabase
 from icarus.util.print import Printer as pr
 
-class AbmParser:
+class TripsParser:
     def __init__(self, database, encoding):
-        self.database = AbmParserDatabase(database)
+        self.database = TripsParserDatabase(database)
         self.encoding = encoding
 
     @staticmethod
@@ -78,7 +78,7 @@ class AbmParser:
             pr.print(f'Pushing {trip_id % bin_size} trips to the database.', time=True)
         self.database.write_trips(trips)
         if not silent:
-            pr.print(f'ABM trip data parsing complete.', time=True)
+            pr.print('ABM trip data parsing complete.', time=True)
             pr.print('Trips Parsing Progress', persist=True, replace=True,
                 frmt='bold', progress=1)
             pr.push()

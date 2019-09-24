@@ -1,10 +1,10 @@
 import dropbox
 import os
 
-dbx = dropbox.Dropbox('H6qngz3zvcAAAAAAAAAAHO1J9mj1NfHBTJr0P1gY5uNDog3qP5M-twkKy0h2ekx2')
+dbx = dropbox.Dropbox()
 
-local_path = '/home/Shared/matsim/run2/input/config.xml'
-dest_path = '/Icarus/Data/Benjamin Data Transfer/run2/input/config.xml'
+local_path = ''
+dest_path = ''
 
 local_file = open(local_path, 'rb')
 file_size = os.path.getsize(local_path)

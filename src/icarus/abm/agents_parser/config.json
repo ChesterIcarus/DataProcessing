@@ -1,0 +1,49 @@
+{
+    "sourcepath": "/home/Shared/source/abm/2018/agetns.csv",
+    "silent": false,
+    "bin_size": 100000,
+    "resume": false,
+    "database": {
+        "user": "validation",
+        "host": "localhost",
+        "db": "abm2018",
+        "unix_socket": "/home/mysql/mysql.sock",
+        "password": "",
+        "tables": {
+            "agents": {
+                "schema": [
+                    "agent_id MEDIUMINT UNSIGNED",
+                    "household_id MEDIUMINT UNSIGNED",
+                    "household_idx TINYINT UNSIGNED",
+                    "serial FLOAT",
+                    "type TINYINT UNSIGEND",
+                    "detailed_type TINYINT UNSIGNED",
+                    "age TINYINT UNSIGNED",
+                    "gender TINYINT UNSIGNED",
+                    "industry TINYINT UNSIGNED",
+                    "school_grade TINYINT UNSIGNED",
+                    "education TINYINT UNSIGNED",
+                    "work_type TINYINT UNSIGNED",
+                    "work_taz SMALLINT UNSIGNED",
+                    "work_maz SMALLINT UNSIGNED",
+                    "school_type TINYINT UNSIGNED",
+                    "school_taz SMALLINT UNSIGNED",
+                    "school_maz SMALLINT UNSIGNED",
+                    "campus_taz SMALLINT UNSIGNED",
+                    "campus_maz SMALLINT UNSIGNED",
+                    "vehicle_id TINYINT UNSIGNED",
+                    "activity_pattern TINYINT UNSIGNED"
+                ], 
+                "primary_idx": [ "agent_id" ],
+                "btree_idxs": {
+                    "household": [
+                        "household_id",
+                        "household_idx"
+                    ]
+                },
+                "hash_idxs": {},
+                "spatial_idxs": {}
+            }
+        }
+    }
+}
