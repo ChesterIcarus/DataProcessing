@@ -2,9 +2,9 @@
 from icarus.util.database import DatabaseHandle
 
 class PlansParserDatabase(DatabaseHandle):
-    def __init__(self, database=None, params=None):
+    def __init__(self, params=None, database=None):
         super().__init__(database=database, params=params)
-        self.abm_db = database['abm_db'] if 'abm_db' in database else ''
+        self.abm_db = params['abm_db'] if 'abm_db' in params else ''
 
     def get_max(self, db, tbl, col):
         query = f'''
@@ -14,7 +14,9 @@ class PlansParserDatabase(DatabaseHandle):
         self.cursor.execute(query)
         return self.cursor.fetchall()[0][0]
 
-    def get_parcels(self, db, tbl):
+    def get_parcels(self, db, tbl, seed=''):
+        if seed is None:
+            seed = ''
         query = f'''
             SELECT
                 maz,
@@ -22,7 +24,7 @@ class PlansParserDatabase(DatabaseHandle):
             FROM {db}.{tbl}
             ORDER BY
                 maz,
-                RAND()
+                RAND({seed})
         '''
         self.cursor.execute(query)
         result = self.cursor.fetchall()

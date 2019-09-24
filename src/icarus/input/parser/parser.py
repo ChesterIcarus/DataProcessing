@@ -9,7 +9,7 @@ from icarus.util.print import Printer as pr
 
 class PlansParser:
     def __init__(self, database, encoding):
-        self.database = PlansParserDatabase(database)
+        self.database = PlansParserDatabase(params=database)
         self.encoding = encoding
 
     def parse(self, modes, acts, bin_size=250000, resume=False, 
@@ -22,8 +22,8 @@ class PlansParser:
         groups = list(range(0, target_household, bin_size)) + [target_household]
         households = zip(groups[:-1], groups[1:])
 
-        residences = self.database.get_parcels('network', 'residences')
-        commerces = self.database.get_parcels('network', 'commerces')
+        residences = self.database.get_parcels('network', 'residences', seed=seed)
+        commerces = self.database.get_parcels('network', 'commerces', seed=seed)
         residx = defaultdict(int)
 
         cols = ('trip_id', 'household_id', 'household_idx', 'agent_id',
@@ -40,6 +40,7 @@ class PlansParser:
         route_id = 0
         agent_id = 0
         household_id = 0
+        vehicle_id = 1
         count = defaultdict(int)
 
         for min_hh, max_hh in households:
@@ -58,12 +59,14 @@ class PlansParser:
             agent_routes = []
             agent_acts = []
 
+            hhvehcs = [0]*10
+
             agents = []
             routes = []
             activities = []
 
             pr.print(f'Processing trips into plans.', time=True)
-            for trip in trips + ((0,)*len(cols),):
+            for trip in trips:
                 if (agid != trip[keys['agent_id']] or
                         hhid != trip[keys['household_id']]):
                     hhidx += 1
@@ -92,6 +95,7 @@ class PlansParser:
                     if used:
                         household_id += 1
                     hhidx = 0
+                    hhvehcs = [0]*10
                     hhid = trip[keys['household_id']]
                     hhmaz = trip[keys['origin_maz']]
                     used = False
@@ -124,6 +128,13 @@ class PlansParser:
                     valid = False
                     continue
 
+                vehc = trip[keys['vehicle_id']]
+                if vehc:
+                    if not hhvehcs[vehc]:
+                        hhvehcs[vehc] = vehicle_id
+                        vehicle_id += 1
+                    vehc = hhvehcs[vehc]
+
                 if not agidx:
                     agent_acts.append((
                         activity_id,
@@ -142,6 +153,7 @@ class PlansParser:
                     agent_id,
                     agidx,
                     trip[keys['mode']],
+                    vehc,
                     trip[keys['depart_time']],
                     trip[keys['arrive_time']],
                     trip[keys['arrive_time']] - trip[keys['depart_time']]))
@@ -162,7 +174,6 @@ class PlansParser:
                 agidx += 1
 
             pr.print(f'Pushing {len(agents)} plans to database.', time=True)
-
             self.database.write_activities(activities)
             self.database.write_routes(routes)
             self.database.write_agents(agents)
@@ -187,7 +198,7 @@ class PlansParser:
 
     def index(self, silent=False):
         if not silent:
-            pr.print(f'Creating all indexes in database "{self.database.db}"".',
+            pr.print(f'Creating all indexes in database "{self.database.db}".',
                 time=True)
         for tbl in self.database.tables:
             self.database.create_all_idxs(tbl)

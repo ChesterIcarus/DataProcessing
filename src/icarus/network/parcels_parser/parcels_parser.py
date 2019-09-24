@@ -1,7 +1,7 @@
 
 import shapefile
 
-from icarus.network.parcels_parser.parcels_parser_db import ParcelDatabseHandle
+from icarus.network.parcels_parser.database import ParcelDatabseHandle
 from icarus.util.print import Printer as pr
 
 class ParcelsParser:
@@ -50,7 +50,6 @@ class ParcelsParser:
                 parcel_id += 1
             if parcel_id % bin_size == 0 and parcel_id:
                 pr.print(f'Pushing {bin_size} parcels to database.', time=True)
-
                 self.database.write_res_parcels(parcels)
                 parcels = []
 
