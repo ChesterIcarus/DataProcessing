@@ -1,10 +1,10 @@
 import dropbox
 import os
 
-dbx = dropbox.Dropbox()
+dbx = dropbox.Dropbox('')
 
-local_path = ''
-dest_path = ''
+local_path = '/home/benjamin/Documents/HII-C/data/export/umls.tar.gz'
+dest_path = '/HII-C/data/source/umls.tar.gz'
 
 local_file = open(local_path, 'rb')
 file_size = os.path.getsize(local_path)

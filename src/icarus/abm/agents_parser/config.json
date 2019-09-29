@@ -1,8 +1,9 @@
 {
-    "sourcepath": "/home/Shared/source/abm/2018/agetns.csv",
+    "sourcepath": "/home/Shared/source/abm/2018/persons.csv",
     "silent": false,
-    "bin_size": 100000,
+    "bin_size": 500000,
     "resume": false,
+    "create_idxs": true,
     "database": {
         "user": "validation",
         "host": "localhost",
@@ -15,8 +16,8 @@
                     "agent_id MEDIUMINT UNSIGNED",
                     "household_id MEDIUMINT UNSIGNED",
                     "household_idx TINYINT UNSIGNED",
-                    "serial FLOAT",
-                    "type TINYINT UNSIGEND",
+                    "serial DOUBLE",
+                    "type TINYINT UNSIGNED",
                     "detailed_type TINYINT UNSIGNED",
                     "age TINYINT UNSIGNED",
                     "gender TINYINT UNSIGNED",
@@ -31,7 +32,6 @@
                     "school_maz SMALLINT UNSIGNED",
                     "campus_taz SMALLINT UNSIGNED",
                     "campus_maz SMALLINT UNSIGNED",
-                    "vehicle_id TINYINT UNSIGNED",
                     "activity_pattern TINYINT UNSIGNED"
                 ], 
                 "primary_idx": [ "agent_id" ],
@@ -45,5 +45,6 @@
                 "spatial_idxs": {}
             }
         }
-    }
+    },
+    "encoding": {}
 }

@@ -12,7 +12,7 @@ class PlansParser:
         self.database = PlansParserDatabase(params=database)
         self.encoding = encoding
 
-    def parse(self, modes, acts, bin_size=250000, resume=False, 
+    def parse(self, modes=[], acts=[], bin_size=250000, resume=False, 
             silent=False, seed=None):
         pr.print('Beginning parsing ABM data into MATsim input plans.', time=True)
         pr.print('Loading process metadata and fetching reference data.', time=True)
@@ -109,11 +109,11 @@ class PlansParser:
                     continue
 
                 maz = trip[keys['dest_maz']]
-                if trip[keys['dest_act']] not in acts:
+                if trip[keys['dest_act']] not in acts and len(acts):
                     count['bad act'] += 1
                     valid = False
                     continue
-                elif trip[keys['mode']] not in modes:
+                elif trip[keys['mode']] not in modes and len(modes):
                     count['bad mode'] += 1
                     valid = False
                     continue

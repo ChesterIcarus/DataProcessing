@@ -3,9 +3,13 @@
     "silent": false,
     "create_idxs": true,
     "verify": true,
-    "seed": null,
+    "seed": 1234,
     "modes": [],
-    "acts": [],
+    "acts": [
+        0, 1, 2, 3, 5, 6, 7,
+        71, 72, 73, 8, 9, 10,
+        11, 12, 13, 14, 15, 16
+    ],
     "bin_size": 100000,
     "database": {
         "user": "validation",

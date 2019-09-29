@@ -34,10 +34,6 @@ try:
 
     parser = TripsParser(database, encoding)
 
-    if not config['resume']:
-        for table in database['tables'].keys():
-            parser.database.create_table(table)
-
     options = ('silent', 'bin_size', 'resume')
     params = {key:config[key] for key in options if key in config}
 

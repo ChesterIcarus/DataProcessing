@@ -70,8 +70,6 @@ class HouseholdsParser:
                 frmt='bold', progress=1)
             pr.push()
 
-
-
     def create_idxs(self, silent=False):
         if not silent:
             pr.print(f'Creating all indexes in database {self.database.db}.', time=True)

@@ -2,7 +2,7 @@
     "sourcepath": "/home/Shared/source/abm/2018/trips.csv",
     "resume": false,
     "silent": false,
-    "bin_size": 500000,
+    "bin_size": 100000,
     "create_idxs": true,
     "database": {
         "user": "validation",
@@ -30,9 +30,8 @@
                     "arrive_time MEDIUMINT UNSIGNED",
                     "act_duration MEDIUMINT UNSIGNED"
                 ],
-                "primary_idx": [],
+                "primary_idx": [ "trip_id" ],
                 "btree_idxs": {
-                    "trip": [ "trip_id" ],
                     "household": [
                         "household_id",
                         "household_idx"
@@ -49,8 +48,5 @@
 
         }
     },
-    "encoding": {
-        "mode": {},
-        "activity": {}
-    }
+    "encoding": {}
 }

@@ -3,6 +3,7 @@
     "silent": false,
     "bin_size": 100000,
     "resume": false,
+    "create_idxs": true,
     "database": {
         "user": "validation",
         "host": "localhost",
@@ -13,7 +14,7 @@
             "households": {
                 "schema": [
                     "household_id MEDIUMINT UNSIGNED",
-                    "serial FLOAT",
+                    "serial DOUBLE",
                     "home_taz SMALLINT UNSIGNED",
                     "home_maz SMALLINT UNSIGNED",
                     "size TINYINT UNSIGNED",
@@ -25,7 +26,7 @@
                     "driving_children TINYINT UNSIGNED",
                     "nondriving_children TINYINT UNSIGNED",
                     "preschool_children TINYINT UNSIGNED",
-                    "income MEDIUMINT UNSIGNED",
+                    "income MEDIUMINT",
                     "vehicle_count TINYINT UNSIGNED",
                     "dwelling_type TINYINT UNSIGNED",
                     "auto_vehicle TINYINT UNSIGNED"
@@ -36,5 +37,6 @@
                 "spatial_idxs": {}
             }
         }
-    }
+    },
+    "encoding": {}
 }

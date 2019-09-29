@@ -4,6 +4,8 @@
 
 # packaging residue
 *.egg-info
+build
+dist
 
 # script cache
 __pycache__

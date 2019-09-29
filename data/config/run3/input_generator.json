@@ -1,6 +1,6 @@
 {
-    "savepath": "",
-    "sample": 1,
+    "savepath": "/home/Shared/matsim/run3/input/plans.xml",
+    "sample": 0.05,
     "time": [],
     "region": [],
     "types": [],
@@ -8,27 +8,27 @@
     "silent": false,
     "bin_size": 100000,
     "database": {
-        "user": "root",
+        "user": "validation",
         "host": "localhost",
         "db": "input",
+        "unix_socket": "/home/mysql/mysql.sock",
         "password": "" 
     },
     "encoding": {
         "mode": {
-            "sov": 1,
-            "hov2_driver": 2,
-            "hov3_driver": 3,
-            "hov_passenger": 4,
-            "conv_transit_walk_access": 5,
-            "conv_transit_knr": 6,
-            "conv_transit_pnr": 7,
-            "prem_transit_walk_access": 8,
-            "prem_transit_knr": 9,
-            "prem_transit_pnr": 10,
-            "walk": 11,
-            "bike": 12,
-            "taxi": 13,
-            "school_bus": 14
+            "1": "car",
+            "2": "car",
+            "3": "car",
+            "4": "car",
+            "5": "walk",
+            "6": "walk",
+            "7": "walk",
+            "8": "walk",
+            "9": "walk",
+            "10": "walk",
+            "11": "walk",
+            "12": "bike",
+            "13": "car"
         },
         "activity": {
             "home": 0,

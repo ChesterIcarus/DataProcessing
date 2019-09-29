@@ -19,6 +19,11 @@ class TripsParser:
     def parse(self, sourcepath, silent=False, resume=False, bin_size=100000):
         if not silent:
             pr.print(f'Beginning AMB trip data parsing from {sourcepath}.', time=True)
+            pr.print('Creating temporary tables.', time=True)
+
+        self.database.create_temp()
+
+        if not silent:
             pr.print(f'Loading process metadata and resources.', time=True)
 
         target = sum(1 for l in open(sourcepath, 'r')) - 1
@@ -48,8 +53,8 @@ class TripsParser:
             trips.append((
                 trip_id,
                 int(trip[cols['hhid']]),
-                int(trip[cols['uniqueid']]) - 1,
-                int(trip[cols['pnum']]) - 1,
+                int(trip[cols['uniqueid']]),
+                int(trip[cols['pnum']]),
                 int(trip[cols['personTripNum']]) - 1,
                 int(trip[cols['origTaz']]),
                 int(trip[cols['origMaz']]),
@@ -77,11 +82,19 @@ class TripsParser:
         if not silent:
             pr.print(f'Pushing {trip_id % bin_size} trips to the database.', time=True)
         self.database.write_trips(trips)
+
         if not silent:
-            pr.print('ABM trip data parsing complete.', time=True)
             pr.print('Trips Parsing Progress', persist=True, replace=True,
                 frmt='bold', progress=1)
             pr.push()
+            pr.print('ABM trip data parsing complete.', time=True)
+            pr.print('Merging tables and dropping temporaries.', time=True)
+        
+        self.database.drop_table('trips')
+        self.database.create_all_idxs('temp_trips', silent=True)
+        self.database.join_trips()
+        self.database.drop_table('temp_trips')
+        del self.database.tables['temp_trips']    
 
     def create_idxs(self, silent=False):
         if not silent:

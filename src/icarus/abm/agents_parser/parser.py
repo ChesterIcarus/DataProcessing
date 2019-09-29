@@ -1,7 +1,7 @@
 
 import csv
 
-from icarus.abm.agents_parser.parser import AgentsParserDatabase
+from icarus.abm.agents_parser.database import AgentsParserDatabase
 from icarus.util.print import Printer as pr
 
 class AgentsParser:
@@ -50,7 +50,6 @@ class AgentsParser:
                 int(agent[cols['schoolMaz']]),
                 int(agent[cols['campusBusinessTaz']]),
                 int(agent[cols['campusBusinessMaz']]),
-                int(agent[cols['usualCarID']]),
                 int(agent[cols['dailyActivityPattern']])))
             agent_id += 1
 
@@ -74,8 +73,6 @@ class AgentsParser:
             pr.print('Agent Parsing Progress', persist=True, replace=True,
                 frmt='bold', progress=1)
             pr.push()
-
-
 
     def create_idxs(self, silent=False):
         if not silent:
