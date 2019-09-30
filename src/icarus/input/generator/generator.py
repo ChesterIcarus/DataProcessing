@@ -26,7 +26,7 @@ class PlansGenerator:
         return (self.time(act[3]), self.decoding['activity'][act[4]], act[5], act[6])
     
     def encode_route(self, route):
-        return (self.time(route[3]), self.decoding['mode'][route[2]])
+        return (self.time(route[3]), self.encoding['mode'][str(route[2])])
     
     def encode_act(self, act):
         return (self.time(act[2]), self.time(act[3]),
@@ -36,8 +36,8 @@ class PlansGenerator:
             modes=[], sample=1, bin_size=100000):
         pr.print('Beginning simulation input plans generation.', time=True)
 
-        modes = tuple(self.encoding['mode'][mode] for mode in modes 
-            if mode in self.encoding['mode'].keys())
+        # modes = tuple(self.encoding['mode'][mode] for mode in modes 
+        #     if mode in self.encoding['mode'].keys())
 
         if len(region):
             pr.print('Fetching MAZs in the specified region.', time = True)
@@ -73,12 +73,16 @@ class PlansGenerator:
             activities = list(self.database.get_activities(agents))
             pr.print('Writing activity and route data to plans file.', time=True)
             for plan in group:
-                planfile.write(plan_frmt % plan[0])
-                planfile.write(start_frmt % self.encode_start(activities.pop(0)))
-                for i in range(plan[1] // 2):
-                    planfile.write(route_frmt % self.encode_route(routes.pop(0)))
-                    planfile.write(act_frmt % self.encode_act(activities.pop(0)))
-                planfile.write('</plan></person>')
+                try:
+                    planfile.write(plan_frmt % plan[0])
+                    planfile.write(start_frmt % self.encode_start(activities.pop(0)))
+                    for i in range(plan[1] // 2):
+                        planfile.write(route_frmt % self.encode_route(routes.pop(0)))
+                        planfile.write(act_frmt % self.encode_act(activities.pop(0)))
+                    planfile.write('</plan></person>')
+                except Exception as err:
+                    print(plan)
+                    raise err
             planfile.flush()
             total += size
             pr.print('Plans File Generation Progress', persist=True, replace=True,

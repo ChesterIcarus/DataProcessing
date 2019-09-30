@@ -47,12 +47,12 @@ class PlansParser:
             pr.print(f'Fetching trips for households {min_hh} to {max_hh}.', time=True)
             trips = self.database.get_trips(min_hh, max_hh)
 
-            hhid = 0
-            hhidx = 0
-            hhmaz = 0
+            hhid = -1
+            hhidx = -1
+            hhmaz = -1
             hhapn = ''
-            agid = 0
-            agidx = 0
+            agid = -1
+            agidx = -1
             used = False
             valid = True
 

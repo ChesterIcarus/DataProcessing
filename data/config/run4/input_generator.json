@@ -1,6 +1,6 @@
 {
-    "savepath": "/home/Shared/matsim/run3/input/plans.xml",
-    "sample": 0.025,
+    "savepath": "/home/Shared/matsim/run4/input/plans.xml",
+    "sample": 1,
     "time": [],
     "region": [],
     "types": [],

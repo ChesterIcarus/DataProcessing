@@ -16,12 +16,13 @@ class PlansGeneratorDatabase(DatabaseHandle):
         return tuple(row[0] for row in self.cursor.fetchall())
 
     def get_plans(self, mazs=[], modes=[], sample=1):
+        modes = tuple(modes)
         mode = len(modes)
         maz = len(mazs)
         subquery = f'''
             (SELECT
                 plans.agent_id,
-                plans.plan_size AS size
+                plans.plan_size
                 {", COUNT(*) AS rtcount" if mode else ""}
             FROM {self.db}.agents AS plans
             {f"""
@@ -38,7 +39,7 @@ class PlansGeneratorDatabase(DatabaseHandle):
             {"""
             GROUP BY 
                 plans.agent_id,
-                plans.size
+                plans.plan_size
             """ if mode else ""}
             ) AS temp
         '''
@@ -47,8 +48,10 @@ class PlansGeneratorDatabase(DatabaseHandle):
                 agent_id,
                 plan_size
             FROM {subquery if maz or mode else f"{self.db}.agents"}
-            {"WHERE size div 2 = temp.rtcount" if mode else ""}
-            {f"WHERE RAND() <= {sample}" if sample < 1 else ""}
+            {"WHERE" if mode or sample < 1 else ""}
+            {"plan_size DIV 2 = temp.rtcount" if mode else ""}
+            {"AND" if mode and sample < 1 else ""}
+            {f"RAND() <= {sample}" if sample < 1 else ""}
             ORDER BY agent_id
         '''
         self.cursor.execute(query)
