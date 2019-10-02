@@ -4,7 +4,9 @@
     "create_idxs": true,
     "verify": true,
     "seed": 1234,
-    "modes": [],
+    "modes": [
+        1
+    ],
     "acts": [
         0, 1, 2, 3, 5, 6, 7,
         71, 72, 73, 8, 9, 10,
@@ -14,7 +16,7 @@
     "database": {
         "user": "validation",
         "host": "localhost",
-        "db": "input",
+        "db": "input_carsonly",
         "abm_db": "abm2018",
         "unix_socket": "/home/mysql/mysql.sock",
         "password": "",

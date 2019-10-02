@@ -1,24 +1,15 @@
 
 import os
-import sys
-import json
 import gzip
 import shutil
 
 import numpy as np
 
-from argparse import ArgumentParser
-from getpass import getpass
 from datetime import datetime
-from typing import Dict, List, Tuple
 from xml.etree.ElementTree import iterparse
 
-if __name__ == '__main__':
-    sys.path.insert(1, os.path.join(sys.path[0], '../..'))
-
-from output.plans_parser.database import PlansParserDatabase
-from  icarus.util.print import Printer as pr
-
+from icarus.output.plans_parser.database import PlansParserDatabase
+from icarus.util.print import Printer as pr
 
 class PlansParser:
     def __init__(self, database, encoding):
@@ -102,7 +93,7 @@ class PlansParser:
                         act_id,
                         agent_id,
                         act_idx,
-                        # apn 
+                        # apn, 
                         self.encoding['activity'][elem.get('type')],
                         start,
                         end,
@@ -137,7 +128,7 @@ class PlansParser:
             pr.print(f'Creating all indexes in database "{self.database.db}"".',
                 time=True)
         for tbl in self.database.tables:
-            parser.database.create_all_idxs(tbl)
+            self.database.create_all_idxs(tbl)
         if not silent:
             pr.print(f'Index creating complete.', time=True)
 
@@ -145,57 +136,3 @@ class PlansParser:
         pr.print(f'Beginning contradiction analysis.', time=True)
         
         pr.print(f'Contradiction analysis complete.', time=True)
-
-if __name__ == '__main__':
-    parser = ArgumentParser(prog='AgentsParser',
-        description='Parses MATSim output into activites and routes in SQL.')
-    parser.add_argument('--config', type=str,  dest='config',
-        default=(os.path.dirname(os.path.abspath(__file__)) + '/config.json'),
-        help=('Specify a config file location; default is "config.json" in '
-            'the current working directory.'))
-    parser.add_argument('--log', type=str, dest='log',
-        help='specify a log file location; by default the log will not be saved',
-        default=None)
-    args = parser.parse_args()
-
-    try:
-        if args.log is not None:
-            pr.log(args.log)
-
-        with open(args.config) as handle:
-            config = json.load(handle)
-
-        database = config['database']
-        encoding = config['encoding']
-
-        database['password'] = getpass(
-            f'SQL password for {database["user"]}@localhost: ')
-
-        parser = PlansParser(database, encoding)
-
-        if not config['resume']:
-            for table in database['tables'].keys():
-                parser.database.create_table(table)
-
-        options = ('silent', 'bin_size', 'resume')
-        params = {key:config[key] for key in options if key in config}
-
-        parser.parse(config['filepath'], **params)
-
-        if config['create_idxs']:
-            parser.index()
-
-        if config['verify']:
-            parser.verify()
-
-    except FileNotFoundError as err:
-        print(f'Config file {args.config} not found.')
-        quit()
-    except json.JSONDecodeError as err:
-        print(f'Config file {args.config} is not valid JSON.')
-        quit()
-    except KeyError as err:
-        print(f'Config file {args.config} is not valid config file.')
-        quit()
-    except Exception as err:
-        raise(err)

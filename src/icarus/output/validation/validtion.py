@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 if __name__ == '__main__':
     sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
-from output.validation.database import ValidationDatabase
+from icarus.output.validation.database import ValidationDatabase
 from icarus.util.print import Printer as pr
 
 class OutputValidation:

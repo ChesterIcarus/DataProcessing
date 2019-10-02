@@ -16,8 +16,8 @@ class AgentsParser:
             pr.print(f'Loading process metadata and resources.', time=True)
 
         target = sum(1 for l in open(sourcepath, 'r')) - 1
-        tripsfile = open(sourcepath, 'r', newline='')
-        parser = csv.reader(tripsfile, delimiter=',', quotechar='"')
+        agentsfile = open(sourcepath, 'r', newline='')
+        parser = csv.reader(agentsfile, delimiter=',', quotechar='"')
         top = next(parser)
         cols = {key: val for key, val in zip(top, range(len(top)))}
 

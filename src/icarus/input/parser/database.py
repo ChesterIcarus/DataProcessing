@@ -14,7 +14,7 @@ class PlansParserDatabase(DatabaseHandle):
         self.cursor.execute(query)
         return self.cursor.fetchall()[0][0]
 
-    def get_parcels(self, db, tbl, seed=''):
+    def get_parcels(self, db, tbl, seed=None):
         if seed is None:
             seed = ''
         query = f'''
@@ -45,6 +45,9 @@ class PlansParserDatabase(DatabaseHandle):
             FROM {self.abm_db}.trips
             WHERE household_id >= {min_hh}
             AND household_id < {max_hh}
+            ORDER BY 
+                household_id,
+                household_idx
         '''
         self.cursor.execute(query)
         return self.cursor.fetchall()
