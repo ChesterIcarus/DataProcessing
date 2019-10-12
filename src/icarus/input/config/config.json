@@ -1,0 +1,42 @@
+{
+    "input": {
+        "plans_file": "",
+        "config_file": ""
+    },
+    "output": {
+        "output_dir": "",
+        "iterations": 10,
+        "save_charts_it": 1,
+        "save_plans_it": 1,
+        "save_events_it": 5
+    },
+    "simulation": {
+        "threads": 10
+    },
+    "activitities": [
+        "home",
+        "workplace",
+        "university",
+        "school",
+        "shopping",
+        "other_maintenence",
+        "eating",
+        "breakfast",
+        "lunch",
+        "dinner",
+        "visiting",
+        "other_discretionary",
+        "special_event",
+        "work",
+        "work_business",
+        "work_lunch",
+        "work_other",
+        "work_related",
+        "asu_related"
+    ],
+    "modes": [
+        "car",
+        "bike",
+        "walk"
+    ]
+}

@@ -120,7 +120,8 @@ class ValidationDatabase(DatabaseHandle):
             ) AS temp
         '''
         self.cursor.execute(query)
-        return self.rmse(tbl, col) / float(self.cursor.fetchall()[0][0])
+        coeff = self.cursor.fetchall()[0][0]
+        return self.rmse(tbl, col) / float(coeff)
 
     def bias(self, tbl, col):
         query = f'''

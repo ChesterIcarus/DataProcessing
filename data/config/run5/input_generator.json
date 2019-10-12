@@ -1,16 +1,16 @@
 {
-    "savepath": "/home/Shared/matsim/run3/input/plans.xml",
+    "savepath": "/home/Shared/matsim/run5/input/plans.xml",
     "sample": 0.025,
     "time": [],
     "region": [],
     "types": [],
     "modes": [],
     "silent": false,
-    "bin_size": 100000,
+    "bin_size": 50000,
     "database": {
         "user": "validation",
         "host": "localhost",
-        "db": "input",
+        "db": "input_nohov",
         "unix_socket": "/home/mysql/mysql.sock",
         "password": "" 
     },
