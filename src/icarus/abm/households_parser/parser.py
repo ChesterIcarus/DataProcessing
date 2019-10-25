@@ -22,6 +22,10 @@ class HouseholdsParser:
         cols = {key: val for key, val in zip(top, range(len(top)))}
 
         households = []
+        household_id = 0
+        vehicles = []
+        vehicle_id = 0
+
         hhid = 0
 
         if not silent:
@@ -30,8 +34,9 @@ class HouseholdsParser:
                 frmt='bold', progress=hhid/target)
         
         for household in parser:
+            household_id = int(household[cols['hhid']])
             households.append((
-                int(household[cols['hhid']]),
+                household_id,
                 float(household[cols['pumsSerialNo']]),
                 int(household[cols['homeTaz']]),
                 int(household[cols['homeMaz']]),
@@ -50,12 +55,21 @@ class HouseholdsParser:
                 int(household[cols['ifAvHousehold']])))
             hhid += 1
 
+            for vehicle in range(int(household[cols['hhNumAutos']])):
+                vehicles.append([
+                    vehicle_id,
+                    household_id,
+                    vehicle + 1 ])
+                vehicle_id += 1
+
             if hhid % bin_size == 0:
                 if not silent:
                     pr.print(f'Pushing {bin_size} households to database.',
                         time=True)
                 self.database.write_households(households)
+                self.database.write_vehicles(vehicles)
                 households = []
+                vehicles = []
                 if not silent:
                     pr.print('Resuming household CSV file parsing.', time=True)
                     pr.print('Household Parsing Progress', persist=True,

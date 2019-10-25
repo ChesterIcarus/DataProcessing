@@ -1,12 +1,12 @@
 {
     "input": {
-        "plans_file": "",
-        "config_file": "",
-        "network_file": ""
+        "config_file": "/home/Shared/matsim/run5/input/config.xml",
+        "plans_file": "/home/Shared/matsim/run5/input/plans.xml",
+        "network_file": "/home/Shared/matsim/run5/input/network.xml"
     },
     "output": {
-        "output_dir": "",
-        "iterations": 10,
+        "output_dir": "/home/Shared/matsim/run5/output/",
+        "iterations": 11,
         "save_charts_it": 1,
         "save_plans_it": 1,
         "save_events_it": 5
@@ -14,7 +14,7 @@
     "simulation": {
         "threads": 10
     },
-    "activitities": [
+    "activities": [
         "home",
         "workplace",
         "university",

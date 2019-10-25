@@ -59,7 +59,7 @@ class TripsParser:
                 int(trip[cols['origTaz']]),
                 int(trip[cols['origMaz']]),
                 int(trip[cols['destTaz']]),
-                int(trip[cols['origMaz']]),
+                int(trip[cols['destMaz']]),
                 int(trip[cols['origPurp']]),
                 int(trip[cols['destPurp']]),
                 int(trip[cols['mode']]),

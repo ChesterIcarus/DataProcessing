@@ -22,7 +22,9 @@ class PlansParser:
         groups = list(range(0, target_household, bin_size)) + [target_household]
         households = zip(groups[:-1], groups[1:])
 
-        parcels = self.database.get_parcels(seed=seed)
+        residences = self.database.get_parcels('network', 'residences', seed=seed)
+        commerces = self.database.get_parcels('network', 'commerces', seed=seed)
+        residx = defaultdict(int)
 
         cols = ('trip_id', 'household_id', 'household_idx', 'agent_id',
             'agent_idx', 'origin_taz', 'origin_maz', 'dest_taz', 'dest_maz',
@@ -36,24 +38,28 @@ class PlansParser:
 
         activity_id = 0
         route_id = 0
-
+        agent_id = 0
+        household_id = 0
+        vehicle_id = 1
         count = defaultdict(int)
 
         for min_hh, max_hh in households:
             pr.print(f'Fetching trips for households {min_hh} to {max_hh}.', time=True)
             trips = self.database.get_trips(min_hh, max_hh)
 
-            agid = 0
-            agidx = 0
-            hhid = 0
-            hhidx = 0
-            hhmaz = 0
+            hhid = -1
+            hhidx = -1
+            hhmaz = -1
             hhapn = ''
-
+            agid = -1
+            agidx = -1
+            used = False
             valid = True
 
             agent_routes = []
             agent_acts = []
+
+            hhvehcs = [0]*10
 
             agents = []
             routes = []
@@ -61,73 +67,75 @@ class PlansParser:
 
             pr.print(f'Processing trips into plans.', time=True)
             for trip in trips:
-
-                agidx = trip[keys['agent_idx']]
-                hhidx = trip[keys['household_idx']]
-
-                if agid == 0:
+                if (agid != trip[keys['agent_id']] or
+                        hhid != trip[keys['household_id']]):
+                    hhidx += 1
+                    agidx = 0
                     count['total'] += 1
                     if not valid:
-                        count['bad plan'] += 1
                         valid = True
+                        count['bad'] += 1
                         activity_id -= len(agent_acts)
                         route_id -= len(agent_routes)
                     elif len(agent_acts):
+                        used = True
                         agents.append((
                             agid,
-                            hhid,
+                            household_id,
                             hhidx,
                             len(agent_routes) + len(agent_acts)))
                         agent_id += 1
                         routes.extend(agent_routes)
                         activities.extend(agent_acts)
-
                     agent_routes = []
                     agent_acts = []
                     agid = trip[keys['agent_id']]
 
-                if hhidx == 0:
+                if hhid != trip[keys['household_id']]:
+                    if used:
+                        household_id += 1
+                    hhidx = 0
+                    hhvehcs = [0]*10
                     hhid = trip[keys['household_id']]
                     hhmaz = trip[keys['origin_maz']]
-                    if hhmaz in parcels:
-                        hhapn = parcels[hhmaz][randint(0, len(parcels[hhmaz]) - 1)]
-                    else:
-                        hhapn = ''
+                    used = False
+                    if hhmaz in residences:
+                        hhapn = residences[hhmaz][residx[hhmaz]]
+                        residx[hhmaz] = (residx[hhmaz] + 1) % len(residences[hhmaz])
+                    elif hhmaz in commerces:
+                        hhapn = commerces[hhmaz][randint(0, len(commerces[hhmaz]))-1]
 
                 if not valid:
                     continue
 
                 maz = trip[keys['dest_maz']]
-                act = trip[keys['dest_act']]
-                mode = trip[keys['mode']]
-
-                if act not in acts and len(acts):
+                if trip[keys['dest_act']] not in acts and len(acts):
                     count['bad act'] += 1
                     valid = False
-                if mode not in modes and len(modes):
+                    continue
+                elif trip[keys['mode']] not in modes and len(modes):
                     count['bad mode'] += 1
                     valid = False
-                
-                if hhapn == '':
-                    count['bad apn'] += 1
-                    valid = False
-                elif act == 0 and maz == hhmaz:
+                    continue
+                elif not trip[keys['dest_act']] and maz == hhmaz:
                     apn = hhapn
-                elif maz in parcels:
-                    apn = parcels[maz][randint(0, len(parcels[maz]) - 1)]
+                elif maz in commerces:
+                    apn = commerces[maz][randint(0, len(commerces[maz]))-1]
+                elif maz in residences:
+                    apn = residences[maz][randint(0, len(residences[maz]))-1]
                 else:
                     count['bad apn'] += 1
                     valid = False
-
-                if not valid:
                     continue
 
-                depart = trip[keys['depart_time']]
-                arrive = trip[keys['depart_time']]
-                duration = trip[keys['act_duration']]
-                vehicle = trip[keys['vehicle_id']]
+                vehc = trip[keys['vehicle_id']]
+                if vehc:
+                    if not hhvehcs[vehc]:
+                        hhvehcs[vehc] = vehicle_id
+                        vehicle_id += 1
+                    vehc = hhvehcs[vehc]
 
-                if agidx == 0:
+                if not agidx:
                     agent_acts.append((
                         activity_id,
                         agid,
@@ -136,19 +144,19 @@ class PlansParser:
                         hhapn,
                         0,
                         0,
-                        depart,
-                        arrive))
+                        trip[keys['depart_time']],
+                        trip[keys['depart_time']]))
                     activity_id += 1
                 
                 agent_routes.append((
                     route_id,
                     agid,
                     agidx,
-                    mode,
-                    vehicle,
-                    depart,
-                    arrive,
-                    arrive - depart))
+                    trip[keys['mode']],
+                    vehc,
+                    trip[keys['depart_time']],
+                    trip[keys['arrive_time']],
+                    trip[keys['arrive_time']] - trip[keys['depart_time']]))
                 route_id += 1
 
                 agent_acts.append((
@@ -157,11 +165,13 @@ class PlansParser:
                     agidx + 1,
                     maz,
                     apn,
-                    act,
-                    arrive,
-                    arrive + duration,
-                    duration))
+                    trip[keys['dest_act']],
+                    trip[keys['arrive_time']],
+                    trip[keys['arrive_time']] + trip[keys['act_duration']],
+                    trip[keys['act_duration']]))
                 activity_id += 1
+
+                agidx += 1
 
             pr.print(f'Pushing {len(agents)} plans to database.', time=True)
             self.database.write_activities(activities)

@@ -18,7 +18,7 @@ class DropboxUtil:
         
     @classmethod
     def connect(self, key):
-        self.dbx = dropbox.Dropbox(key)
+        self.dbx = dropbox.Dropbox(key, timeout=30)
 
     @classmethod
     def shell(self, key=None):
@@ -41,9 +41,13 @@ class DropboxUtil:
         if file_size <= CHUNK_SIZE:
             self.dbx.files_upload(local_file.read(), dest_path)
         else:
+            pr.print('building session')
             session = self.dbx.files_upload_session_start(local_file.read(CHUNK_SIZE))
+            pr.print('creating cursor')
             cursor = dropbox.files.UploadSessionCursor(session_id=session.session_id, offset=local_file.tell())
+            pr.print('building commit')
             commit = dropbox.files.CommitInfo(path=dest_path)
+            pr.print('iterating')
             while local_file.tell() < file_size:
                 if file_size - local_file.tell() <= CHUNK_SIZE:
                     self.dbx.files_upload_session_finish(local_file.read(CHUNK_SIZE), cursor, commit)
@@ -213,8 +217,9 @@ class DropboxUtil:
                         drop = self.decode_dir(self.drop_dir, args[1])
                         pr.print('uploading file to dropbox')
                         self.upload(local, drop)
-                    except Exception:
+                    except Exception as err:
                         pr.print('invalid dropbox file path')
+                        raise(err)
                 else:
                     pr.print('invalid local file path')
             else:

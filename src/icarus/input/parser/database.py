@@ -14,14 +14,15 @@ class PlansParserDatabase(DatabaseHandle):
         self.cursor.execute(query)
         return self.cursor.fetchall()[0][0]
 
-    def get_parcels(self, db, tbl, seed=None):
+
+    def get_parcels(self, seed=None):
         if seed is None:
             seed = ''
         query = f'''
             SELECT
                 maz,
                 apn
-            FROM {db}.{tbl}
+            FROM network.parcels
             ORDER BY
                 maz,
                 RAND({seed})
@@ -39,18 +40,38 @@ class PlansParserDatabase(DatabaseHandle):
             last_maz = row[0]
         return parcels
 
+
     def get_trips(self, min_hh, max_hh):
         query = f'''
-            SELECT *
-            FROM {self.abm_db}.trips
+            SELECT
+                trips.trip_id,
+                trips.household_id,
+                trips.household_idx,
+                trips.agent_id,
+                trips.agent_idx,
+                trips.origin_taz,
+                trips.origin_maz,
+                trips.dest_taz,
+                trips.dest_maz,
+                trips.origin_act,
+                trips.dest_act,
+                trips.mode,
+                vehicles.vehicle_id,
+                trips.depart_time,
+                trips.arrive_time,
+                trips.act_duration
+            FROM {self.abm_db}.trips AS trips
+            INNER JOIN {self.abm_db}.vehicles AS vehicles
+            ON trips.household_id = vehicles.household_id
+            AND trips.vehicle_id = vehicles.household_idx
             WHERE household_id >= {min_hh}
             AND household_id < {max_hh}
             ORDER BY 
                 household_id,
-                household_idx
-        '''
+                household_idx '''
         self.cursor.execute(query)
         return self.cursor.fetchall()
+
 
     def write_agents(self, agents):
         self.write_rows(agents, 'agents')

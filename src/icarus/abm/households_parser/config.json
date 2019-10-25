@@ -35,6 +35,22 @@
                 "btree_idxs": {},
                 "hash_idxs": {},
                 "spatial_idxs": {}
+            },
+            "vehicles": {
+                "schema": [
+                    "vehicle_id MEDIUMINT UNSIGNED",
+                    "household_id MEDIUMINT UNSIGNED",
+                    "household_idx TINYINT UNSIGNED"
+                ],
+                "primary_idx": [ "vehicle_id" ],
+                "btree_idxs": {
+                    "household": [
+                        "household_id",
+                        "household_idx"
+                    ]
+                },
+                "hash_idxs": {},
+                "spatial_idxs": {}
             }
         }
     },

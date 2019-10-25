@@ -1,34 +1,188 @@
 
 import os
 
-
-
 class Config:
     def __init__(self, config):
         self.config = self.validate_config(config)
 
     @staticmethod
     def validate_config(config):
-        pass
+        # TODO Config input validation
+
+        return config
         
 
     def build_config(self):
-
         configfile = open(self.config['input']['config_file'], 'w')
 
-        configfile.write('''
-            <?xml version="1.0" encoding="UTF-8"?>
+        configfile.write('''<?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE config SYSTEM "http://www.matsim.org/files/dtd/config_v2.dtd">
             <config> ''')
         
-        self.module_planclaclscore(configfile)
+        self.module_network(configfile)
+        self.module_plans(configfile)
+        self.module_controler(configfile)
+        self.module_global(configfile)
+        self.module_jdeqsim(configfile)
+        self.module_strategy(configfile)
+        self.module_plancalcscore(configfile)
+        self.module_planscalcroute(configfile)
+        self.module_qsim(configfile)
 
         configfile.write('</config>')
         configfile.close()
 
-    def module_planclaclscore(self, configfile):
 
-        configfile.write('<module name="planCalcScore" >')
+    def module_global(self, configfile):
+        configfile.write('<module name="global">')
+        
+        configfile.write('''
+            <param name="coordinateSystem" value="Atlantis" />
+            <param name="insistingOnDeprecatedConfigVersion" value="true" />
+            <param name="numberOfThreads" value="%s" />
+            <param name="randomSeed" value="4711" /> ''' %
+            self.config['simulation']['threads'])
+        
+        configfile.write('</module>')
+
+
+    def module_jdeqsim(self, configfile):
+        configfile.write('<module name="JDEQSim">')
+
+        configfile.write('''
+            <param name="carSize" value="7.5" />
+            <param name="endTime" value="undefined" />
+            <param name="flowCapacityFactor" value="1.0" />
+            <param name="gapTravelSpeed" value="15.0" />
+            <param name="minimumInFlowCapacity" value="1800.0" />
+            <param name="squeezeTime" value="1800.0" />
+            <param name="storageCapacityFactor" value="1.0" /> ''')
+
+        configfile.write('</module>')
+
+
+    def module_controler(self, configfile):
+        configfile.write('<module name="controler">')
+
+        configfile.write('<param name="outputDirectory" value="%s" />' %
+            self.config['output']['output_dir'])
+        configfile.write('<param name="firstIteration" value="0" />')
+        configfile.write('<param name="lastIteration" value="%s" />' %
+            (self.config['output']['iterations'] - 1))
+        configfile.write('<param name="writeEventsInterval" value="%s" />' %
+            self.config['output']['save_events_it'])
+        configfile.write('<param name="writePlansInterval" value="%s" />' %
+            self.config['output']['save_plans_it'])
+
+        configfile.write('</module>')
+
+
+    def module_network(self, configfile):
+        configfile.write('<module name="network">')
+
+        configfile.write('<param name="inputNetworkFile" value="%s" />' %
+            self.config['input']['network_file'])
+
+        configfile.write('</module>')
+
+
+    def module_plans(self, configfile):
+        configfile.write('<module name="plans">')
+
+        configfile.write('<param name="inputPlansFile" value="%s" />' %
+            self.config['input']['plans_file'])
+
+        configfile.write('</module>')
+
+
+    def module_qsim(self, configfile):
+        configfile.write('<module name="qsim">')
+
+        configfile.write('''
+        <param name="endTime" value="00:00:00" />
+		<param name="flowCapacityFactor" value="1.0" />
+		<param name="insertingWaitingVehiclesBeforeDrivingVehicles" value="true" />
+		<param name="isRestrictingSeepage" value="true" />
+		<param name="isSeepModeStorageFree" value="false" />
+		<param name="linkDynamics" value="FIFO" />
+		<param name="linkWidth" value="30.0" />
+		<param name="mainMode" value="car" />
+		<param name="nodeOffset" value="0.0" />
+		<param name="numberOfThreads" value="1" />
+		<param name="removeStuckVehicles" value="false" />
+		<param name="seepMode" value="bike" />
+		<param name="simEndtimeInterpretation" value="null" />
+		<param name="simStarttimeInterpretation" value="maxOfStarttimeAndEarliestActivityEnd" />
+		<param name="snapshotStyle" value="equiDist" />
+		<param name="snapshotperiod" value="00:00:00" />
+		<param name="startTime" value="00:00:00" />
+		<param name="storageCapacityFactor" value="1.0" />
+		<param name="stuckTime" value="10.0" />
+		<param name="timeStepSize" value="00:00:01" />
+		<param name="trafficDynamics" value="queue" />
+		<param name="useLanes" value="true" />
+		<param name="usePersonIdForMissingVehicleId" value="true" />
+		<param name="usingFastCapacityUpdate" value="true" />
+		<param name="usingThreadpool" value="true" />
+		<param name="vehicleBehavior" value="teleport" />
+		<param name="vehiclesSource" value="defaultVehicle" /> ''')        
+
+        configfile.write('</module>')
+
+    
+    def module_strategy(self, configfile):
+        configfile.write('<module name="strategy">')
+
+        configfile.write('''
+            <param name="ExternalExeConfigTemplate" value="null" />
+            <param name="ExternalExeTimeOut" value="3600" />
+            <param name="ExternalExeTmpFileRootDir" value="null" />
+            <param name="fractionOfIterationsToDisableInnovation" value="Infinity" />
+            <param name="maxAgentPlanMemorySize" value="5" />
+            <param name="planSelectorForRemoval" value="WorstPlanSelector" />
+            <parameterset type="strategysettings" >
+                <param name="disableAfterIteration" value="-1" />
+                <param name="executionPath" value="null" />
+                <param name="strategyName" value="BestScore" />
+                <param name="subpopulation" value="null" />
+                <param name="weight" value="0.9" />
+            </parameterset>
+            <parameterset type="strategysettings" >
+                <param name="disableAfterIteration" value="-1" />
+                <param name="executionPath" value="null" />
+                <param name="strategyName" value="ReRoute" />
+                <param name="subpopulation" value="null" />
+                <param name="weight" value="0.1" />
+            </parameterset> ''')
+        
+        configfile.write('</module>')
+
+
+    def module_planscalcroute(self, configfile):
+        configfile.write('<module name="planscalcroute">')
+
+        configfile.write('<param name="networkModes" value="%s" />' %
+            ', '.join(self.config['modes']))
+
+        teleport = '''
+            <parameterset type="teleportedModeParameters" >
+                <param name="beelineDistanceFactor" value="1.3" />
+                <param name="mode" value="%s" />
+                <param name="teleportedModeFreespeedFactor" value="null" />
+                <param name="teleportedModeSpeed" value="%s" />
+            </parameterset> '''
+
+        modes = (('access_walk', 5/6), ('egress_walk', 5/6), 
+            ('undefined', 125/9), ('ride', 1), ('pt', 2))
+
+        for mode in modes:
+            configfile.write(teleport % mode)
+
+        configfile.write('</module>')
+
+
+    def module_plancalcscore(self, configfile):
+        configfile.write('<module name="planCalcScore">')
 
         configfile.write('''
 		    <param name="BrainExpBeta" value="2.0" />
@@ -65,7 +219,7 @@ class Config:
 
         acts = ['default', 'other interaction', 'pt interaction']
         acts.extend([f'{mode} interaction' for mode in self.config['modes']])
-        acts.append(self.config['activities'])
+        acts.extend(self.config['activities'])
         
         for act in acts:
             configfile.write(activity_pattern % act)

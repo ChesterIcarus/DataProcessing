@@ -26,13 +26,12 @@ class MazParser:
         count = 0
         
         for item in parser:
-            if item.record.County == 'MC':
-                mazs.append((
-                    item.record.MAZ_ID_10,
-                    item.record.TAZ_2015,
-                    item.record.Sq_miles,
-                    self.encode_poly(item.shape.points)))
-                count += 1
+            mazs.append((
+                item.record.MAZ_ID_10,
+                item.record.TAZ_2015,
+                item.record.Sq_miles,
+                self.encode_poly(item.shape.points)))
+            count += 1
             if count % bin_size == 0:
                 pr.print(f'Pushing {bin_size} MAZs to database.', time=True)
                 self.database.push_mazs(mazs)
