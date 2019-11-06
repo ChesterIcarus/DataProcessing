@@ -20,6 +20,7 @@ class Config:
             <config> ''')
         
         self.module_network(configfile)
+        self.module_vehicles(configfile)
         self.module_plans(configfile)
         self.module_controler(configfile)
         self.module_global(configfile)
@@ -31,6 +32,14 @@ class Config:
 
         configfile.write('</config>')
         configfile.close()
+
+    def module_vehicles(self, configfile):
+        configfile.write('<module name="vehicles">')
+
+        configfile.write('<param name="vehiclesFile" value="%s" />' %
+            self.config['input']['vehicles_file'])
+
+        configfile.write('</module>')
 
 
     def module_global(self, configfile):
@@ -99,33 +108,35 @@ class Config:
         configfile.write('<module name="qsim">')
 
         configfile.write('''
-        <param name="endTime" value="00:00:00" />
-		<param name="flowCapacityFactor" value="1.0" />
-		<param name="insertingWaitingVehiclesBeforeDrivingVehicles" value="true" />
-		<param name="isRestrictingSeepage" value="true" />
-		<param name="isSeepModeStorageFree" value="false" />
-		<param name="linkDynamics" value="FIFO" />
-		<param name="linkWidth" value="30.0" />
-		<param name="mainMode" value="car" />
-		<param name="nodeOffset" value="0.0" />
-		<param name="numberOfThreads" value="1" />
-		<param name="removeStuckVehicles" value="false" />
-		<param name="seepMode" value="bike" />
-		<param name="simEndtimeInterpretation" value="null" />
-		<param name="simStarttimeInterpretation" value="maxOfStarttimeAndEarliestActivityEnd" />
-		<param name="snapshotStyle" value="equiDist" />
-		<param name="snapshotperiod" value="00:00:00" />
-		<param name="startTime" value="00:00:00" />
-		<param name="storageCapacityFactor" value="1.0" />
-		<param name="stuckTime" value="10.0" />
-		<param name="timeStepSize" value="00:00:01" />
-		<param name="trafficDynamics" value="queue" />
-		<param name="useLanes" value="true" />
-		<param name="usePersonIdForMissingVehicleId" value="true" />
-		<param name="usingFastCapacityUpdate" value="true" />
-		<param name="usingThreadpool" value="true" />
-		<param name="vehicleBehavior" value="teleport" />
-		<param name="vehiclesSource" value="defaultVehicle" /> ''')        
+            <param name="endTime" value="00:00:00" />
+            <param name="flowCapacityFactor" value="1.0" />
+            <param name="insertingWaitingVehiclesBeforeDrivingVehicles" value="true" />
+            <param name="isRestrictingSeepage" value="true" />
+            <param name="isSeepModeStorageFree" value="false" />
+            <param name="linkDynamics" value="PassingQ" />
+            <param name="linkWidth" value="30.0" />
+            <param name="mainMode" value="car" />
+            <param name="nodeOffset" value="0.0" />
+            <param name="numberOfThreads" value="20" />
+            <param name="removeStuckVehicles" value="false" />
+            <param name="seepMode" value="bike" />
+            <param name="simEndtimeInterpretation" value="null" />
+            <param name="simStarttimeInterpretation" value="maxOfStarttimeAndEarliestActivityEnd" />
+            <param name="snapshotStyle" value="equiDist" />
+            <param name="snapshotperiod" value="00:00:00" />
+            <param name="startTime" value="00:00:00" />
+            <param name="storageCapacityFactor" value="1.0" />
+            <param name="stuckTime" value="10.0" />
+            <param name="timeStepSize" value="00:00:01" />
+            <param name="trafficDynamics" value="queue" />
+            <param name="useLanes" value="true" />
+            <param name="usePersonIdForMissingVehicleId" value="true" />
+            <param name="usingFastCapacityUpdate" value="true" />
+            <param name="usingThreadpool" value="true" />
+            <param name="vehicleBehavior" value="teleport" />
+            <param name="vehiclesSource" value="modeVehicleTypesFromVehiclesData" /> ''')
+
+            # modeVehicleTypesFromVehiclesData,fromVehiclesData,defaultVehicle
 
         configfile.write('</module>')
 
@@ -172,8 +183,7 @@ class Config:
                 <param name="teleportedModeSpeed" value="%s" />
             </parameterset> '''
 
-        modes = (('access_walk', 5/6), ('egress_walk', 5/6), 
-            ('undefined', 125/9), ('ride', 1), ('pt', 2))
+        modes = [('pt', 2)]
 
         for mode in modes:
             configfile.write(teleport % mode)
@@ -212,17 +222,20 @@ class Config:
                 <param name="minimalDuration" value="undefined" />
                 <param name="openingTime" value="undefined" />
                 <param name="priority" value="1.0" />
-                <param name="scoringThisActivityAtAll" value="false" />
+                <param name="scoringThisActivityAtAll" value="%s" />
                 <param name="typicalDuration" value="12:00:00" />
                 <param name="typicalDurationScoreComputation" value="relative" />
             </parameterset> '''
 
         acts = ['default', 'other interaction', 'pt interaction']
         acts.extend([f'{mode} interaction' for mode in self.config['modes']])
-        acts.extend(self.config['activities'])
         
         for act in acts:
-            configfile.write(activity_pattern % act)
+            configfile.write(activity_pattern % (act, 'false'))
+
+        acts = self.config['activities']
+        for act in acts:
+            configfile.write(activity_pattern % (act, 'true'))
 
         mode_pattern = '''
             <parameterset type="modeParams" >

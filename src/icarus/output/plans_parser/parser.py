@@ -35,9 +35,6 @@ class PlansParser:
                 self.decompress_plans(filepath + '.gz', filepath)
             else:
                 raise FileNotFoundError
-
-        # residences = self.database.get_residences()
-        # commerces = self.database.get_commerces()
         
         parser = iterparse(filepath, events=('start', 'end'))
         parser = iter(parser)

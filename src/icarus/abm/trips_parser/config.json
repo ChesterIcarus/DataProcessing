@@ -2,7 +2,7 @@
     "sourcepath": "/home/Shared/source/abm/2018/trips.csv",
     "resume": false,
     "silent": false,
-    "bin_size": 100000,
+    "bin_size": 500000,
     "create_idxs": true,
     "database": {
         "user": "validation",

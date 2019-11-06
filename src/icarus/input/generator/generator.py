@@ -3,16 +3,23 @@ from icarus.input.generator.database import PlansGeneratorDatabase
 from icarus.util.print import Printer as pr
 
 class PlansGenerator:
+    plan_frmt = '<person id="%s"><plan selected="yes">'
+    route_frmt = '<leg trav_time="%s" mode="%s"/>'
+    act_frmt = '<act start_time="%s" end_time="%s" type="%s" x="%s" y="%s"/>'
+    start_frmt = '<act end_time="%s" type="%s" x="%s" y="%s"/>'
+
     def __init__(self, database, encoding):
         self.database = PlansGeneratorDatabase(database)
         self.encoding = encoding
-        self.decoding = {name: {v: k for k, v in encoding[name].items()} 
-            for name in encoding.keys()}
+        self.decoding = {name: {v: k for k, v in values.items()} 
+            for name, values in encoding.items()}
+
 
     @staticmethod
     def chunk(arr, n):
         for i in range(0, len(arr), n):
             yield arr[i: i+n]
+
 
     @staticmethod
     def time(secs):
@@ -22,22 +29,24 @@ class PlansGenerator:
         secs -= mins * 60
         return ':'.join(str(t).zfill(2) for t in (hours, mins, secs))
 
-    def encode_start(self, act):
-        return (self.time(act[3]), self.decoding['activity'][act[4]], act[5], act[6])
     
     def encode_route(self, route):
-        return (self.time(route[3]), self.encoding['mode'][str(route[2])])
+        return self.route_frmt % (self.time(route[3]), 
+            self.encoding['mode'][str(route[2])])
+
     
     def encode_act(self, act):
-        return (self.time(act[2]), self.time(act[3]),
-            self.decoding['activity'][act[4]], act[5], act[6])
+        if act[2] > 0:
+            return self.act_frmt % (self.time(act[2]), self.time(act[3]),
+                self.decoding['activity'][act[4]], act[5], act[6])
+        else:
+            return self.start_frmt % (self.time(act[3]), 
+                self.decoding['activity'][act[4]], act[5], act[6])
+
     
-    def generate_plans(self, savepath, region=[], time=[], 
+    def generate_plans(self, planpath, region=[], time=[], 
             modes=[], sample=1, bin_size=100000):
         pr.print('Beginning simulation input plans generation.', time=True)
-
-        # modes = tuple(self.encoding['mode'][mode] for mode in modes 
-        #     if mode in self.encoding['mode'].keys())
 
         if len(region):
             pr.print('Fetching MAZs in the specified region.', time = True)
@@ -55,12 +64,7 @@ class PlansGenerator:
         pr.print('Iterating over plans and generating plans file.', time=True)
         pr.print('Plans File Generation Progress', persist=True, replace=True,
             frmt='bold', progress=0)
-        planfile = open(savepath, 'w')
-
-        plan_frmt = '<person id="%s"><plan selected="yes">'
-        route_frmt = '<leg trav_time="%s" mode="%s"/>'
-        act_frmt = '<act start_time="%s" end_time="%s" type="%s" x="%s" y="%s"/>'
-        start_frmt = '<act end_time="%s" type="%s" x="%s" y="%s"/>'
+        planfile = open(planpath, 'w')
 
         total = 0
         planfile.write('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE plans'
@@ -73,16 +77,12 @@ class PlansGenerator:
             activities = list(self.database.get_activities(agents))
             pr.print('Writing activity and route data to plans file.', time=True)
             for plan in group:
-                try:
-                    planfile.write(plan_frmt % plan[0])
-                    planfile.write(start_frmt % self.encode_start(activities.pop(0)))
-                    for i in range(plan[1] // 2):
-                        planfile.write(route_frmt % self.encode_route(routes.pop(0)))
-                        planfile.write(act_frmt % self.encode_act(activities.pop(0)))
-                    planfile.write('</plan></person>')
-                except Exception as err:
-                    print(plan)
-                    raise err
+                planfile.write(self.plan_frmt % plan[0])
+                planfile.write(self.encode_act(activities.pop(0)))
+                for i in range(plan[1] // 2):
+                    planfile.write(self.encode_route(routes.pop(0)))
+                    planfile.write(self.encode_act(activities.pop(0)))
+                planfile.write('</plan></person>')
             planfile.flush()
             total += size
             pr.print('Plans File Generation Progress', persist=True, replace=True,
@@ -93,4 +93,5 @@ class PlansGenerator:
         pr.print('Plans File Generation Progress', persist=True, replace=True,
             frmt='bold', progress=1)
         pr.push()
+
         pr.print('Simulation input plans generation complete.', time=True)

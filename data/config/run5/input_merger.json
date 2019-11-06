@@ -1,0 +1,11 @@
+{
+    "planspath": "/home/Shared/matsim/run5/output/ITERS/it.0/0.plans.xml",
+    "vehiclesfile": "/home/Shared/matsim/run5/input/vehicles.xml",
+    "database": {
+        "user": "validation",
+        "host": "localhost",
+        "db": "input_all",
+        "unix_socket": "/home/mysql/mysql.sock",
+        "password": "" 
+    }
+}

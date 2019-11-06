@@ -4,8 +4,10 @@ from  icarus.util.database import DatabaseHandle
 class ParcelDatabseHandle(DatabaseHandle):
     def create_temp(self):
         self.tables['temp_residences'] = self.tables['residences']
-        self.create_table('temp_residences')
+        del self.tables['temp_residences']['spatial_idxs']
         self.tables['temp_commerces'] = self.tables['commerces']
+        del self.tables['temp_commerces']['spatial_idxs']
+        self.create_table('temp_residences')
         self.create_table('temp_commerces')
 
     def count_parcels(self):
@@ -21,7 +23,7 @@ class ParcelDatabseHandle(DatabaseHandle):
         query = f'''
             INSERT INTO {self.db}.temp_residences
             VALUES(
-                %s, %s,
+                %s, %s, NULL,
                 ST_CENTROID(ST_GEOMETRYFROMTEXT(%s, 2223)),
                 ST_GEOMETRYFROMTEXT(%s, 2223))
             '''
@@ -32,7 +34,7 @@ class ParcelDatabseHandle(DatabaseHandle):
         query = f'''
             INSERT INTO {self.db}.temp_commerces
             VALUES(
-                %s, %s, 
+                %s, %s, NULL,
                 ST_CENTROID(ST_GEOMETRYFROMTEXT(%s, 2223)),
                 ST_GEOMETRYFROMTEXT(%s, 2223))
             '''
@@ -43,7 +45,7 @@ class ParcelDatabseHandle(DatabaseHandle):
         query = f'''
             CREATE TABLE {self.db}.residences AS
             SELECT
-                rp.parcel_id AS residence_id,
+                rp.residence_id AS residence_id,
                 rp.apn AS apn,
                 mazs.maz AS maz,
                 rp.center AS center,
@@ -57,15 +59,15 @@ class ParcelDatabseHandle(DatabaseHandle):
 
     def join_com_parcels(self):
         query = f'''
-            CREATE TABLE {self.db}.commerces AS
+            CREATE TABLE commerces AS
             SELECT
-                cp.parcel_id AS commerce_id,
+                cp.commerce_id AS commerce_id,
                 cp.apn AS apn,
                 mazs.maz AS maz,
                 cp.center AS center,
                 cp.region AS region
-            FROM {self.db}.temp_commerces AS cp
-            INNER JOIN {self.db}.mazs AS mazs
+            FROM temp_commerces AS cp
+            INNER JOIN mazs AS mazs
             ON ST_CONTAINS(mazs.region, cp.center)
         '''
         self.cursor.execute(query)

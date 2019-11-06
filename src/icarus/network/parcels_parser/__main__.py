@@ -12,7 +12,7 @@ from icarus.util.print import Printer as pr
 parser = ArgumentParser(prog='AgentsParser',
     description='Parse Maricopa parcel data into SQL database.')
 parser.add_argument('--config', type=str,  dest='config',
-    default=resource_filename('icarus', 'network/parcel_parser/config.json'),
+    default=resource_filename('icarus', 'network/parcels_parser/config.json'),
     help=('Specify a config file location; default is "config.json" in '
         'the current working directory.'), nargs=1)
 args = parser.parse_args()
@@ -41,7 +41,7 @@ except FileNotFoundError as err:
     print(f'Config file {args.config} not found.')
 except json.JSONDecodeError as err:
     print(f'Config file {args.config} is not valid JSON.')
-except KeyError as err:
-    print(f'Config file {args.config} is not valid config file.')
+# except KeyError as err:
+#     print(f'Config file {args.config} is not valid config file.')
 except Exception as err:
     raise(err)

@@ -15,14 +15,14 @@ class PlansParserDatabase(DatabaseHandle):
         return self.cursor.fetchall()[0][0]
 
 
-    def get_parcels(self, seed=None):
+    def get_parcels(self, table, seed=None):
         if seed is None:
             seed = ''
         query = f'''
             SELECT
                 maz,
                 apn
-            FROM network.parcels
+            FROM network.{table}
             ORDER BY
                 maz,
                 RAND({seed})
@@ -56,16 +56,16 @@ class PlansParserDatabase(DatabaseHandle):
                 trips.origin_act,
                 trips.dest_act,
                 trips.mode,
-                vehicles.vehicle_id,
+                IFNULL(vehicles.vehicle_id, 0),
                 trips.depart_time,
                 trips.arrive_time,
                 trips.act_duration
             FROM {self.abm_db}.trips AS trips
-            INNER JOIN {self.abm_db}.vehicles AS vehicles
+            LEFT JOIN {self.abm_db}.vehicles AS vehicles
             ON trips.household_id = vehicles.household_id
             AND trips.vehicle_id = vehicles.household_idx
-            WHERE household_id >= {min_hh}
-            AND household_id < {max_hh}
+            WHERE trips.household_id >= {min_hh}
+            AND trips.household_id < {max_hh}
             ORDER BY 
                 household_id,
                 household_idx '''
@@ -81,3 +81,4 @@ class PlansParserDatabase(DatabaseHandle):
 
     def write_routes(self, routes):
         self.write_rows(routes, 'routes')
+        

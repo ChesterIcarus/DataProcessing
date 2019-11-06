@@ -2,7 +2,8 @@
     "input": {
         "config_file": "/home/Shared/matsim/run5/input/config.xml",
         "plans_file": "/home/Shared/matsim/run5/input/plans.xml",
-        "network_file": "/home/Shared/matsim/run5/input/network.xml"
+        "network_file": "/home/Shared/matsim/run5/input/network.xml",
+        "vehicles_file": "/home/Shared/matsim/run5/input/vehicles.xml"
     },
     "output": {
         "output_dir": "/home/Shared/matsim/run5/output/",
@@ -12,7 +13,7 @@
         "save_events_it": 5
     },
     "simulation": {
-        "threads": 10
+        "threads": 20
     },
     "activities": [
         "home",
@@ -20,6 +21,11 @@
         "university",
         "school",
         "shopping",
+        "escort",
+        "school_escort",
+        "pure_escort",
+        "rideshare",
+        "other_escort",
         "other_maintenence",
         "eating",
         "breakfast",

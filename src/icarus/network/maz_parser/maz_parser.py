@@ -10,8 +10,12 @@ class MazParser:
     def __init__(self, database):
         self.database = MazParserDatabaseHandle(database)
 
-    @staticmethod        
+    @staticmethod
     def encode_poly(poly):
+        if len(poly) == 0:
+            return None
+        if poly[0] != poly[-1]:
+            poly.append(poly[0])
         return 'POLYGON((' + ','.join(str(pt[0]) + ' ' +
                 str(pt[1]) for pt in poly) + '))'
 

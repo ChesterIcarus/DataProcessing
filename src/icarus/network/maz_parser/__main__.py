@@ -42,7 +42,7 @@ except FileNotFoundError as err:
     print(f'Config file {args.config} not found.')
 except json.JSONDecodeError as err:
     print(f'Config file {args.config} is not valid JSON.')
-except KeyError as err:
-    print(f'Config file {args.config} is not valid config file.')
+# except KeyError as err:
+#     print(f'Config file {args.config} is not valid config file.')
 except Exception as err:
     raise(err)

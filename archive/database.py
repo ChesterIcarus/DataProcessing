@@ -15,7 +15,7 @@ class PlansGeneratorDatabase(DatabaseHandle):
         self.cursor.execute(query)
         return tuple(row[0] for row in self.cursor.fetchall())
 
-    def get_plans(self, mazs=[], modes=[], sample=1, seed=1234):
+    def get_plans(self, mazs=[], modes=[], sample=1):
         modes = tuple(modes)
         mode = len(modes)
         maz = len(mazs)
@@ -51,7 +51,7 @@ class PlansGeneratorDatabase(DatabaseHandle):
             {"WHERE" if mode or sample < 1 else ""}
             {"plan_size DIV 2 = temp.rtcount" if mode else ""}
             {"AND" if mode and sample < 1 else ""}
-            {f"RAND({seed}) <= {sample}" if sample < 1 else ""}
+            {f"RAND() <= {sample}" if sample < 1 else ""}
             ORDER BY agent_id
         '''
         self.cursor.execute(query)
@@ -96,11 +96,14 @@ class PlansGeneratorDatabase(DatabaseHandle):
         agent = len(agents)
         query = f'''
             SELECT
-                agent_id,
-                agent_idx,
-                mode,
-                dur_time
-            FROM {self.db}.routes
+                routes.agent_id,
+                routes.agent_idx,
+                routes.mode,
+                routes.dur_time,
+                vehicles.vehicle_id
+            FROM routes
+            LEFT JOIN abm2018.vehicles AS vehicles
+            USING(household_id, household_idx)
             {f"WHERE agent_id IN {agents}" if agent else ""}
             ORDER BY agent_id, agent_idx
         '''

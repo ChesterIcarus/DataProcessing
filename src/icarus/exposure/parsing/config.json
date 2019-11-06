@@ -1,0 +1,34 @@
+{
+    "database": {
+        "user": "validation",
+        "host": "localhost",
+        "db": "network",
+        "unix_socket": "/home/mysql/mysql.sock",
+        "password": "",
+        "tables": {
+            "centroids": {
+                "schema": [
+                    "centroid_id SMALLINT UNSIGNED",
+                    "temperature_id MEDIUMINT UNSINGED",
+                    "centeroid POINT NOT NULL"
+                ],
+                "primary_idx": [ "centroid_id" ],
+                "btree_idxs": {
+                    "temperature": [ "temperature_id" ]
+                },
+                "spatial_idxs": {
+                    "centroid": [ "centroid" ]
+                }
+            },
+            "temperatures": {
+                "schema": [
+                    "temperature_id MEDIUMINT UNSINGED",
+                    "temperature_idx TINYINT UNSINGED",
+                    "time MEDIUMINT UNSIGNED",
+                    "temperature FLOAT"
+                ],
+                "primary_idx": [ "centroid_id" ]
+            }
+        }
+    }
+}

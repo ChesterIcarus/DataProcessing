@@ -14,7 +14,7 @@ class PlansParser:
 
     def parse(self, modes=[], acts=[], bin_size=250000, resume=False, 
             silent=False, seed=None):
-        pr.print('Beginning parsing ABM data into MATsim input plans.', time=True)
+        pr.print('Beginning parsing ABM data into MATSim input plans.', time=True)
         pr.print('Loading process metadata and fetching reference data.', time=True)
 
         target_household = self.database.get_max(self.database.abm_db, 
@@ -22,7 +22,11 @@ class PlansParser:
         groups = list(range(0, target_household, bin_size)) + [target_household]
         households = zip(groups[:-1], groups[1:])
 
-        parcels = self.database.get_parcels(seed=seed)
+        residences = self.database.get_parcels('residences', seed=seed)
+        commerces = self.database.get_parcels('commerces', seed=seed)
+        default = self.database.get_parcels('mazparcels', seed=seed)
+
+        res = defaultdict(int)
 
         cols = ('trip_id', 'household_id', 'household_idx', 'agent_id',
             'agent_idx', 'origin_taz', 'origin_maz', 'dest_taz', 'dest_maz',
@@ -65,7 +69,7 @@ class PlansParser:
                 agidx = trip[keys['agent_idx']]
                 hhidx = trip[keys['household_idx']]
 
-                if agid == 0:
+                if agidx == 0:
                     count['total'] += 1
                     if not valid:
                         count['bad plan'] += 1
@@ -76,9 +80,8 @@ class PlansParser:
                         agents.append((
                             agid,
                             hhid,
-                            hhidx,
+                            None,
                             len(agent_routes) + len(agent_acts)))
-                        agent_id += 1
                         routes.extend(agent_routes)
                         activities.extend(agent_acts)
 
@@ -86,11 +89,16 @@ class PlansParser:
                     agent_acts = []
                     agid = trip[keys['agent_id']]
 
-                if hhidx == 0:
+                if hhidx == 1:
                     hhid = trip[keys['household_id']]
                     hhmaz = trip[keys['origin_maz']]
-                    if hhmaz in parcels:
-                        hhapn = parcels[hhmaz][randint(0, len(parcels[hhmaz]) - 1)]
+                    if hhmaz in residences:
+                        hhapn = residences[hhmaz][res[hhmaz]]
+                        res[hhmaz] = (res[hhmaz] + 1) % len(residences[hhmaz])
+                    elif hhmaz in commerces:
+                        hhapn = commerces[hhmaz][randint(0, len(commerces[hhmaz]) - 1)]
+                    elif hhmaz in default:
+                        hhapn = default[hhmaz]
                     else:
                         hhapn = ''
 
@@ -113,8 +121,12 @@ class PlansParser:
                     valid = False
                 elif act == 0 and maz == hhmaz:
                     apn = hhapn
-                elif maz in parcels:
-                    apn = parcels[maz][randint(0, len(parcels[maz]) - 1)]
+                elif maz in commerces:
+                    apn = commerces[maz][randint(0, len(commerces[maz]) - 1)]
+                elif maz in residences:
+                    apn = residences[maz][randint(0, len(residences[maz]) - 1)]
+                elif maz in default:
+                    apn = default[maz]
                 else:
                     count['bad apn'] += 1
                     valid = False
@@ -123,7 +135,7 @@ class PlansParser:
                     continue
 
                 depart = trip[keys['depart_time']]
-                arrive = trip[keys['depart_time']]
+                arrive = trip[keys['arrive_time']]
                 duration = trip[keys['act_duration']]
                 vehicle = trip[keys['vehicle_id']]
 
@@ -181,7 +193,7 @@ class PlansParser:
         pr.print(f'Input plans parsing complete.', time=True)
         pr.print('Plans filtering report:', time =True)
         pr.print(f'total: {count["total"]}')
-        pr.print(f'bad: {count["bad"]/count["total"]*100}')
+        pr.print(f'bad: {count["bad plan"]/count["total"]*100}')
         pr.print(f'bad act: {count["bad act"]/count["total"]*100}')
         pr.print(f'bad mode: {count["bad mode"]/count["total"]*100}')
         pr.print(f'bad apn: {count["bad apn"]/count["total"]*100}')

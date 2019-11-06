@@ -1,6 +1,7 @@
 {
     "sourcepath": "/home/Shared/source/maz_taz/maz_taz.shp",
     "create_idxs": true,
+    "resume": false,
     "database": {
         "user": "validation",
         "host": "localhost",
@@ -8,7 +9,7 @@
         "unix_socket": "/home/mysql/mysql.sock",
         "password": "",
         "tables": {
-            "maz": {
+            "mazs": {
                 "schema": [
                     "maz SMALLINT UNSIGNED",
                     "taz SMALLINT UNSIGNED",
