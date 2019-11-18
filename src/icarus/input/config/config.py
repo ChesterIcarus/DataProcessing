@@ -115,9 +115,9 @@ class Config:
             <param name="isSeepModeStorageFree" value="false" />
             <param name="linkDynamics" value="PassingQ" />
             <param name="linkWidth" value="30.0" />
-            <param name="mainMode" value="car" />
             <param name="nodeOffset" value="0.0" />
             <param name="numberOfThreads" value="20" />
+            <param name="mainMode" value="car" />
             <param name="removeStuckVehicles" value="false" />
             <param name="seepMode" value="bike" />
             <param name="simEndtimeInterpretation" value="null" />
@@ -130,13 +130,23 @@ class Config:
             <param name="timeStepSize" value="00:00:01" />
             <param name="trafficDynamics" value="queue" />
             <param name="useLanes" value="true" />
-            <param name="usePersonIdForMissingVehicleId" value="true" />
             <param name="usingFastCapacityUpdate" value="true" />
             <param name="usingThreadpool" value="true" />
-            <param name="vehicleBehavior" value="teleport" />
-            <param name="vehiclesSource" value="modeVehicleTypesFromVehiclesData" /> ''')
+            <param name="vehicleBehavior" value="teleport" />''')
 
-            # modeVehicleTypesFromVehiclesData,fromVehiclesData,defaultVehicle
+        # configfile.write('<param name="mainMode" value="%s" />' % 
+        #     ','.join(self.config['modes']))
+
+        if self.config['input']['init'] == True:
+            configfile.write('''
+                <param name="usePersonIdForMissingVehicleId" value="true" />
+                <param name="vehiclesSource" value="modeVehicleTypesFromVehiclesData" />
+            ''')
+        else:
+            configfile.write('''
+                <param name="usePersonIdForMissingVehicleId" value="false" />
+                <param name="vehiclesSource" value="fromVehiclesData" />
+            ''')
 
         configfile.write('</module>')
 

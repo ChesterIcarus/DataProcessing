@@ -15,7 +15,7 @@ class PlansGeneratorDatabase(DatabaseHandle):
         self.cursor.execute(query)
         return tuple(row[0] for row in self.cursor.fetchall())
 
-    def get_plans(self, mazs=[], modes=[], sample=1, seed=1234):
+    def get_plans(self, mazs=[], modes=[], sample=1, seed=4321):
         modes = tuple(modes)
         mode = len(modes)
         maz = len(mazs)

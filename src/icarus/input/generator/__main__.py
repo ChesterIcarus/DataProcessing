@@ -37,7 +37,7 @@ try:
 
     options = ('region', 'time', 'modes', 'sample', 'bin_size')
     params = {key: config[key] for key in options if key in config}
-    generator.generate_plans(config['planpath'], **params)
+    generator.generate_plans(config['planpath'], config['vehiclepath'], **params)
 
 except FileNotFoundError as err:
     print(f'Config file {args.config} not found.')

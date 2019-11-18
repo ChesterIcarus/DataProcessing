@@ -44,7 +44,7 @@ class PlansGenerator:
                 self.decoding['activity'][act[4]], act[5], act[6])
 
     
-    def generate_plans(self, planpath, region=[], time=[], 
+    def generate_plans(self, planpath, vehiclepath, region=[], time=[], 
             modes=[], sample=1, bin_size=100000):
         pr.print('Beginning simulation input plans generation.', time=True)
 
@@ -94,4 +94,45 @@ class PlansGenerator:
             frmt='bold', progress=1)
         pr.push()
 
+        vehiclesfile = open(vehiclepath, 'w')
+        
+        vehiclesfile.write('<?xml version="1.0" encoding="UTF-8" ?>'
+            '<vehicleDefinitions xmlns="http://www.matsim.org/files/dtd" '
+            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+            'xsi:schemaLocation="http://www.matsim.org/files/dtd '
+            'http://www.matsim.org/files/dtd/vehicleDefinitions_v1.0.xsd">')
+        vehiclesfile.write('''
+            <vehicleType id="car">
+                <length meter="7.5"/>
+                <width meter="1.0"/>
+                <maximumVelocity meterPerSecond="40.0"/>
+                <accessTime secondsPerPerson="1.0"/>
+                <egressTime secondsPerPerson="1.0"/>
+                <doorOperation mode="serial"/>
+                <passengerCarEquivalents pce="1.0"/>
+            </vehicleType>''')
+        vehiclesfile.write('''
+            <vehicleType id="bike">
+                <length meter="5.0"/>
+                <width meter="1.0"/>
+                <maximumVelocity meterPerSecond="4.4704"/>
+                <accessTime secondsPerPerson="1.0"/>
+                <egressTime secondsPerPerson="1.0"/>
+                <doorOperation mode="serial"/>
+                <passengerCarEquivalents pce="0.25"/>
+            </vehicleType> ''')
+        vehiclesfile.write('''
+            <vehicleType id="walk">
+                <length meter="1.0"/>
+                <width meter="1.0"/>
+                <maximumVelocity meterPerSecond="1.4"/>
+                <accessTime secondsPerPerson="1.0"/>
+                <egressTime secondsPerPerson="1.0"/>
+                <doorOperation mode="serial"/>
+                <passengerCarEquivalents pce="0.0"/>
+            </vehicleType> ''')
+        vehiclesfile.write('</vehicleDefinitions>')
+        vehiclesfile.close()
+
         pr.print('Simulation input plans generation complete.', time=True)
+

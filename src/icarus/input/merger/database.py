@@ -3,7 +3,17 @@ from icarus.util.database import DatabaseHandle
 
 class PlansMergerDatabase(DatabaseHandle):
 
+    def get_max(self, db, tbl, col):
+        query = f'''
+            SELECT MAX({col})
+            FROM {db}.{tbl}
+        '''
+        self.cursor.execute(query)
+        return self.cursor.fetchall()[0][0]
+
+
     def get_routes(self, agents=[]):
+        agents = tuple(agents)
         agent = len(agents)
         query = f'''
             SELECT
@@ -22,10 +32,11 @@ class PlansMergerDatabase(DatabaseHandle):
 
     
     def get_activities(self, agents=[]):
+        agents = tuple(agents)
         agent = len(agents)
         query = f'''
             SELECT
-                agents_id,
+                agent_id,
                 agent_idx,
                 start_time,
                 end_time

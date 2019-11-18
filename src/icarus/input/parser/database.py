@@ -1,4 +1,6 @@
 
+from collections import defaultdict
+
 from icarus.util.database import DatabaseHandle
 
 class PlansParserDatabase(DatabaseHandle):
@@ -46,7 +48,7 @@ class PlansParserDatabase(DatabaseHandle):
             SELECT
                 trips.trip_id,
                 trips.household_id,
-                trips.household_idx,
+                agents.household_idx,
                 trips.agent_id,
                 trips.agent_idx,
                 trips.origin_taz,
@@ -61,6 +63,8 @@ class PlansParserDatabase(DatabaseHandle):
                 trips.arrive_time,
                 trips.act_duration
             FROM {self.abm_db}.trips AS trips
+            LEFT JOIN {self.abm_db}.agents AS agents
+            USING (agent_id)
             LEFT JOIN {self.abm_db}.vehicles AS vehicles
             ON trips.household_id = vehicles.household_id
             AND trips.vehicle_id = vehicles.household_idx
@@ -69,8 +73,12 @@ class PlansParserDatabase(DatabaseHandle):
             ORDER BY 
                 household_id,
                 household_idx '''
+        
         self.cursor.execute(query)
-        return self.cursor.fetchall()
+        trips = defaultdict(lambda: defaultdict(list))
+        for trip in self.cursor.fetchall():
+            trips[trip[1]][trip[2]].append(trip)
+        return trips
 
 
     def write_agents(self, agents):

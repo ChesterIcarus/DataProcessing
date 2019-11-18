@@ -1,4 +1,8 @@
 {
+    "tmin_file": "/home/Shared/source/daymet/tmin.nc",
+    "tmax_file": "/home/Shared/source/daymet/tmax.nc",
+    "day": 281,
+    "steps": 48,
     "database": {
         "user": "validation",
         "host": "localhost",
@@ -9,25 +13,28 @@
             "centroids": {
                 "schema": [
                     "centroid_id SMALLINT UNSIGNED",
-                    "temperature_id MEDIUMINT UNSINGED",
-                    "centeroid POINT NOT NULL"
+                    "temperature_id MEDIUMINT UNSIGNED",
+                    "center POINT NOT NULL"
                 ],
                 "primary_idx": [ "centroid_id" ],
                 "btree_idxs": {
                     "temperature": [ "temperature_id" ]
                 },
                 "spatial_idxs": {
-                    "centroid": [ "centroid" ]
+                    "centroid": [ "center" ]
                 }
             },
             "temperatures": {
                 "schema": [
-                    "temperature_id MEDIUMINT UNSINGED",
-                    "temperature_idx TINYINT UNSINGED",
+                    "temperature_id MEDIUMINT UNSIGNED",
+                    "temperature_idx TINYINT UNSIGNED",
                     "time MEDIUMINT UNSIGNED",
                     "temperature FLOAT"
                 ],
-                "primary_idx": [ "centroid_id" ]
+                "primary_idx": [ 
+                    "temperature_id",
+                    "temperature_idx"
+                ]
             }
         }
     }

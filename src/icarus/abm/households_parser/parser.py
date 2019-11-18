@@ -56,10 +56,10 @@ class HouseholdsParser:
             hhid += 1
 
             for vehicle in range(int(household[cols['hhNumAutos']])):
-                vehicles.append([
+                vehicles.append((
                     vehicle_id,
                     household_id,
-                    vehicle + 1 ])
+                    vehicle + 1 ))
                 vehicle_id += 1
 
             if hhid % bin_size == 0:

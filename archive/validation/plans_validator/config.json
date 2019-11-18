@@ -1,9 +1,0 @@
-{
-    "WORKSTATION": {
-        "savepath": "/home/Shared/matsim/run1/results/output_plans_hist.png",
-        "planspath": "/home/Shared/matsim/run1/output/ITERS/",
-        "iters": [
-            10, 20, 30, 40
-        ]
-    }
-}

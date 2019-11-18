@@ -5,11 +5,13 @@ import re
 import time
 
 from datetime import datetime
+from getpass import getpass
 
 class Printer:
     persist_str = ''
     persist_rows = 0
     logfile = None
+    silent = False
     FRMTS = {
         'bold': 1,
         'faint': 2,
@@ -17,6 +19,14 @@ class Printer:
         'underline': 4,
         'strikethrough': 9
     }
+
+    @classmethod
+    def silence(self):
+        self.silent = True
+
+    @classmethod
+    def unsilence(self):
+        self.silence = False
 
     @classmethod
     def log(self, filename):
@@ -55,9 +65,8 @@ class Printer:
         if border:
             if hrule is None:
                 hrules = [0]*(len(tbl))
-            elif type(hrule) is int:
-                hrules = [0]*hrule + [1] + [0]*(len(tbl)-1)
-            elif type(hrule) in (list, tuple) and all([type(h) is int for h in hrules]):
+            elif (type(hrule) in (list, tuple) 
+                    and all([type(h) is int for h in hrules])):
                 hrules = [1 if i in hrule else 0 for i in range(len(tbl)-1)] + [0]
             top = '+' + '+'.join('-'*(w+p*2) for w, p in zip(widths, pads)) + '+'
             return (top + '\n' +
@@ -119,8 +128,20 @@ class Printer:
         return custom_print
 
     @classmethod
+    def getpass(self, *args, **kwargs):
+        return self.print(*args, **kwargs, prompt=True, password=True)
+
+    @classmethod
+    def input(self, *args, **kwargs):
+        return self.print(*args, **kwargs, prompt=True)
+
+    @classmethod
     def print(self, string='', persist=False, replace=False, time=False, 
-            progress=None, frmt=None):
+            progress=None, frmt=None, inquiry=False, force=False, prompt=False,
+            password=False):
+        if self.silent and not force:
+            return
+        string = str(string)
         rows, cols = os.popen('stty size', 'r').read().split()
         rows = int(rows)
         cols = int(cols)
@@ -130,7 +151,7 @@ class Printer:
         if progress is not None:
             string = self.progress(string, progress)
         if self.logfile is not None and not persist:
-            self.logfile.write(string)
+            self.logfile.write(string + '\n')
             self.logfile.flush()
         if frmt is not None:
             if type(frmt) is list:
@@ -143,6 +164,14 @@ class Printer:
             else:
                 self.persist_str = string
             self.persist_rows = self.render_rows(self.persist_str)
+        elif prompt:
+            if password:
+                return getpass(string)
+            else:
+                return input(string)
+        elif inquiry:
+            response = input(string).lower()
+            return response == 'y' or response == 'yes'
         else:
             print(string)
         if self.persist_rows:

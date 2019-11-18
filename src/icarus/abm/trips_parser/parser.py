@@ -49,7 +49,8 @@ class TripsParser:
             pr.print('Trips Parsing Progress', persist=True, replace=True,
                 frmt='bold', progress=trip_id/target)
 
-        for trip in parser:            
+        for trip in parser:
+            vehicle = int(trip[cols['vehId']])            
             trips.append((
                 trip_id,
                 int(trip[cols['hhid']]),
@@ -63,7 +64,7 @@ class TripsParser:
                 int(trip[cols['origPurp']]),
                 int(trip[cols['destPurp']]),
                 int(trip[cols['mode']]),
-                int(trip[cols['vehId']]) + 1,
+                vehicle if vehicle > 0 else 0,
                 self.adj_time(trip[cols['isamAdjDepMin']]) + 16200,
                 self.adj_time(trip[cols['isamAdjArrMin']]) + 16200,
                 self.adj_time(trip[cols['isamAdjDurMin']])))
@@ -94,7 +95,7 @@ class TripsParser:
         self.database.create_all_idxs('temp_trips', silent=True)
         self.database.join_trips()
         self.database.drop_table('temp_trips')
-        del self.database.tables['temp_trips']    
+        del self.database.tables['temp_trips']
 
     def create_idxs(self, silent=False):
         if not silent:
