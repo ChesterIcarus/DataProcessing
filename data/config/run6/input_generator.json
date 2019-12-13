@@ -1,6 +1,6 @@
 {
-    "planpath": "/home/Shared/matsim/run5/input/plans.xml",
-    "vehiclepath": "/home/Shared/matsim/run5/input/vehicles.xml",
+    "planpath": "/home/Shared/matsim/run6/input/plans.xml",
+    "vehiclepath": "/home/Shared/matsim/run6/input/vehicles.xml",
     "sample": 0.0001,
     "time": [],
     "region": [],

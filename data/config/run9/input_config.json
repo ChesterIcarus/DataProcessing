@@ -1,14 +1,14 @@
 {
     "input": {
-        "config_file": "/home/Shared/matsim/run5/input/config.xml",
-        "plans_file": "D:\\Benjamin Brownlee\\matsim\\run5\\input\\plans.xml",
-        "network_file": "D:\\Benjamin Brownlee\\matsim\\run5\\input\\network.xml",
-        "vehicles_file": "D:\\Benjamin Brownlee\\matsim\\run5\\input\\vehicles.xml",
-        "transit_vehicles_file": "D:\\Benjamin Brownlee\\matsim\\run5\\input\\transitVehicles.xml",
-        "transit_schedule_file": "D:\\Benjamin Brownlee\\matsim\\run5\\input\\transitSchedule.xml"
+        "config_file": "/home/Shared/matsim/run9/input/config.xml",
+        "plans_file": "D:\\Benjamin Brownlee\\matsim\\run9\\input\\plans.xml",
+        "network_file": "D:\\Benjamin Brownlee\\matsim\\run9\\input\\network.xml",
+        "vehicles_file": "D:\\Benjamin Brownlee\\matsim\\run9\\input\\vehicles.xml",
+        "transit_vehicles_file": "D:\\Benjamin Brownlee\\matsim\\run9\\input\\transitVehicles.xml",
+        "transit_schedule_file": "D:\\Benjamin Brownlee\\matsim\\run9\\input\\transitSchedule.xml"
     },
     "output": {
-        "output_dir": "D:\\Benjamin Brownlee\\matsim\\run5\\output\\",
+        "output_dir": "D:\\Benjamin Brownlee\\matsim\\run9\\output\\",
         "iterations": 6,
         "save_charts_it": 1,
         "save_plans_it": 1,
@@ -16,7 +16,7 @@
     },
     "simulation": {
         "threads": 20,
-        "init": true
+        "init": false
     },
     "activities": [
         "home",
@@ -54,6 +54,8 @@
             "bus",
             "rail"
         ],
-        "teleported": []
+        "teleported": [
+            ["non_network_walk", 1.4]
+        ]
     }
 }

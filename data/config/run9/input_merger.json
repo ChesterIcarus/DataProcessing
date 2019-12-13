@@ -1,0 +1,12 @@
+{
+    "planspath": "/home/Shared/matsim/temp/plans.xml",
+    "vehiclesfile": "/home/Shared/matsim/run9/input/vehicles.xml",
+    "outfile": "/home/Shared/matsim/run9/input/plans.xml",
+    "database": {
+        "user": "validation",
+        "host": "localhost",
+        "db": "input_all",
+        "unix_socket": "/home/mysql/mysql.sock",
+        "password": "" 
+    }
+}

@@ -1,2 +1,5 @@
 include README.md
+
 include src/icarus/*/*/config.json
+include src/icarus/*/*/*/config.json
+include src/icarus/*/*/*/*/config.json
