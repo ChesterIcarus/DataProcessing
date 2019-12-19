@@ -35,6 +35,9 @@ except KeyError as err:
     pr.print(f'Config file {args.config} is not valid config file.', time=True)
     raise err
 
+if 'silent' in config and config['silent']:
+    pr.silence()
+
 database = config['database']
 encoding = config['encoding']
 
@@ -43,7 +46,7 @@ database['password'] = getpass(
 
 parser = TripsParser(database, encoding)
 
-options = ('silent', 'bin_size', 'resume')
+options = ('bin_size', 'resume')
 params = {key:config[key] for key in options if key in config}
 
 parser.parse(config['sourcepath'], **params)

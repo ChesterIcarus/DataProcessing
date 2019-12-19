@@ -1,20 +1,22 @@
 
-from icarus.util.database import DatabaseHandle
+from icarus.util.database import DatabaseUtil
 
-class TripsParserDatabase(DatabaseHandle):
+class TripsParserDatabase(DatabaseUtil):
     def create_temp(self):
         self.tables['temp_trips'] = {}
         self.tables['temp_trips']['schema'] = self.tables['trips']['schema']
         self.tables['temp_trips']['btree_idxs'] = {
-            'households': [
+            'household': [
                 'household_id',
                 'agent_id'
             ]
         }
         self.create_table('temp_trips')
 
+
     def write_trips(self, trips):
         self.write_rows(trips, 'temp_trips')
+
 
     def count_trips(self):
         query = f'''
@@ -23,6 +25,7 @@ class TripsParserDatabase(DatabaseHandle):
         '''
         self.cursor.execute(query)
         return self.cursor.fetchall()[0][0]
+
 
     def join_trips(self):
         cols = [col.split(' ')[0] for col in self.tables['trips']['schema']]

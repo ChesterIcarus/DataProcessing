@@ -9,10 +9,10 @@ from icarus.input.parse.parser import PlansParser
 from icarus.util.print import Printer as pr
 
 
-parser = ArgumentParser(prog='AgentsParser',
-    description='Converts ABM trips to MATSIM plans, activities, and routes.')
+parser = ArgumentParser(prog='ABM Parser',
+    description='Converts ABM trips to MATSim plans, activities, and routes.')
 parser.add_argument('--config', type=str,  dest='config',
-    default=resource_filename('icarus', 'input/parser/config.json'),
+    default=resource_filename('icarus', 'input/parse/config.json'),
     help=('Specify a config file location; default is "config.json" in '
         'the current working directory.'))
 parser.add_argument('--log', type=str, dest='log',

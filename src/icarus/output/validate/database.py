@@ -1,7 +1,7 @@
 
-from  icarus.util.database import DatabaseHandle
+from  icarus.util.database import DatabaseUtil
 
-class ValidationDatabase(DatabaseHandle):
+class ValidationDatabase(DatabaseUtil):
     def __init__(self, params=None, database=None, config=None):
         super().__init__(params=params, database=database)
         self.input_db = config['input_db']

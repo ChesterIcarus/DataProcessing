@@ -1,7 +1,7 @@
 
-from  icarus.util.database import DatabaseHandle
+from  icarus.util.database import DatabaseUtil
 
-class PlansParserDatabase(DatabaseHandle):
+class PlansParserDatabase(DatabaseUtil):
     def get_residences(self):
         return {}
 

@@ -1,7 +1,7 @@
 
-from icarus.util.database import DatabaseHandle
+from icarus.util.database import DatabaseUtil
 
-class PlansMergerDatabase(DatabaseHandle):
+class PlansMergerDatabase(DatabaseUtil):
 
     def get_max(self, db, tbl, col):
         query = f'''

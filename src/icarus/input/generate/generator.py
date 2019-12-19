@@ -8,6 +8,13 @@ class PlansGenerator:
     act_frmt = '<act start_time="%s" end_time="%s" type="%s" x="%s" y="%s"/>'
     start_frmt = '<act end_time="%s" type="%s" x="%s" y="%s"/>'
     end_frmt = '<act start_time="%s" type="%s" x="%s" y="%s"/>'
+    route_cols = ('agent_id', 'agent_idx', 'mode', 'dur_time')
+    act_cols = ('agent_id', 'agent_idx', 'start_time', 'end_time', 'type', 'x', 'y')
+    plan_cols = ('agent_id', 'plan_size')
+    route_keys = {key: val for val, key in enumerate(route_cols)}
+    act_keys = {key: val for val, key in enumerate(act_cols)}
+    plan_keys = {key: val for val, key in enumerate(plan_cols)}
+
 
     def __init__(self, database, encoding):
         self.database = PlansGeneratorDatabase(database)
@@ -32,17 +39,34 @@ class PlansGenerator:
 
     
     def encode_route(self, route):
-        return self.route_frmt % (self.time(route[3]), 
-            self.encoding['mode'][str(route[2])])
+        return self.route_frmt % (
+            self.time(route[self.route_keys['dur_time']]), 
+            self.encoding['mode'][str(route[self.route_keys['mode']])])
 
     
     def encode_act(self, act):
-        if act[2] > 0:
-            return self.act_frmt % (self.time(act[2]), self.time(act[3]),
-                self.decoding['activity'][act[4]], act[5], act[6])
-        else:
-            return self.start_frmt % (self.time(act[3]), 
-                self.decoding['activity'][act[4]], act[5], act[6])
+        return self.act_frmt % (
+            self.time(act[self.act_keys['start_time']]),
+            self.time(act[self.act_keys['end_time']]),
+            self.decoding['activity'][act[self.act_keys['type']]], 
+            act[self.act_keys['x']], 
+            act[self.act_keys['y']])
+
+    
+    def encode_start(self, act):
+        return self.start_frmt % (
+            self.time(act[self.act_keys['end_time']]),
+            self.decoding['activity'][act[self.act_keys['type']]], 
+            act[self.act_keys['x']], 
+            act[self.act_keys['y']])
+
+    
+    def encode_end(self, act):
+        return self.end_frmt % (
+            self.time(act[self.act_keys['start_time']]),
+            self.decoding['activity'][act[self.act_keys['type']]], 
+            act[self.act_keys['x']], 
+            act[self.act_keys['y']])
 
     
     def generate_plans(self, planpath, vehiclepath, region=[], time=[], 
@@ -61,28 +85,33 @@ class PlansGenerator:
         plans = self.database.get_plans(mazs, modes, sample)
         target = len(plans)
 
-        pr.print(f'Found {target} plans under select conditions.', time=True)
+        pr.print(f'Found {target} plans under selected conditions.', time=True)
         pr.print('Iterating over plans and generating plans file.', time=True)
         pr.print('Plans File Generation Progress', persist=True, replace=True,
             frmt='bold', progress=0)
-        planfile = open(planpath, 'w')
 
-        total = 0
+        planfile = open(planpath, 'w')
         planfile.write('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE plans'
             ' SYSTEM "http://www.matsim.org/files/dtd/plans_v4.dtd"><plans>')
+
+        total = 0
         for group in self.chunk(plans, bin_size):
             size = len(group)
+
             pr.print(f'Fetching activity and route data for {size} plans.', time=True)
             agents = tuple(plan[0] for plan in group)
             routes = list(self.database.get_routes(agents))
             activities = list(self.database.get_activities(agents))
+
             pr.print('Writing activity and route data to plans file.', time=True)
             for plan in group:
-                planfile.write(self.plan_frmt % plan[0])
-                planfile.write(self.encode_act(activities.pop(0)))
-                for i in range(plan[1] // 2):
+                planfile.write(self.plan_frmt % plan[self.plan_keys['agent_id']])
+                planfile.write(self.encode_start(activities.pop(0)))
+                for _ in range(plan[self.plan_keys['plan_size']] // 2 - 1):
                     planfile.write(self.encode_route(routes.pop(0)))
                     planfile.write(self.encode_act(activities.pop(0)))
+                planfile.write(self.encode_route(routes.pop(0)))
+                planfile.write(self.encode_end(activities.pop(0)))
                 planfile.write('</plan></person>')
             planfile.flush()
             total += size
@@ -162,4 +191,3 @@ class PlansGenerator:
         vehiclesfile.close()
 
         pr.print('Simulation input plans generation complete.', time=True)
-

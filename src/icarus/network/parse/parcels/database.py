@@ -1,7 +1,7 @@
 
-from  icarus.util.database import DatabaseHandle
+from  icarus.util.database import DatabaseUtil
 
-class ParcelDatabse(DatabaseHandle):
+class ParcelDatabse(DatabaseUtil):
     def create_temp(self):
         self.tables['temp_residences'] = self.tables['residences']
         del self.tables['temp_residences']['spatial_idxs']

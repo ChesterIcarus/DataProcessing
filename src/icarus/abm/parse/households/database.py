@@ -1,7 +1,7 @@
  
-from icarus.util.database import DatabaseHandle
+from icarus.util.database import DatabaseUtil
 
-class HouseholdsParserDatabase(DatabaseHandle):
+class HouseholdsParserDatabase(DatabaseUtil):
     def write_households(self, households):
         self.write_rows(households, 'households')
 

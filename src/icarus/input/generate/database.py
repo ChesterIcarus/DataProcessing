@@ -1,7 +1,7 @@
 
-from icarus.util.database import DatabaseHandle
+from icarus.util.database import DatabaseUtil
 
-class PlansGeneratorDatabase(DatabaseHandle):
+class PlansGeneratorDatabase(DatabaseUtil):
     def get_mazs(self, pts):
         poly = ','.join(f'{pt[0]} {pt[1]}' for pt in pts)
         query = f'''

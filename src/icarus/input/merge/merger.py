@@ -20,32 +20,26 @@ class PlansMerger:
 
 
     def get_vehicles(self, agents):
-        leg_list = self.database.get_routes(agents)
+        route_list = self.database.get_routes(agents)
         act_list = self.database.get_activities(agents)
 
-        legs = defaultdict(list)
+        routes = defaultdict(list)
         acts = defaultdict(list)
         cars = set()
 
-        for leg in leg_list:
-            leg = list(leg)
-            if leg[5] > 0:
-                leg[5] = f'car-{leg[5]}'
-                cars.add((leg[5], 'car'))
-            elif leg[2] in (5, 8, 11):
-                leg[5] = f'walk-{leg[0]}'
-                cars.add((leg[5], 'walk'))
-            elif leg[2] == 12:
-                leg[5] = f'bike-{leg[0]}'
-                cars.add((leg[5], 'bike'))
+        for route in route_list:
+            if route[2] == 11:
+                cars.add((route[5], 'walk'))
+            elif route[2] == 12:
+                cars.add((route[5], 'bike'))
             else:
-                continue
-            legs[leg[0]].append(leg)
+                cars.add((route[5], 'car'))
+            routes[route[0]].append(route)
 
         for act in act_list:
             acts[act[0]].append(act)
 
-        return legs, acts, cars
+        return routes, acts, cars
 
 
     def run(self, config):
@@ -95,7 +89,8 @@ class PlansMerger:
         activities = ('home', 'workplace', 'university', 'school', 'shopping',
             'other_maintenence', 'eating', 'breakfast', 'lunch', 'dinner',
             'visiting', 'other_discretionary', 'special_event', 'work',
-            'work_business', 'work_lunch', 'work_other', 'work_related', 'asu_related')
+            'work_business', 'work_lunch', 'work_other', 'work_related', 
+            'asu_related')
         modes = ('car', 'bike', 'walk')
 
         start_frmt = '<activity end_time="%s" type="%s" x="%s" y="%s"/>'
@@ -151,7 +146,7 @@ class PlansMerger:
                             self.time(leg[4]),
                             elem.get('type'),
                             leg[5],
-                            elem.text))
+                            elem.text if elem.text is not None else ''))
             elif evt == 'end':
                 if elem.tag == 'person':
                     outfile.write('</plan></person>')
@@ -172,6 +167,32 @@ class PlansMerger:
             'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
             'xsi:schemaLocation="http://www.matsim.org/files/dtd '
             'http://www.matsim.org/files/dtd/vehicleDefinitions_v1.0.xsd">')
+        vehiclesfile.write('''
+            <vehicleType id="Bus">
+                <capacity>
+                    <seats persons="70"/>
+                    <standingRoom persons="0"/>
+                </capacity>
+                <length meter="18.0"/>
+                <width meter="2.5"/>
+                <accessTime secondsPerPerson="0.5"/>
+                <egressTime secondsPerPerson="0.5"/>
+                <doorOperation mode="serial"/>
+                <passengerCarEquivalents pce="2.8"/>
+            </vehicleType>''')
+        vehiclesfile.write('''
+            <vehicleType id="Tram">
+                <capacity>
+                    <seats persons="180"/>
+                    <standingRoom persons="0"/>
+                </capacity>
+                <length meter="36.0"/>
+                <width meter="2.4"/>
+                <accessTime secondsPerPerson="0.25"/>
+                <egressTime secondsPerPerson="0.25"/>
+                <doorOperation mode="serial"/>
+                <passengerCarEquivalents pce="5.2"/>
+            </vehicleType>''')
         vehiclesfile.write('''
             <vehicleType id="car">
                 <length meter="7.5"/>

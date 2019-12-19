@@ -121,7 +121,7 @@ class Configurator:
             <param name="linkWidth" value="30.0" />
             <param name="nodeOffset" value="0.0" />
             <param name="numberOfThreads" value="20" />
-            <param name="mainMode" value="car,bus,tram" />
+            <param name="mainMode" value="car,Bus,Tram" />
             <param name="removeStuckVehicles" value="false" />
             <param name="seepMode" value="bike" />
             <param name="simEndtimeInterpretation" value="null" />
@@ -135,19 +135,18 @@ class Configurator:
             <param name="trafficDynamics" value="queue" />
             <param name="useLanes" value="true" />
             <param name="usingFastCapacityUpdate" value="true" />
-            <param name="usingThreadpool" value="true" />
-            <param name="vehicleBehavior" value="teleport" />''')
+            <param name="usingThreadpool" value="true" /> ''')
 
         if self.config['simulation']['init'] == True:
             configfile.write('''
                 <param name="usePersonIdForMissingVehicleId" value="true" />
                 <param name="vehiclesSource" value="modeVehicleTypesFromVehiclesData" />
-            ''')
+                <param name="vehicleBehavior" value="teleport" /> ''')
         else:
             configfile.write('''
                 <param name="usePersonIdForMissingVehicleId" value="false" />
                 <param name="vehiclesSource" value="fromVehiclesData" />
-            ''')
+                <param name="vehicleBehavior" value="wait" /> ''')
 
         configfile.write('</module>')
 

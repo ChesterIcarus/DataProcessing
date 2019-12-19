@@ -1,10 +1,10 @@
 
 import math
 
-from icarus.util.database import DatabaseHandle
+from icarus.util.database import DatabaseUtil
 from icarus.util.print import Printer as pr
 
-class AbmValidationDatabase(DatabaseHandle):
+class AbmValidationDatabase(DatabaseUtil):
     def __init__(self, params=None, database=None):
         super(AbmValidationDatabase, self).__init__(params=params, database=database)
         self.old_db = params['old_db'] if 'old_db' in params else None

@@ -1,5 +1,5 @@
 {
-    "sourcepath": "/home/Shared/source/abm/2018/trips.csv",
+    "sourcepath": "/home/Shared/source/abm/recent/trips.csv",
     "resume": false,
     "silent": false,
     "bin_size": 500000,
@@ -18,6 +18,9 @@
                     "household_idx TINYINT UNSIGNED",
                     "agent_id TINYINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",
+                    "party_id INT UNSIGNED",
+                    "party_idx MEDIUMINT UNSIGNED",
+                    "party_role TINYINT UNSIGNED",
                     "origin_taz SMALLINT UNSIGNED",
                     "origin_maz SMALLINT UNSIGNED",
                     "dest_taz SMALLINT UNSIGNED",
@@ -37,9 +40,12 @@
                         "household_idx"
                     ],
                     "agent": [
-                        "household_id",
                         "agent_id",
                         "agent_idx"
+                    ],
+                    "party": [
+                        "party_id",
+                        "party_idx"
                     ]
                 },
                 "hash_idxs": {},

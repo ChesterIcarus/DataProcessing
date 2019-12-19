@@ -1,9 +1,9 @@
 
 from collections import defaultdict
 
-from icarus.util.database import DatabaseHandle
+from icarus.util.database import DatabaseUtil
 
-class PlansParserDatabase(DatabaseHandle):
+class PlansParserDatabase(DatabaseUtil):
     def __init__(self, params=None, database=None):
         super().__init__(database=database, params=params)
         self.abm_db = params['abm_db'] if 'abm_db' in params else ''
@@ -51,6 +51,9 @@ class PlansParserDatabase(DatabaseHandle):
                 agents.household_idx,
                 trips.agent_id,
                 trips.agent_idx,
+                trips.party_id,
+                trips.party_idx,
+                trips.party_role,
                 trips.origin_taz,
                 trips.origin_maz,
                 trips.dest_taz,

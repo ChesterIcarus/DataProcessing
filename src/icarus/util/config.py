@@ -2,6 +2,8 @@
 import json
 import re
 import os
+import subprocess
+import tempfile
 
 from icarus.util.error import ConfigError
 from icarus.util.print import Printer as pr
@@ -16,6 +18,22 @@ class ConfigUtil:
     types = {'str': str, 'int': int, 'bool': bool, 'dict': dict,
         'list': list, 'float': float, 'null': None}
 
+    @classmethod
+    def format_xml(self, src, target=None, delete=False):
+        if not self.file_readable(src):
+            raise FileNotFoundError()
+        if target is None:
+            if not self.file_writable(src):
+                raise FileNotFoundError()
+            temp = self.file_temporary(suffix='xml', delete=False)
+            subprocess.run(f'xmllint --format ')
+
+
+    @classmethod
+    def file_temporary(self, suffix=None, delete=True):
+        'create new temporary file'
+        return tempfile.NamedTemporaryFile(suffix=suffix, delete=delete)
+        
 
     @classmethod
     def file_readable(self, filepath):

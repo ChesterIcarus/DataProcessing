@@ -1,5 +1,5 @@
 
-from icarus.util.database import DatabaseHandle
+from icarus.util.database import DatabaseUtil
 
-class DaymetParserDatabaseHandle(DatabaseHandle):
+class DaymetParserDatabaseHandle(DatabaseUtil):
     pass
