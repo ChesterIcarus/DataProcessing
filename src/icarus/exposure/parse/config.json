@@ -1,8 +1,24 @@
 {
-    "tmin_file": "/home/Shared/source/daymet/tmin.nc",
-    "tmax_file": "/home/Shared/source/daymet/tmax.nc",
-    "day": 281,
-    "steps": 48,
+    "run": {
+        "tmax": [
+            "/home/Shared/source/daymet/2018/tmax_11014.nc",
+            "/home/Shared/source/daymet/2018/tmax_11015.nc",
+            "/home/Shared/source/daymet/2018/tmax_11194.nc",
+            "/home/Shared/source/daymet/2018/tmax_11195.nc"
+        ],
+        "tmin": [
+            "/home/Shared/source/daymet/2018/tmin_11014.nc",
+            "/home/Shared/source/daymet/2018/tmin_11015.nc",
+            "/home/Shared/source/daymet/2018/tmin_11194.nc",
+            "/home/Shared/source/daymet/2018/tmin_11195.nc"
+        ],
+        "create_idxs": true,
+        "force": false
+    },
+    "select": {
+        "day": 281,
+        "steps": 48
+    },
     "database": {
         "user": "validation",
         "host": "localhost",
@@ -12,8 +28,9 @@
         "tables": {
             "centroids": {
                 "schema": [
-                    "centroid_id SMALLINT UNSIGNED",
+                    "centroid_id MEDIUMINT UNSIGNED",
                     "temperature_id MEDIUMINT UNSIGNED",
+                    "region POLYGON NOT NULL",
                     "center POINT NOT NULL"
                 ],
                 "primary_idx": [ "centroid_id" ],
@@ -21,12 +38,13 @@
                     "temperature": [ "temperature_id" ]
                 },
                 "spatial_idxs": {
-                    "centroid": [ "center" ]
+                    "region": [ "region" ],
+                    "center": [ "center" ]
                 }
             },
             "temperatures": {
                 "schema": [
-                    "temperature_id MEDIUMINT UNSIGNED",
+                    "temperature_id SMALLINT UNSIGNED",
                     "temperature_idx TINYINT UNSIGNED",
                     "time MEDIUMINT UNSIGNED",
                     "temperature FLOAT"

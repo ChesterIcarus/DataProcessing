@@ -1,9 +1,12 @@
 {
-    "sourcepath": "/home/Shared/source/abm/2018/persons.csv",
-    "silent": false,
-    "bin_size": 500000,
-    "resume": false,
-    "create_idxs": true,
+    "run": {
+        "create_idxs": true,
+        "bin_size": 500000,
+        "force": false,
+        "log": null,
+        "resume": false,
+        "trips_file": "/home/Shared/source/abm/2018/persons.csv"
+    },
     "database": {
         "user": "validation",
         "host": "localhost",
@@ -45,6 +48,5 @@
                 "spatial_idxs": {}
             }
         }
-    },
-    "encoding": {}
+    }
 }

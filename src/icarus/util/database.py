@@ -2,9 +2,9 @@
 import MySQLdb
 import warnings
 
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
-# warnings.filterwarnings('ignore', category=MySQLdb._exceptions.Warning)
+warnings.filterwarnings('ignore', category=MySQLdb._exceptions.Warning)
 
 class DatabaseUtil:
     def __init__(self, params=None, database=None):

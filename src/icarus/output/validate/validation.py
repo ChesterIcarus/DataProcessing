@@ -1,6 +1,6 @@
 
 from icarus.output.validation.database import ValidationDatabase
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 class OutputValidation:
     def __init__(self, database, encoding, config):

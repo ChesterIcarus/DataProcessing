@@ -4,7 +4,8 @@ from collections import defaultdict
 from pprint import pprint
 
 from icarus.input.merge.database import PlansMergerDatabase
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
+from icarus.util.filesys import FilesysUtil
 
 class PlansMerger:
     def __init__(self, database):
@@ -32,8 +33,10 @@ class PlansMerger:
                 cars.add((route[5], 'walk'))
             elif route[2] == 12:
                 cars.add((route[5], 'bike'))
-            else:
+            elif route[2] in (1,2,3,4,13,14):
                 cars.add((route[5], 'car'))
+            else: 
+                continue
             routes[route[0]].append(route)
 
         for act in act_list:
@@ -111,6 +114,7 @@ class PlansMerger:
                         outfile.flush()
                         root.clear()
                 elif elem.tag == 'activity':
+                    # outfile.write(tostring(elem).decode('utf-8'))
                     if elem.get('type') in activities:
                         act = acts[agent].pop(0)
                         kind = elem.get('type')
@@ -130,6 +134,10 @@ class PlansMerger:
                     if elem.get('mode') in modes:
                         route = True
                         leg = legs[agent].pop(0)
+                        # outfile.write(leg_frmt % (
+                        #     elem.get('dep_time'), 
+                        #     elem.get('mode'),
+                        #     elem.get('trav_time')))
                         outfile.write(leg_frmt % (
                             self.time(leg[3]), 
                             elem.get('mode'), 
@@ -139,6 +147,14 @@ class PlansMerger:
                         outfile.write(tostring(elem).decode('utf-8'))
                 elif elem.tag == 'route':
                     if route:
+                        # outfile.write(route_frmt % (
+                        #     elem.get('distance'),
+                        #     elem.get('end_link'),
+                        #     elem.get('start_link'),
+                        #     elem.get('trav_time'),
+                        #     elem.get('type'),
+                        #     leg[5],
+                        #     elem.text if elem.text is not None else ''))
                         outfile.write(route_frmt % (
                             elem.get('distance'),
                             elem.get('end_link'),
@@ -237,5 +253,9 @@ class PlansMerger:
 
         vehiclesfile.write('</vehicleDefinitions>')
         vehiclesfile.close()
+
+        pr.print('Formatting outputed XML files.', time=True)
+        FilesysUtil.format_xml(config['outfile'])
+        FilesysUtil.format_xml(config['vehiclesfile'])
 
         pr.print('Plans file merging complete.', time=True)

@@ -3,7 +3,7 @@ import os
 import tempfile
 import subprocess
 
-from icarus.util.print import Printer
+from icarus.util.print import PrintUtil
 
 class FilesysUtil:
     @classmethod
@@ -45,7 +45,7 @@ class FilesysUtil:
         return tempfile.NamedTemporaryFile(suffix=suffix, delete=delete)
 
 
-    @staticmethod
+    @classmethod
     def format_xml(self, source, target=None):
         'format an xml file'
         if target is None:
@@ -54,6 +54,5 @@ class FilesysUtil:
             targetfile.close()
             subprocess.run(f'xmllint --format {source} > {target}', shell=True)
             subprocess.run(('mv', target, source), shell=False)
-            self.delete_file(target)
         else:
             subprocess.run(f'xmllint --format {source} > {target}', shell=True)

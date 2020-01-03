@@ -259,19 +259,21 @@ class Configurator:
                 <param name="openingTime" value="undefined" />
                 <param name="priority" value="1.0" />
                 <param name="scoringThisActivityAtAll" value="%s" />
-                <param name="typicalDuration" value="12:00:00" />
+                <param name="typicalDuration" value="%s" />
                 <param name="typicalDurationScoreComputation" value="relative" />
             </parameterset> '''
 
-        acts = ['default', 'other interaction', 'pt interaction']
-        acts.extend([f'{mode} interaction' for mode in self.config['modes']['network']])
+        acts = [f'{mode} interaction' for mode in self.config['modes']['network']]
+        acts.extend(['other interaction', 'pt interaction'])
         
         for act in acts:
-            configfile.write(activity_pattern % (act, 'false'))
+            configfile.write(activity_pattern % (act, 'false', 'undefined'))
+
+        configfile.write(activity_pattern % ('default', 'true', 'undefined'))
 
         acts = self.config['activities']
         for act in acts:
-            configfile.write(activity_pattern % (act, 'true'))
+            configfile.write(activity_pattern % (act, 'true', '12:00:00'))
 
         mode_pattern = '''
             <parameterset type="modeParams" >
@@ -285,14 +287,10 @@ class Configurator:
 			</parameterset> '''
 
         modes = self.config['modes']['network']
+        modes.extend(['default', 'pt'])
 
         for mode in modes:
             configfile.write(mode_pattern % mode)
-
-        configfile.write('''
-            <parameterset type="modeParams">
-                <param name="mode" value="pt"/>
-            </parameterset> ''')
 
         configfile.write('</parameterset></module>')
 

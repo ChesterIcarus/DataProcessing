@@ -1,9 +1,12 @@
 {
-    "sourcepath": "/home/Shared/source/abm/2018/households.csv",
-    "silent": false,
-    "bin_size": 100000,
-    "resume": false,
-    "create_idxs": true,
+    "run": {
+        "create_idxs": true,
+        "bin_size": 100000,
+        "force": false,
+        "log": null,
+        "resume": false,
+        "trips_file": "/home/Shared/source/abm/2018/households.csv"
+    },
     "database": {
         "user": "validation",
         "host": "localhost",
@@ -53,6 +56,5 @@
                 "spatial_idxs": {}
             }
         }
-    },
-    "encoding": {}
+    }
 }

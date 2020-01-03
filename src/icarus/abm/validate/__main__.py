@@ -6,7 +6,7 @@ from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
 from icarus.abm.validate.validation import AbmValidation
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 parser = ArgumentParser(prog='AgentsParser',
     description='Validation and visualizationtool for the ABM data.')

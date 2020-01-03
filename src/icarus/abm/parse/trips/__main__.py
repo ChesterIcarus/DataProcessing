@@ -5,51 +5,41 @@ from getpass import getpass
 from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 from icarus.abm.parse.trips.parser import TripsParser
 
-parser = ArgumentParser(prog='TripsParser',
-    description='Parse ABM trips CSV file into table in a SQL database.')
+
+parser = ArgumentParser(prog='ABM Trips Parser',
+    description='Parse ABM trips CSV file into table in a MySQL database.')
 parser.add_argument('--config', type=str,  dest='config',
     default=resource_filename('icarus', 'abm/parse/trips/config.json'),
     help=('Specify a config file location; default is "config.json" in '
-        'the current working directory.'))
-parser.add_argument('--log', type=str, dest='log',
-    help='specify a log file location; by default the log will not be saved',
-    default=None)
+        'the current module directory.'))
+parser.add_argument('--specs', type=str, dest='specs',
+    default=resource_filename('icarus', 'abm/parse/trips/specs.json'),
+    help=('Specify a specs file location; default is "specs.json" in '
+        'the current module directory.'))
+parser.add_argument('--log', type=str, dest='log', defualt=None,
+    help='specify a log file location; by default the log will not be saved')
 args = parser.parse_args()
 
+pr.print('Running ABM trips parser module.', time=True)
+pr.print('Validating configuration file.', time=True)
+config = TripsParser.validate_config(args.config, args.specs)
+
 if args.log is not None:
-    pr.log(args.log)
-
-try:
-    with open(args.config) as handle:
-        config = json.load(handle)
-except FileNotFoundError as err:
-    pr.print(f'Config file {args.config} not found.', time=True)
-    raise err
-except json.JSONDecodeError as err:
-    pr.print(f'Config file {args.config} is not valid JSON.', time=True)
-    raise err
-except KeyError as err:
-    pr.print(f'Config file {args.config} is not valid config file.', time=True)
-    raise err
-
-if 'silent' in config and config['silent']:
-    pr.silence()
+    log = args.log
+elif config['run']['log'] not in (None, ''):
+    log = config['run']['log']
+else:
+    log = None
+if log is not None:
+    pr.log(log)
+    pr.print(f'Process log being saved to {log}.', time=True)
 
 database = config['database']
-encoding = config['encoding']
+database['password'] = pr.getpass(f'SQL password for '
+    f'{database["user"]}@localhost: ', time=True)
 
-database['password'] = getpass(
-    f'SQL password for {database["user"]}@localhost: ')
-
-parser = TripsParser(database, encoding)
-
-options = ('bin_size', 'resume')
-params = {key:config[key] for key in options if key in config}
-
-parser.parse(config['sourcepath'], **params)
-
-if config['create_idxs']:
-    parser.create_idxs()
+parser = TripsParser(database)
+parser.run(config)

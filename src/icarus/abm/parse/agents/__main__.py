@@ -5,7 +5,7 @@ from getpass import getpass
 from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 from icarus.abm.parse.agents.parser import AgentsParser
 
 parser = ArgumentParser(prog='AgentsParser',

@@ -6,7 +6,7 @@ from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
 from icarus.network.parse.mazs.parser import MazParser
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 
 parser = ArgumentParser(prog='AgentsParser',

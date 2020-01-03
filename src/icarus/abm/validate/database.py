@@ -2,7 +2,7 @@
 import math
 
 from icarus.util.database import DatabaseUtil
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 class AbmValidationDatabase(DatabaseUtil):
     def __init__(self, params=None, database=None):

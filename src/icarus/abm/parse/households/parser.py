@@ -2,22 +2,35 @@
 import csv
 
 from icarus.abm.parse.households.database import HouseholdsParserDatabase
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
+from icarus.util.config import ConfigUtil
 
 class HouseholdsParser:
-    def __init__(self, database, encoding):
+    def __init__(self, database):
         self.database = HouseholdsParserDatabase(database)
-        self.encoding = encoding
 
-    def parse(self, sourcepath, resume=False, silent=False, bin_size=100000):
-        if not silent:
-            pr.print(f'Beginning ABM household data parsing from {sourcepath}',
-                time=True)
-            pr.print(f'Loading process metadata and resources.', time=True)
 
-        target = sum(1 for l in open(sourcepath, 'r')) - 1
-        tripsfile = open(sourcepath, 'r', newline='')
-        parser = csv.reader(tripsfile, delimiter=',', quotechar='"')
+    @classmethod
+    def validate_config(self, configpath, specspath):
+        config = ConfigUtil.load_config(configpath)
+        specs = ConfigUtil.load_specs(specspath)
+        config = ConfigUtil.verify_config(specs, config)
+
+        return config
+    
+
+    def run(self, config):
+        pr.print('Prallocating process files and tables.', time=True)
+        force = config['run']['force']
+        self.create_tables('households', force=force)
+
+        pr.print(f'Loading process metadata and resources.', time=True)
+        households_path = config['run']['households_file']
+        bin_size = config['run']['bin_size']
+
+        target = sum(1 for l in open(households_path, 'r')) - 1
+        householdsfile = open(households_path, 'r', newline='')
+        parser = csv.reader(householdsfile, delimiter=',', quotechar='"')
         top = next(parser)
         cols = {key: val for key, val in zip(top, range(len(top)))}
 
@@ -28,10 +41,9 @@ class HouseholdsParser:
 
         hhid = 0
 
-        if not silent:
-            pr.print('Starting households CSV file iteration.', time=True)
-            pr.print('Households Parsing Progress', persist=True, replace=True,
-                frmt='bold', progress=hhid/target)
+        pr.print('Starting households CSV file iteration.', time=True)
+        pr.print('Households Parsing Progress', persist=True, replace=True,
+            frmt='bold', progress=hhid/target)
         
         for household in parser:
             household_id = int(household[cols['hhid']])
@@ -63,32 +75,45 @@ class HouseholdsParser:
                 vehicle_id += 1
 
             if hhid % bin_size == 0:
-                if not silent:
-                    pr.print(f'Pushing {bin_size} households to database.',
-                        time=True)
+                pr.print(f'Pushing {bin_size} households to database.', time=True)
                 self.database.write_households(households)
                 self.database.write_vehicles(vehicles)
+
+                pr.print('Resuming household CSV file parsing.', time=True)
+                pr.print('Household Parsing Progress', persist=True,
+                    replace=True, frmt='bold', progress=hhid/target)
                 households = []
                 vehicles = []
-                if not silent:
-                    pr.print('Resuming household CSV file parsing.', time=True)
-                    pr.print('Household Parsing Progress', persist=True,
-                        replace=True, frmt='bold', progress=hhid/target)
 
-        if not silent:
-            pr.print(f'Pushing {hhid % bin_size} households to database.', time=True)
+        pr.print(f'Pushing {hhid % bin_size} households to database.', time=True)
         self.database.write_households(households)
-        if not silent:
-            pr.print('ABM household data parsing complete.', time=True)
-            pr.print('Household Parsing Progress', persist=True, replace=True,
-                frmt='bold', progress=1)
-            pr.push()
+
+        pr.print('ABM household data parsing complete.', time=True)
+        pr.print('Household Parsing Progress', persist=True, replace=True,
+            frmt='bold', progress=1)
+        pr.push()
+
+        if config['run']['create_idxs']:
+            pr.print(f'Creating all indexes in database '
+                f'{self.database.db}.', time=True)
+            self.create_idxs()
+            pr.print(f'Index creating complete.', time=True)
+
 
     def create_idxs(self, silent=False):
-        if not silent:
-            pr.print(f'Creating all indexes in database {self.database.db}.', time=True)
         for tbl in self.database.tables:
             self.database.create_all_idxs(tbl)
-        if not silent:
-            pr.print(f'Index creating complete.', time=True)
-                    
+
+
+    def create_tables(self, *tables, force=False):
+        if not force:
+            exists = self.database.table_exists(tables)
+            if len(exists):
+                cond = pr.print(f'Tables "{exists}" already exist in database '
+                    f'"{self.database.db}". Drop and continue? [Y/n] ', 
+                    inquiry=True, time=True, force=True)
+                if cond:
+                    pr.print('User chose to terminate process.')
+                    raise RuntimeError
+        for table in tables:
+            self.database.drop_table(table)

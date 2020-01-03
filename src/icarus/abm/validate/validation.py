@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
 
 from icarus.abm.validate.database import AbmValidationDatabase
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 class AbmValidation:
     def __init__(self, database):

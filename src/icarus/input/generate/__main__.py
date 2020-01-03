@@ -6,7 +6,7 @@ from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
 from icarus.input.generate.generator import PlansGenerator
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 
 parser = ArgumentParser(prog='AgentsParser',

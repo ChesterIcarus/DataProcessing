@@ -5,17 +5,17 @@ from getpass import getpass
 from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
-from icarus.exposure.parse.parser import DaymetParser
+from icarus.exposure.analyze.link.analysis import ExposureLinkAnalysis
 from icarus.util.print import PrintUtil as pr
 
-parser = ArgumentParser(prog='Daymet Parser',
-    description='Parses daymet tmerperature data into MySQL database.')
+parser = ArgumentParser(prog='Exposure Analysis',
+    description='Analyze simulation output with temperature data at link resolution.')
 parser.add_argument('--config', type=str,  dest='config',
-    default=resource_filename('icarus', 'exposure/parse/config.json'),
+    default=resource_filename('icarus', 'exposure/analyze/link/config.json'),
     help=('Specify a config file location; default is "config.json" in '
         'the current working directory.'))
 parser.add_argument('--specs', type=str, dest='specs',
-    default=resource_filename('icarus', 'exposure/parse/specs.json'),
+    default=resource_filename('icarus', 'exposure/analyze/link/specs.json'),
     help=('Specify a specs file location; default is "specs.json" in '
         'the current module directory.'))
 parser.add_argument('--log', type=str, dest='log',
@@ -23,9 +23,9 @@ parser.add_argument('--log', type=str, dest='log',
     default=None)
 args = parser.parse_args()
 
-pr.print('Running network daymet parser module.', time=True)
+pr.print('Running exposure link analysis module.', time=True)
 pr.print('Validating configuration file.', time=True)
-config = DaymetParser.validate_config(args.config, args.specs)
+config = ExposureLinkAnalysis.validate_config(args.config, args.specs)
 
 if args.log is not None:
     log = args.log
@@ -38,8 +38,9 @@ if log is not None:
     pr.print(f'Process log being saved to {log}.', time=True)
 
 database = config['database']
-database['password'] = pr.getpass(f'SQL password for '
-    f'{database["user"]}@localhost: ', time=True)
+if not database['password']:
+    database['password'] = pr.getpass(f'SQL password for '
+        f'{database["user"]}@localhost: ', time=True)
 
-parser = DaymetParser(database)
+parser = ExposureLinkAnalysis(database)
 parser.run(config)

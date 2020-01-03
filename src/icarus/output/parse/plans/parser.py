@@ -9,7 +9,7 @@ from datetime import datetime
 from xml.etree.ElementTree import iterparse
 
 from icarus.output.parse.plans.database import PlansParserDatabase
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 class PlansParser:
     def __init__(self, database, encoding):

@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from getpass import getpass
 
-class Printer:
+class PrintUtil:
     persist_str = ''
     persist_rows = 0
     logfile = None

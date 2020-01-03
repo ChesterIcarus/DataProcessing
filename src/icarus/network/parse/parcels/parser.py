@@ -2,7 +2,8 @@
 import shapefile
 
 from icarus.network.parse.parcels.database import ParcelDatabse
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
+from icarus.util.config import ConfigUtil
 
 class ParcelsParser:
     def __init__(self, database):
@@ -17,27 +18,34 @@ class ParcelsParser:
         return 'POLYGON((' + ','.join(str(pt[0]) + ' ' +
                 str(pt[1]) for pt in poly) + '))'
 
-    def parse_parcels(self, shpfile, resfile, comfile, bin_size=100000):
-        pr.print('Beginning network parcel data parsing.', time=True)
+    @classmethod
+    def validate_config(self, configpath, specspath):
+        config = ConfigUtil.load_config(configpath)
+        specs = ConfigUtil.load_specs(specspath)
+        config = ConfigUtil.verify_config(specs, config)
 
-        pr.print('Creating temporary tables.', time=True)
+        return config
+
+    def run(self, config):
+        pr.print('Prallocating process files and tables.', time=True)
+        force = config['run']['force']
+        bin_size = config['run']['bin_size']
         self.database.create_temp()
+        self.create_tables(self.database.tables, force=force)
 
-        pr.print('Fetching parcel shapefile data.', time=True)
+        pr.print('Parsing parcel shapefile data.', time=True)
         shapes = {}
-        parser = shapefile.Reader(shpfile)
+        parser = shapefile.Reader(config['run']['shapefile_file'])
         for item in parser:
             if len(item.shape.points):
                 shapes[item.record['APN']] = self.encode_poly(item.shape.points)
 
         pr.print('Parsing residential parcel data.', time=True)
-        pr.print('Residential Parcel Parsing Progress', persist=True, replace=True, 
-            frmt='bold', progress=0)
 
-        parser = shapefile.Reader(resfile)
-        target = len(parser)
+        parser = shapefile.Reader(config['run']['residence_file'])
         parcels = []
         parcel_id = 0
+        n = 1
 
         for record in parser.iterRecords():
             apn = record['APN']
@@ -48,31 +56,27 @@ class ParcelsParser:
                     shapes[apn],
                     shapes[apn]))
                 parcel_id += 1
-            if parcel_id % bin_size == 0 and parcel_id:
-                pr.print(f'Pushing {bin_size} parcels to database.', time=True)
-                self.database.write_res_parcels(parcels)
-                parcels = []
 
-                pr.print('Resuming residential parcel parsing.', time=True)
-                pr.print('Residential Parcel Parsing Progress', persist=True, 
-                    replace=True, frmt='bold', progress=parcel_id/target)
+                if parcel_id % bin_size == 0:
+                    self.database.write_residences(parcels)
+                    parcels = []
 
-        pr.print(f'Pushing {parcel_id % bin_size} parcels to database.', time=True)
+                if parcel_id == n:
+                    pr.print(f'Found residencial parcel {n}.', time=True)
+                    n <<= 1
 
-        self.database.write_res_parcels(parcels)
+        self.database.write_residences(parcels)
 
-        pr.print('Residential Parcel Parsing Progress', persist=True, 
-            replace=True, frmt='bold', progress=1)
-        pr.push()
+        if parcel_id != (n >> 1):
+            pr.print(f'Found residencial parcel {n}.', time=True)
+            
         pr.print('Residential parcel data parsing complete.', time=True)
         pr.print('Parsing commercial parcel data.', time =True)
-        pr.print('Commercial Parcel Parsing Progress', persist=True, 
-            replace=True, frmt='bold', progress=0)
 
-        parser = shapefile.Reader(comfile)
-        target = len(parser)
+        parser = shapefile.Reader(config['run']['commerce_file'])
         parcels = []
         parcel_id = 0
+        n = 1
 
         for record in parser.iterRecords():
             apn = record['APN']
@@ -83,33 +87,53 @@ class ParcelsParser:
                     shapes[apn],
                     shapes[apn]))
                 parcel_id += 1
-            if parcel_id % bin_size == 0 and parcel_id:
-                pr.print(f'Pushing {bin_size} parcels to database.', time=True)
 
-                self.database.write_com_parcels(parcels)
-                parcels = []
+                if parcel_id % bin_size == 0:
+                    self.database.write_commerces(parcels)
+                    parcels = []
 
-                pr.print(f'Resuming commercial parcel parsing.', time=True)
-                pr.print('Commercial Parcel Parsing Progress', persist=True, 
-                    replace=True, frmt='bold', progress=parcel_id/target)
+                if parcel_id == n:
+                    pr.print(f'Found residencial parcel {n}.', time=True)
+                    n <<= 1
 
-        pr.print(f'Pushing {parcel_id % bin_size} parcels to database.', time=True)
+        self.database.write_commerces(parcels)
+        
+        if parcel_id != (n >> 1):
+            pr.print(f'Found residencial parcel {n}.', time=True)
 
-        self.database.write_com_parcels(parcels)
+        pr.print('Joining parcel and MAZ data.', time=True)
 
-        pr.print('Commercial Parcel Parsing Progress', persist=True, 
-            replace=True, frmt='bold', progress=1)
-        pr.push()
-        pr.print('Commercial parcel data parsing complete.', time=True)
-
-        pr.print('Merging tables and dropping temporaries.', time=True)
         self.database.create_all_idxs('temp_residences')
         self.database.create_all_idxs('temp_commerces')
         self.database.drop_table('commerces')
         self.database.drop_table('residences')
-        self.database.join_com_parcels()
-        self.database.join_res_parcels()
+        self.database.join_commerces()
+        self.database.join_residences()
         self.database.drop_table('temp_residences')
         self.database.drop_table('temp_commerces')
+        del self.database.tables['temp_residences']
+        del self.database.tables['temp_commerces']
+
+        if config['create_idxs']:
+            pr.print('Beginning index creation on generated tables.', time=True)
+            for table in self.database.tables:
+                self.database.create_all_idxs(table)
+            pr.print('Index creation complete.', time=True)
 
         pr.print('Parcel data parsing complete.', time=True)
+
+
+    def create_tables(self, *tables, force=False):
+        if not force:
+            exists = self.database.table_exists(*tables)
+            if len(exists):
+                exists = '", "'.join(exists)
+                cond = pr.print(f'Table{"s" if len(exists) > 1 else ""} '
+                    f'"{exists}" already exist in database '
+                    f'"{self.database.db}". Drop and continue? [Y/n] ', 
+                    inquiry=True, time=True, force=True)
+                if not cond:
+                    pr.print('User chose to terminate process.', time=True)
+                    raise RuntimeError
+        for table in tables:
+            self.database.create_table(table)

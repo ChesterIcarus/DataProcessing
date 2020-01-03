@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 
 from icarus.util.error import ConfigError
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 
 class ConfigUtil:
@@ -217,11 +217,13 @@ class ConfigUtil:
             raise ValueError (f'Parameter "{name}" expected to match pattern '
                 f'{spec["regex"]} but found "{param}".')
 
-        # TODO complete error handling
         if 'file' in spec:
             if spec['file'] == 'exists' and not self.file_exists(param):
-                raise ValueError()
+                raise ValueError(f'Parameter "{name}" expected to be a path '
+                    f'to an existing file but found "{param}".')
             elif spec['file'] == 'readable' and not self.file_readable(param):
-                raise ValueError()
+                raise ValueError(f'Parameter "{name}" expected to be a path '
+                    f'to an readable file but found "{param}".')
             elif spec['file'] == 'writable' and not self.file_writable(param):
-                raise ValueError()
+                raise ValueError(f'Parameter "{name}" expected to be a path '
+                    f'to a writable file but found "{param}".')

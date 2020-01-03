@@ -1,13 +1,16 @@
 {
-    "sourcepath": "/home/Shared/source/abm/recent/trips.csv",
-    "resume": false,
-    "silent": false,
-    "bin_size": 500000,
-    "create_idxs": true,
+    "run": {
+        "create_idxs": true,
+        "bin_size": 500000,
+        "force": false,
+        "log": null,
+        "resume": false,
+        "trips_file": "/home/Shared/source/abm/recent/trips.csv"
+    },
     "database": {
         "user": "validation",
         "host": "localhost",
-        "db": "abm2018",
+        "db": "abm_test",
         "unix_socket": "/home/mysql/mysql.sock",
         "password": "",
         "tables": {
@@ -53,6 +56,5 @@
             }
 
         }
-    },
-    "encoding": {}
+    }
 }

@@ -5,7 +5,7 @@ from random import randint
 from collections import defaultdict
 
 from icarus.input.parse.database import PlansParserDatabase
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 class PlansParser:
     def __init__(self, database, encoding):

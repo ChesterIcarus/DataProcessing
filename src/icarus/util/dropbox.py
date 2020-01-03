@@ -9,7 +9,7 @@ from datetime import datetime
 from argparse import ArgumentParser
 from collections import defaultdict
 
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 class DropboxUtil:
     team = {}

@@ -6,7 +6,7 @@ from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
 from icarus.input.merge.merger import PlansMerger
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 parser = ArgumentParser(prog='PlansMerger',
     description='Merges output plans with vehicular data.')

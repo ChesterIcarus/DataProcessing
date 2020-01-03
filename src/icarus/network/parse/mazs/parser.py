@@ -4,7 +4,7 @@ import shapefile
 from xml.etree.ElementTree import iterparse
 
 from icarus.network.parse.mazs.parser import MazParserDatabase
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 class MazParser:
     def __init__(self, database):

@@ -1,6 +1,6 @@
 
 from icarus.input.generate.database import PlansGeneratorDatabase
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
 class PlansGenerator:
     plan_frmt = '<person id="%s"><plan selected="yes">'

@@ -1,0 +1,180 @@
+{
+    "run": {
+        "create_idxs": {
+            "type": "bool",
+            "description": "if true, indexes specified on tables in config will be genereated at end of module run",
+            "required": false,
+            "default": false
+        },
+        "events_file": {
+            "type": "str",
+            "description": "file path to MATSim output events",
+            "required": true,
+            "file": "readable"
+        },
+        "force": {
+            "type": "bool",
+            "description": "if true, user will not be prompted before deleting files/tables",
+            "required": false,
+            "default": false
+        },
+        "input_db": {
+            "type": "str",
+            "description": "database of simulation input",
+            "required": true
+        },
+        "log": {
+            "type": "str",
+            "description": "file path file to write console log to",
+            "required": false,
+            "default": null
+        },
+        "network_db": {
+            "type": "str",
+            "description": "database of simulation network",
+            "required": true
+        }
+    },
+    "temperature": {
+        "room": {
+            "type": "float",
+            "description": "default temperature of APN if not specified in parcel data",
+            "required": false,
+            "default": 25.5
+        },
+        "car": {
+            "type": "float",
+            "description": "default temperature of car if not specified in vehicle data",
+            "required": false,
+            "default": 25.5
+        },
+        "bus": {
+            "type": "float",
+            "description": "default temperature of bus if not specified in vehicle data",
+            "required": false,
+            "defualt": 25.5
+        },
+        "tram": {
+            "type": "float",
+            "description": "default temperature of tram if not specified in vehicle data",
+            "required": false,
+            "default": 25.5
+        }
+    },
+    "encoding": {
+        "mode": {
+            "type": "dict",
+            "description": "encoding for all simulation mode types",
+            "required": true
+        },
+        "activity": {
+            "type": "dict",
+            "description": "encoding for all simulation activity types",
+            "required": true
+        }
+    },
+    "database": {
+        "user": {
+            "type": "str",
+            "description": "mysql user name",
+            "required": true
+        },
+        "host": {
+            "type": "str",
+            "description": "mysql host name",
+            "required": true
+        },
+        "db": {
+            "type": "str",
+            "description": "mysql database name",
+            "required": true
+        },
+        "password": {
+            "type": "str",
+            "description": "mysql password; will be prompted for if not provided",
+            "required": false
+        },
+        "unix_socket": {
+            "type": "str",
+            "description": "mysql connection socket; only certain environments require custom socket",
+            "required": false
+        },
+        "tables": {
+            "type": "dict",
+            "description": "dictionary of tables that will be made by process",
+            "struct": {
+                "schema": {
+                    "type": "list",
+                    "description": "schema for the table",
+                    "required": true,
+                    "struct": {
+                        "type": "str",
+                        "description": "info for one column of table schema"
+                    }
+                },
+                "primary_idx": {
+                    "type": "list",
+                    "description": "primary index for table",
+                    "required": false,
+                    "struct": {
+                        "type": "str",
+                        "description": "a column in the primary index"
+                    }
+                },
+                "btree_idxs": {
+                    "type": "dict",
+                    "description": "list of binary tree indexes for the table",
+                    "required": false,
+                    "struct": {
+                        "type": "list",
+                        "description": "a binary tree index for the table",
+                        "struct": {
+                            "type": "str",
+                            "description": "a column in a binary index"
+                        }
+                    }
+                },
+                "hash_idxs": {
+                    "type": "dict",
+                    "description": "list of hash table indexes for the table",
+                    "required": false,
+                    "struct": {
+                        "type": "list",
+                        "description": "a hash table index for the table",
+                        "struct": {
+                            "type": "str",
+                            "description": "a column in a hash index"
+                        }
+                    }
+                },
+                "spatial_idxs": {
+                    "type": "dict",
+                    "description": "list of spatial indexes for the table",
+                    "required": false,
+                    "struct": {
+                        "type": "list",
+                        "description": "a spatial index for the table",
+                        "struct": {
+                            "type": "str",
+                            "description": "a column in a hash index"
+                        }
+                    }
+                },
+                "fulltext_idxs": {
+                    "type": "dict",
+                    "description": "list of fulltext indexes for the table",
+                    "required": false,
+                    "struct": {
+                        "type": "list",
+                        "description": "a fulltext index for the table",
+                        "struct": {
+                            "type": "str",
+                            "description": "a column in a fulltext index"
+                        }
+                    }
+                }
+            },
+            "required": false
+        }
+    }
+}

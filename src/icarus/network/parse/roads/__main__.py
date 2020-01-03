@@ -6,48 +6,40 @@ from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
 from icarus.network.parse.roads.parser import RoadParser
-from icarus.util.print import Printer as pr
+from icarus.util.print import PrintUtil as pr
 
-parser = ArgumentParser(prog='AgentsParser',
-    description='Parse ABM agents csv file into table in a SQL database.')
+parser = ArgumentParser(prog='Network Road Parser',
+    description='Parse XML network into MySQL database.')
 parser.add_argument('--config', type=str,  dest='config',
     default=resource_filename('icarus', 'network/parse/roads/config.json'),
     help=('Specify a config file location; default is "config.json" in '
-        'the current working directory.'), nargs=1)
+        'the current working directory.'))
+parser.add_argument('--specs', type=str, dest='specs',
+    default=resource_filename('icarus', 'network/parse/roads/specs.json'),
+    help=('Specify a specs file location; default is "specs.json" in '
+        'the current module directory.'))
+parser.add_argument('--log', type=str, dest='log',
+    help='specify a log file location; by default the log will not be saved',
+    default=None)
 args = parser.parse_args()
 
-if args.log is not None:
-    pr.log(args.log)
+pr.print('Running network road parser module.', time=True)
+pr.print('Validating configuration file.', time=True)
+config = RoadParser.validate_config(args.config, args.specs)
 
-try:
-    with open(args.config) as handle:
-        config = json.load(handle)
-except FileNotFoundError as err:
-    pr.print(f'Config file {args.config} not found.', time=True)
-    raise err
-except json.JSONDecodeError as err:
-    pr.print(f'Config file {args.config} is not valid JSON.', time=True)
-    raise err
-except KeyError as err:
-    pr.print(f'Config file {args.config} is not valid config file.', time=True)
-    raise err
+if args.log is not None:
+    log = args.log
+elif config['run']['log'] not in (None, ''):
+    log = config['run']['log']
+else:
+    log = None
+if log is not None:
+    pr.log(log)
+    pr.print(f'Process log being saved to {log}.', time=True)
 
 database = config['database']
-encoding = config['encoding']
+database['password'] = pr.getpass(f'SQL password for '
+    f'{database["user"]}@localhost: ', time=True)
 
-database['password'] = getpass(
-    f'SQL password for {database["user"]}@localhost: ')
-
-parser = RoadParser(database, encoding)
-
-if not config['resume']:
-    for table in database['tables'].keys():
-        parser.database.create_table(table)
-
-parser.parse_road(config['sourcepath'])
-
-if config['create_idxs']:
-    pr.print('Beginning index creation on generated tables.', time=True)
-    for table in database['tables']:
-        parser.database.create_all_idxs(table)
-    pr.print('Index creation complete.', time=True)
+parser = RoadParser(database)
+parser.run(config)
