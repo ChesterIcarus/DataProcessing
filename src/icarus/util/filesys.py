@@ -3,8 +3,6 @@ import os
 import tempfile
 import subprocess
 
-from icarus.util.print import PrintUtil
-
 class FilesysUtil:
     @classmethod
     def file_readable(self, filepath):
@@ -56,3 +54,14 @@ class FilesysUtil:
             subprocess.run(('mv', target, source), shell=False)
         else:
             subprocess.run(f'xmllint --format {source} > {target}', shell=True)
+
+    @classmethod
+    def decompress_gz(self, source, target=None):
+        'decompress a gz file'
+        if target is None:
+            targetfile = self.create_tempfile(
+                suffix=source.split('.')[-2], delete=False)
+            target = targetfile.name
+            targetfile.close()
+        subprocess.run(f'gunzip --stdout {source} > {target}', shell=True)
+        return target

@@ -26,8 +26,15 @@ class DropboxUtil:
         if key is not None:
             self.connect(key)
         if self.dbx is not None:
-            while self.exec_command(self.read_command()):
-                pass
+            while True:
+                try:
+                    if not self.exec_command(self.read_command()):
+                        break
+                except KeyboardInterrupt:
+                    continue
+                except EOFError:
+                    pr.print('goodbye')
+                    exit()
         else:
             pr.print('not connected to dropbox API; shell request terminated')
 

@@ -1,4 +1,6 @@
 
+from collections import defaultdict
+
 from icarus.util.database import DatabaseUtil
 
 class PlansGeneratorDatabase(DatabaseUtil):
@@ -87,10 +89,14 @@ class PlansGeneratorDatabase(DatabaseUtil):
             ) AS parcels
             USING (apn)
             {f"WHERE acts.agent_id IN {agents}" if agent else ""}
-            ORDER BY agent_id, agent_idx
         '''
         self.cursor.execute(query)
-        return self.cursor.fetchall()
+        activities = defaultdict(list)
+        for act in self.cursor.fetchall():
+            activities[act[0]].append(act)
+        for agent in activities:
+            activities[agent].sort(key=lambda a: a[1])
+        return activities
 
     def get_routes(self, agents= []):
         agent = len(agents)
@@ -102,7 +108,11 @@ class PlansGeneratorDatabase(DatabaseUtil):
                 dur_time
             FROM {self.db}.routes
             {f"WHERE agent_id IN {agents}" if agent else ""}
-            ORDER BY agent_id, agent_idx
         '''
         self.cursor.execute(query)
-        return self.cursor.fetchall()
+        routes = defaultdict(list)
+        for route in self.cursor.fetchall():
+            routes[route[0]].append(route)
+        for agent in routes:
+            routes[agent].sort(key=lambda a: a[1])
+        return routes

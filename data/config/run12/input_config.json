@@ -1,14 +1,14 @@
 {
     "input": {
-        "config_file": "/home/Shared/matsim/run10/input/config.xml",
-        "plans_file": "D:\\Benjamin Brownlee\\matsim\\run10\\input\\plans.xml",
-        "network_file": "D:\\Benjamin Brownlee\\matsim\\run10\\input\\network.xml",
-        "vehicles_file": "D:\\Benjamin Brownlee\\matsim\\run10\\input\\vehicles.xml",
-        "transit_vehicles_file": "D:\\Benjamin Brownlee\\matsim\\run10\\input\\transitVehicles.xml",
-        "transit_schedule_file": "D:\\Benjamin Brownlee\\matsim\\run10\\input\\transitSchedule.xml"
+        "config_file": "/home/Shared/matsim/run12/input/config.xml",
+        "plans_file": "D:\\Benjamin Brownlee\\matsim\\run12\\input\\plans.xml",
+        "network_file": "D:\\Benjamin Brownlee\\matsim\\run12\\input\\network.xml",
+        "vehicles_file": "D:\\Benjamin Brownlee\\matsim\\run12\\input\\vehicles.xml",
+        "transit_vehicles_file": "D:\\Benjamin Brownlee\\matsim\\run12\\input\\transitVehicles.xml",
+        "transit_schedule_file": "D:\\Benjamin Brownlee\\matsim\\run12\\input\\transitSchedule.xml"
     },
     "output": {
-        "output_dir": "D:\\Benjamin Brownlee\\matsim\\run10\\output\\",
+        "output_dir": "D:\\Benjamin Brownlee\\matsim\\run12\\output\\",
         "iterations": 1,
         "save_charts_it": 1,
         "save_plans_it": 1,

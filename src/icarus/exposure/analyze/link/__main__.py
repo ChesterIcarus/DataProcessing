@@ -1,46 +1,49 @@
 
-import json
+import logging
 
 from getpass import getpass
 from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
 from icarus.exposure.analyze.link.analysis import ExposureLinkAnalysis
-from icarus.util.print import PrintUtil as pr
 
-parser = ArgumentParser(prog='Exposure Analysis',
-    description='Analyze simulation output with temperature data at link resolution.')
+# command line argument processing
+parser = ArgumentParser(prog='Simulation Exposure Analysis (Link Granularity)',
+    description='')
 parser.add_argument('--config', type=str,  dest='config',
     default=resource_filename('icarus', 'exposure/analyze/link/config.json'),
-    help=('Specify a config file location; default is "config.json" in '
-        'the current working directory.'))
+    help=('Specify a configuration file location; default is "config.json"'
+        ' in the package module directory.'))
 parser.add_argument('--specs', type=str, dest='specs',
     default=resource_filename('icarus', 'exposure/analyze/link/specs.json'),
-    help=('Specify a specs file location; default is "specs.json" in '
-        'the current module directory.'))
+    help=('Specify a specifications file location; default is "specs.json"'
+        ' in the package module directory.'))
 parser.add_argument('--log', type=str, dest='log',
-    help='specify a log file location; by default the log will not be saved',
-    default=None)
+    help='specify a log file location; by default the log will not be saved',)
 args = parser.parse_args()
 
-pr.print('Running exposure link analysis module.', time=True)
-pr.print('Validating configuration file.', time=True)
+# module loggging processing
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s',
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler(args.log, 'w'),
+        logging.StreamHandler()
+    ])
+
+# config validation
+logging.info('Running exposure link analysis module.')
+logging.info('Validating configuration with module specifications.')
 config = ExposureLinkAnalysis.validate_config(args.config, args.specs)
 
-if args.log is not None:
-    log = args.log
-elif config['run']['log'] not in (None, ''):
-    log = config['run']['log']
-else:
-    log = None
-if log is not None:
-    pr.log(log)
-    pr.print(f'Process log being saved to {log}.', time=True)
-
+# database credentials handling
 database = config['database']
-if not database['password']:
-    database['password'] = pr.getpass(f'SQL password for '
-        f'{database["user"]}@localhost: ', time=True)
+if database['user'] in ('', None):
+    logging.debug('SQL username for localhost: ')
+    database['user'] = input()
+if database['user'] in ('', None) or database['password'] in ('', None):
+    logging.debug(f'SQL password for {database["user"]}@localhost: ')
+    database['password'] = getpass()
 
-parser = ExposureLinkAnalysis(database)
-parser.run(config)
+module = ExposureLinkAnalysis(database)
+module.run(config)

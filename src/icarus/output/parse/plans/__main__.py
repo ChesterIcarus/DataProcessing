@@ -1,59 +1,49 @@
 
-import json
+import logging
 
 from getpass import getpass
 from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
 from icarus.output.parse.plans.parser import PlansParser
-from icarus.util.print import PrintUtil as pr
 
-parser = ArgumentParser(prog='AgentsParser',
-    description='Parses MATSim output plans into SQL database.')
+# command line argument processing
+parser = ArgumentParser(prog='Simulation Output Plans Parsing',
+    description='Parse output plans from MATSim simulation into MySQL.')
 parser.add_argument('--config', type=str,  dest='config',
     default=resource_filename('icarus', 'output/parse/plans/config.json'),
-    help=('Specify a config file location; default is "config.json" in '
-        'the current working directory.'))
+    help=('Specify a configuration file location; default is "config.json"'
+        ' in the package module directory.'))
+parser.add_argument('--specs', type=str, dest='specs',
+    default=resource_filename('icarus', 'output/parse/plans/specs.json'),
+    help=('Specify a specifications file location; default is "specs.json"'
+        ' in the package module directory.'))
 parser.add_argument('--log', type=str, dest='log',
-    help='Specify a log file location; by default the log will not be saved.',
-    default=None)
+    help='specify a log file location; by default the log will not be saved',)
 args = parser.parse_args()
 
-if args.log is not None:
-    pr.log(args.log)
+# module loggging processing
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s',
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler(args.log, 'w'),
+        logging.StreamHandler()
+    ])
 
-try:
-    with open(args.config) as handle:
-        config = json.load(handle)
-except FileNotFoundError as err:
-    pr.print(f'Config file {args.config} not found.', time=True)
-    raise err
-except json.JSONDecodeError as err:
-    pr.print(f'Config file {args.config} is not valid JSON.', time=True)
-    raise err
-except KeyError as err:
-    pr.print(f'Config file {args.config} is not valid config file.', time=True)
-    raise err
+# config validation
+logging.info('Running output plans parsing module module.')
+logging.info('Validating configuration with module specifications.')
+config = PlansParser.validate_config(args.config, args.specs)
 
+# database credentials handling
 database = config['database']
-encoding = config['encoding']
+if database['user'] in ('', None):
+    logging.debug('SQL username for localhost: ')
+    database['user'] = input()
+if database['user'] in ('', None) or database['password'] in ('', None):
+    logging.debug(f'SQL password for {database["user"]}@localhost: ')
+    database['password'] = getpass()
 
-database['password'] = getpass(
-    f'SQL password for {database["user"]}@localhost: ')
-
-parser = PlansParser(database, encoding)
-
-if not config['resume']:
-    for table in database['tables'].keys():
-        parser.database.create_table(table)
-
-options = ('silent', 'bin_size', 'resume')
-params = {key:config[key] for key in options if key in config}
-
-parser.parse(config['filepath'], **params)
-
-if config['create_idxs']:
-    parser.index()
-
-if config['verify']:
-    parser.verify()
+module = PlansParser(database, config['encoding'])
+module.run(config)

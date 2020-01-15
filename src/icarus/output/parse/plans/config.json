@@ -1,14 +1,14 @@
 {
-    "filepath": "",
-    "resume": false,
-    "silent": false,
-    "create_idxs": true,
-    "verify": true,
-    "bin_size": 100000,
+    "run": {
+        "plans_file": "",
+        "input_db": "",
+        "create_idxs": true,
+        "bin_size": 100000
+    },
     "database": {
         "user": "validation",
         "host": "localhost",
-        "db": "output_run2_it20",
+        "db": "output_test",
         "unix_socket": "/home/mysql/mysql.sock",
         "password": "",
         "tables": {

@@ -1,12 +1,11 @@
 
-from collections import defaultdict
-import traceback
+import logging as log
 
+from collections import defaultdict
 from xml.etree.ElementTree import iterparse
 
 from icarus.exposure.analyze.link.database import ExposureLinkAnalysisDatabase
 from icarus.util.config import ConfigUtil
-from icarus.util.print import PrintUtil as pr
 
 
 class ExposureLinkAnalysis:
@@ -24,7 +23,7 @@ class ExposureLinkAnalysis:
 
 
     def run(self, config):
-        pr.print('Prallocating process files and tables.', time=True)
+        log.info('Prallocating process files and tables.')
         force = config['run']['force']
         self.create_tables(*tuple(self.database.tables.keys()), force=force)
 
@@ -34,19 +33,19 @@ class ExposureLinkAnalysis:
         default_temps = config['temperature']
 
         vehicles = defaultdict(lambda: [set(), None, 14400])
-        agents = defaultdict(lambda: [list(), None, 14400])
+        agents = defaultdict(lambda: [list(), None, 14400, 0])
 
         acts = tuple(config['encoding']['activity'].keys())
 
-        pr.print('Fetching network and simulation data.', time=True)
-        # pr.print(f'Fetching population plans.', time=True)
+        log.info('Fetching network and simulation data.')
+        # log.info(f'Fetching population plans.')
         # plans = self.database.fetch_plans(input_db)
-        pr.print(f'Fetching network links.', time=True)
+        log.info(f'Fetching network links.')
         links = self.database.fetch_links(network_db)
-        pr.print(f'Fetching network temperatures.', time=True)
+        log.info(f'Fetching network temperatures.')
         temps = self.database.fetch_temperatures(network_db)
         steps = len(temps[0])
-        # pr.print(f'Fetching network parcels.', time=True)
+        # log.info(f'Fetching network parcels.')
         # parcels = self.database.fetch_parcels(network_db)
         
         events = iter(iterparse(eventsfile, events=('start', 'end')))
@@ -55,7 +54,7 @@ class ExposureLinkAnalysis:
         time = 0
         n = 14400
 
-        pr.print('Iterating over events file.', time=True)
+        log.info('Iterating over events file.')
         for evt, elem in events:
             try:
                 if evt == 'start' and elem.tag == 'event':
@@ -89,7 +88,8 @@ class ExposureLinkAnalysis:
                             elif vehicle_id[-4:] == 'tram':
                                 temp = default_temps['tram']
                             else:
-                                input(f'Error: unexpected vehicle with id {vehicle_id}')
+                                log.error(f'Unexpected vehicle with id {vehicle_id}.')
+                                raise ValueError
                             exposure = temp * (time - vehc_time)
                             for agent_id in vehicle[0]:
                                 agent = agents[agent_id]
@@ -128,25 +128,31 @@ class ExposureLinkAnalysis:
                             agent[1] = link_id
                             agent[2] = time
 
+                    elif event == 'stuckAndAbort':
+                        agent_id = elem.get('person')
+                        agent = agents[agent_id]
+                        agent[3] = 1
+
                     count += 1
                     if time >= n:
-                        pr.print(f'Simulation analysis at {str(time//3600).zfill(2)}'
-                            f':00:00 with {count} events processed.', time=True)
+                        log.info(f'Simulation analysis at {str(time//3600).zfill(2)}'
+                            f':00:00 with {count} events processed.')
                         n += 3600
                     if count % 100000 == 0:
                         root.clear()
 
-            except Exception as error:
-                pr.print(f'Exception while handling event {count}.')
-                traceback.print_exc()
-                breakpoint()
+            except Exception:
+                log.exception(f'Exception while handling event {count}.')
+                exit()
 
-        pr.print('Simulation events iteration complete.', time=True)
-        pr.print(f'Processing and analyzing results.', time=True)
+        log.info('Simulation events iteration complete.')
+        log.info('Processing and analyzing results.')
 
         activities = []
         routes = []
         plans = []
+        end_time = time
+
 
         for agent_id, agent in agents.items():
             if agent_id.isdigit():
@@ -156,26 +162,25 @@ class ExposureLinkAnalysis:
                         routes.append((agent_id, idx // 2, exp))
                     else:
                         activities.append((agent_id, idx // 2, exp))
-                plans.append((agent_id, len(agent[0]), sum(agent[0])))
+                if agent[3] == 0 and len(agent[0]) % 2 == 0:
+                    exp = default_temps['room'] * (end_time - agent[2])
+                    activities.append((agent_id, len(agent[0]) // 2, exp))
+                    size = len(agent[0]) + 1
+                else:
+                    size = len(agent[0])
+                plans.append((agent_id, len(agent[0]), size, agent[3]))
 
-        pr.print(f'Saving results to database.', time=True)
+        log.info(f'Saving results to database.')
 
-        try:
-
-            self.database.write_rows(plans, 'agents')
-            self.database.write_rows(activities, 'activities')
-            self.database.write_rows(routes, 'routes')
-
-        except Exception as error:
-            pr.print('Exception while pushing results to database', time=True)
-            traceback.print_exc()
-            breakpoint()
+        self.database.write_rows(plans, 'agents')
+        self.database.write_rows(activities, 'activities')
+        self.database.write_rows(routes, 'routes')
 
         if config['run']['create_idxs']:
-            pr.print(f'Creating all indexes in database '
-                f'{self.database.db}.', time=True)
+            log.info(f'Creating all indexes in database '
+                f'{self.database.db}.')
             self.create_idxs()
-            pr.print(f'Index creating complete.', time=True)
+            log.info(f'Index creating complete.')
 
 
     def create_idxs(self):
@@ -188,12 +193,11 @@ class ExposureLinkAnalysis:
             exists = self.database.table_exists(*tables)
             if len(exists):
                 exists = '", "'.join(exists)
-                cond = pr.print(f'Table{"s" if len(exists) > 1 else ""} '
+                log.warn(f'Table{"s" if len(exists) > 1 else ""} '
                     f'"{exists}" already exist in database '
-                    f'"{self.database.db}". Drop and continue? [Y/n] ', 
-                    inquiry=True, time=True, force=True)
-                if not cond:
-                    pr.print('User chose to terminate process.', time=True)
+                    f'"{self.database.db}". Drop and continue? [Y/n] ')
+                if input().lower() not in ('y', 'yes'):
+                    log.error('User chose to terminate process.')
                     raise RuntimeError
         for table in tables:
             self.database.create_table(table)

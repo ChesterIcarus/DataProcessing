@@ -1,6 +1,9 @@
 
+import logging as log
+
 from icarus.input.generate.database import PlansGeneratorDatabase
 from icarus.util.print import PrintUtil as pr
+from icarus.util.config import ConfigUtil
 
 class PlansGenerator:
     plan_frmt = '<person id="%s"><plan selected="yes">'
@@ -37,6 +40,15 @@ class PlansGenerator:
         secs -= mins * 60
         return ':'.join(str(t).zfill(2) for t in (hours, mins, secs))
 
+
+    @staticmethod
+    def validate_config(configpath, specspath):
+        config = ConfigUtil.load_config(configpath)
+        specs = ConfigUtil.load_specs(specspath)
+        config = ConfigUtil.verify_config(specs, config)
+
+        return config
+
     
     def encode_route(self, route):
         return self.route_frmt % (
@@ -69,7 +81,7 @@ class PlansGenerator:
             act[self.act_keys['y']])
 
     
-    def generate_plans(self, planpath, vehiclepath, region=[], time=[], 
+    def run(self, planpath, vehiclepath, region=[], time=[], 
             modes=[], sample=1, bin_size=100000):
         pr.print('Beginning simulation input plans generation.', time=True)
 
@@ -94,35 +106,31 @@ class PlansGenerator:
         planfile.write('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE plans'
             ' SYSTEM "http://www.matsim.org/files/dtd/plans_v4.dtd"><plans>')
 
-        total = 0
         for group in self.chunk(plans, bin_size):
             size = len(group)
 
             pr.print(f'Fetching activity and route data for {size} plans.', time=True)
             agents = tuple(plan[0] for plan in group)
-            routes = list(self.database.get_routes(agents))
-            activities = list(self.database.get_activities(agents))
+            routes = self.database.get_routes(agents)
+            activities = self.database.get_activities(agents)
 
             pr.print('Writing activity and route data to plans file.', time=True)
-            for plan in group:
-                planfile.write(self.plan_frmt % plan[self.plan_keys['agent_id']])
-                planfile.write(self.encode_start(activities.pop(0)))
-                for _ in range(plan[self.plan_keys['plan_size']] // 2 - 1):
-                    planfile.write(self.encode_route(routes.pop(0)))
-                    planfile.write(self.encode_act(activities.pop(0)))
-                planfile.write(self.encode_route(routes.pop(0)))
-                planfile.write(self.encode_end(activities.pop(0)))
+            for agent in agents:
+                rts = routes[agent]
+                acts = activities[agent]
+                planfile.write(self.plan_frmt % agent)
+                planfile.write(self.encode_start(acts.pop(0)))
+                for rt, act in zip(rts[:-1], acts[:-1]):
+                    planfile.write(self.encode_route(rt))
+                    planfile.write(self.encode_act(act))
+                planfile.write(self.encode_route(rts[-1]))
+                planfile.write(self.encode_end(acts[-1]))
                 planfile.write('</plan></person>')
-            planfile.flush()
-            total += size
-            pr.print('Plans File Generation Progress', persist=True, replace=True,
-                frmt='bold', progress=total/target)
+                del routes[agent]
+                del activities[agent]
+
         planfile.write('</plans>')
         planfile.close()
-
-        pr.print('Plans File Generation Progress', persist=True, replace=True,
-            frmt='bold', progress=1)
-        pr.push()
 
         vehiclesfile = open(vehiclepath, 'w')
         

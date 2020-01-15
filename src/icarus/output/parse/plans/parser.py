@@ -1,42 +1,47 @@
 
-import os
-import gzip
-import shutil
-
+import logging as log
 import numpy as np
 
 from datetime import datetime
 from xml.etree.ElementTree import iterparse
 
 from icarus.output.parse.plans.database import PlansParserDatabase
-from icarus.util.print import PrintUtil as pr
+from icarus.util.filesys import FilesysUtil
+from icarus.util.config import ConfigUtil
 
 class PlansParser:
     def __init__(self, database, encoding):
-        self.database= PlansParserDatabase(database)
+        self.database = PlansParserDatabase(database)
         self.encoding = encoding
 
-    @staticmethod
-    def decompress_plans(gzplans, plans):
-        with open(plans, 'wb') as outfile, gzip.open(gzplans, 'rb') as infile:
-            shutil.copyfileobj(infile, outfile)
 
     @staticmethod
     def parse_time( clk):
         clk = clk.split(':')
         return int(clk[0]) * 3600 + int(clk[1]) * 60 + int(clk[2])
 
-    def parse(self, filepath, resume=False, bin_size=100000, silent=False):
-        pr.print(f'Beginning MATSim output plans parsing from {filepath}.', time=True)
-        pr.print('Loading process metadata and fetching reference data.', time=True)
 
-        if not os.path.isfile(filepath):
-            if os.path.isfile(filepath + '.gz'):
-                self.decompress_plans(filepath + '.gz', filepath)
-            else:
-                raise FileNotFoundError
-        
-        parser = iterparse(filepath, events=('start', 'end'))
+    @classmethod
+    def validate_config(self, configpath, specspath):
+        config = ConfigUtil.load_config(configpath)
+        specs = ConfigUtil.load_specs(specspath)
+        config = ConfigUtil.verify_config(specs, config)
+
+        return config
+    
+
+    def run(self, config):
+        log.info('Preallocating process files and tables.')
+
+        planspath = config['run']['plans_file']
+        bin_size = config['run']['bin_size']
+
+        if planspath.split('.')[-1] == '.gz':
+            log.info('Decompressing outout plans.')
+            planspath = FilesysUtil.decompress_gz(planspath)
+            temp = True
+
+        parser = iterparse(planspath, events=('start', 'end'))
         parser = iter(parser)
         evt, root = next(parser)
 
@@ -49,10 +54,11 @@ class PlansParser:
         route_id = 0
         route_idx = 0
         count = 0
+        n = 1
 
         selected = False
 
-        pr.print(f'Iterating over plans and parsing.', time=True)
+        log.info(f'Iterating over plans file and parsing agent plans.')
         for evt, elem in parser:
             if evt == 'start':
                 if elem.tag == 'person':
@@ -68,8 +74,11 @@ class PlansParser:
                     route_idx = 0
                     act_idx = 0
 
+                    if count == n:
+                        log.info(f'Processed plan {count}.')
+                        n <<= 1
+
                     if count % bin_size == 0:
-                        pr.print(f'Pushing {bin_size} plans to SQL server.', time=True)
                         self.database.write_agents(agents)
                         self.database.write_activities(acts)
                         self.database.write_routes(routes)
@@ -79,18 +88,13 @@ class PlansParser:
                         routes = []
                         root.clear()
 
-                        pr.print('Resuming XML agent plan parsing.', time=True)
                 elif elem.tag == 'activity':
-                    # pt = f"POINT({elem.get('x')} {elem.get('y')})"
-                    # apn = (residences[pt] if pt in residences else commerces[pt] 
-                    #     if pt in commerces else None)
-                    start = self.parse_time(elem.get('start_time', '00:00:00'))
-                    end = self.parse_time(elem.get('end_time'))
+                    start = self.parse_time(elem.get('start_time', '04:00:00'))
+                    end = self.parse_time(elem.get('end_time', '28:00:00'))
                     acts.append((
                         act_id,
                         agent_id,
                         act_idx,
-                        # apn, 
                         self.encoding['activity'][elem.get('type')],
                         start,
                         end,
@@ -111,25 +115,24 @@ class PlansParser:
                     route_id += 1
                     route_idx += 1
 
-        pr.print(f'Pushing {count % bin_size} plans to SQL server.', time=True)
+        if count != (n >> 1):
+            log.info(f'Processed plan {count}')
+        
         self.database.write_agents(agents)
         self.database.write_activities(acts)
         self.database.write_routes(routes)
 
         root.clear()
+        del parser
 
-        pr.print('Output plans parsing complete.', time=True)
+        if temp:
+            FilesysUtil.delete_file(planspath)
 
-    def index(self, silent=False):
-        if not silent:
-            pr.print(f'Creating all indexes in database "{self.database.db}"".',
-                time=True)
+        log.info('Output plans parsing complete.')
+
+
+    def index(self):
+        log.info(f'Creating all indexes in database "{self.database.db}".')
         for tbl in self.database.tables:
             self.database.create_all_idxs(tbl)
-        if not silent:
-            pr.print(f'Index creating complete.', time=True)
-
-    def verify(self, silent=False):
-        pr.print(f'Beginning contradiction analysis.', time=True)
-        
-        pr.print(f'Contradiction analysis complete.', time=True)
+        log.info(f'Index creation complete.')

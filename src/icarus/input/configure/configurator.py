@@ -120,7 +120,6 @@ class Configurator:
             <param name="linkDynamics" value="PassingQ" />
             <param name="linkWidth" value="30.0" />
             <param name="nodeOffset" value="0.0" />
-            <param name="numberOfThreads" value="20" />
             <param name="mainMode" value="car,Bus,Tram" />
             <param name="removeStuckVehicles" value="false" />
             <param name="seepMode" value="bike" />
@@ -136,6 +135,9 @@ class Configurator:
             <param name="useLanes" value="true" />
             <param name="usingFastCapacityUpdate" value="true" />
             <param name="usingThreadpool" value="true" /> ''')
+
+        configfile.write('<param name="numberOfThreads" value="%s" />' % 
+            self.config['simulation']['threads'])
 
         if self.config['simulation']['init'] == True:
             configfile.write('''
@@ -209,7 +211,7 @@ class Configurator:
         configfile.write('<module name="planscalcroute">')
 
         configfile.write('<param name="networkModes" value="%s" />' %
-            ', '.join(self.config['modes']['network']))
+            ','.join(self.config['modes']['network']))
 
         teleport = '''
             <parameterset type="teleportedModeParameters" >
@@ -219,7 +221,7 @@ class Configurator:
                 <param name="teleportedModeSpeed" value="%s" />
             </parameterset> '''
 
-        modes = [('fakemode', 10)] + self.config['modes']['teleported']
+        modes = self.config['modes']['teleported']
 
         for mode in modes:
             configfile.write(teleport % tuple(mode))
@@ -269,7 +271,7 @@ class Configurator:
         for act in acts:
             configfile.write(activity_pattern % (act, 'false', 'undefined'))
 
-        configfile.write(activity_pattern % ('default', 'true', 'undefined'))
+        configfile.write(activity_pattern % ('default', 'true', '12:00:00'))
 
         acts = self.config['activities']
         for act in acts:
@@ -286,7 +288,7 @@ class Configurator:
 				<param name="monetaryDistanceRate" value="0.0" />
 			</parameterset> '''
 
-        modes = self.config['modes']['network']
+        modes = self.config['modes']['network'] + self.config['modes']['teleported']
         modes.extend(['default', 'pt'])
 
         for mode in modes:
@@ -304,7 +306,6 @@ class Configurator:
             <param name="isUsingOpportunityCostOfTimeForLocationChoice" value="true" />
             <param name="logitScaleParamForPlansRemoval" value="1.0" />
             <param name="vspDefaultsCheckingLevel" value="ignore" />
-            <param name="writingOutputEvents" value="true" />
-        ''')
+            <param name="writingOutputEvents" value="true" />''')
 
         configfile.write('</module>')

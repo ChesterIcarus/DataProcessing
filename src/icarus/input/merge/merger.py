@@ -1,11 +1,47 @@
 
-from xml.etree.ElementTree import iterparse, tostring
-from collections import defaultdict
-from pprint import pprint
+import logging as log
+
+from xml.etree.ElementTree import tostring, iterparse
+from collections import defaultdict, deque
 
 from icarus.input.merge.database import PlansMergerDatabase
-from icarus.util.print import PrintUtil as pr
 from icarus.util.filesys import FilesysUtil
+
+
+class XmlIterator:
+    def __init__(self, filepath):
+        self.filepath = filepath
+
+    def __iter__(self):
+        self.parser = iterparse(self.filepath, events=('start', 'end'))
+        _, self.root = next(self.parser)
+        self.path = deque([self.root.tag])
+        return self
+
+    def __next__(self):
+        evt, elem = next(self.parser)
+        if evt == 'start':
+            self.path.append(elem.tag)
+        elif evt == 'end':
+            tag = self.path.pop()
+            if tag != elem.tag:
+                raise RuntimeError('Tag mismatch in XML iteration.')
+        return evt, elem
+
+    def skip(self):
+        size = len(self.path)
+        tag = self.path[-1]
+        evt, elem = next(self)
+        while len(self.path) >= size:
+            evt, elem = next(self)
+        if tag != elem.tag or evt != 'end':
+            print(self.path)
+            print(tag)
+            print(elem.tag)
+            print(evt)
+            raise RuntimeError('Tag mismatch in XML element skipping.')
+        return elem
+
 
 class PlansMerger:
     def __init__(self, database):
@@ -48,7 +84,7 @@ class PlansMerger:
     def run(self, config):
         planspath = config['planspath']
 
-        pr.print(f'Loading plans from {planspath}.', time=True)
+        log.info(f'Loading plans from {planspath}.')
         parser = iterparse(planspath, events=('start', 'end'))
         parser = iter(parser)
         evt, root = next(parser)
@@ -57,7 +93,7 @@ class PlansMerger:
         agents = set()
         count = 0
 
-        pr.print('Iterating over plans to identify agents.', time=True)
+        log.info('Iterating over plans to identify agents.')
         for evt, elem in parser:
             if evt == 'start':
                 if elem.tag == 'person':
@@ -69,25 +105,22 @@ class PlansMerger:
         root.clear()
         del parser
 
-        pr.print(f'Found {len(agents)} agents in plans.', time=True)
-        pr.print(f'Fetching vehicular data for agent plans.', time=True)
+        log.info(f'Found {len(agents)} agents in plans.')
+        log.info(f'Fetching vehicular data for agent plans.')
         legs, acts, cars = self.get_vehicles(agents)
-
-        parser = iterparse(planspath, events=('start', 'end'))
-        parser = iter(parser)
-        evt, root = next(parser)
 
         outfile = open(config['outfile'], 'w')
         outfile.write('<?xml version="1.0" encoding="utf-8"?>'
             '<!DOCTYPE population SYSTEM "http://www.matsim.org/files/dtd/population_'
-            'v6.dtd"><population><attributes><attribute name="coordinateReferenceSyst'
-            'em" class="java.lang.String">EPSG:2223</attribute></attributes> ')
+            'v6.dtd"><population>')
 
         agent = None
-        route = False
+        xmliter = XmlIterator(planspath)
+        iter(xmliter)
         act = []
         leg = []
         count = 0
+        n = 1
 
         activities = ('home', 'workplace', 'university', 'school', 'shopping',
             'other_maintenence', 'eating', 'breakfast', 'lunch', 'dinner',
@@ -96,6 +129,8 @@ class PlansMerger:
             'asu_related')
         modes = ('car', 'bike', 'walk')
 
+        person_frmt = '<person id="%s">'
+        plan_frmt = '<plan score="%s" selected="%s">'
         start_frmt = '<activity end_time="%s" type="%s" x="%s" y="%s"/>'
         act_frmt = '<activity start_time="%s" end_time="%s" type="%s" x="%s" y="%s"/>'
         end_frmt = '<activity start_time="%s" type="%s" x="%s" y="%s"/>'
@@ -103,18 +138,28 @@ class PlansMerger:
         route_frmt = ('<route distance="%s" end_link="%s" start_link="%s" '
             'trav_time="%s" type="%s" vehicleRefId="%s">%s</route>')
 
-        pr.print('Iterating over plans to append/modify vehicular data.', time=True)
-        for evt, elem in parser:
+        log.info('Iterating over plans to append/modify vehicular data.')
+        for evt, elem in xmliter:
             if evt == 'start':
                 if elem.tag == 'person':
                     agent = int(elem.get('id'))
-                    outfile.write('<person id="%s"><plan selected="yes">' % agent)
+                    outfile.write(person_frmt % agent)
                     count += 1
                     if count % 10000 == 0:
                         outfile.flush()
                         root.clear()
+                    if n == count:
+                        log.info(f'Writing plan {count}.')
+                        n <<= 1
+                elif elem.tag == 'plan':
+                    selected = elem.get('selected', 'no')
+                    score = elem.get('score')
+                    if selected == 'yes':
+                        outfile.write(plan_frmt % (score, selected))
+                    else:
+                        elem = xmliter.skip()
+                        outfile.write(tostring(elem).decode('utf-8'))
                 elif elem.tag == 'activity':
-                    # outfile.write(tostring(elem).decode('utf-8'))
                     if elem.get('type') in activities:
                         act = acts[agent].pop(0)
                         kind = elem.get('type')
@@ -128,53 +173,47 @@ class PlansMerger:
                             outfile.write(end_frmt % (start, kind, x, y))
                         else:
                             outfile.write(act_frmt % (start, end, kind, x, y))
+                        xmliter.skip()
                     else:
+                        elem = xmliter.skip()
                         outfile.write(tostring(elem).decode('utf-8'))
                 elif elem.tag == 'leg':
                     if elem.get('mode') in modes:
-                        route = True
                         leg = legs[agent].pop(0)
-                        # outfile.write(leg_frmt % (
-                        #     elem.get('dep_time'), 
-                        #     elem.get('mode'),
-                        #     elem.get('trav_time')))
                         outfile.write(leg_frmt % (
                             self.time(leg[3]), 
                             elem.get('mode'), 
                             self.time(leg[4])))
                     else:
-                        route = False
+                        elem = xmliter.skip()
                         outfile.write(tostring(elem).decode('utf-8'))
                 elif elem.tag == 'route':
-                    if route:
-                        # outfile.write(route_frmt % (
-                        #     elem.get('distance'),
-                        #     elem.get('end_link'),
-                        #     elem.get('start_link'),
-                        #     elem.get('trav_time'),
-                        #     elem.get('type'),
-                        #     leg[5],
-                        #     elem.text if elem.text is not None else ''))
-                        outfile.write(route_frmt % (
-                            elem.get('distance'),
-                            elem.get('end_link'),
-                            elem.get('start_link'),
-                            self.time(leg[4]),
-                            elem.get('type'),
-                            leg[5],
-                            elem.text if elem.text is not None else ''))
-            elif evt == 'end':
-                if elem.tag == 'person':
-                    outfile.write('</plan></person>')
-                elif elem.tag == 'leg' and route:
-                    outfile.write('</leg>')
-                    route = False
-                    
-        outfile.write('</population>')
-        outfile.close()
-        del parser
+                    pass
+                elif elem.tag == 'attributes':
+                    elem = xmliter.skip()
+                    outfile.write(tostring(elem).decode('utf-8'))
+                else:
+                    path = '.'.join(list(xmliter.path))
+                    log.error(f'Found expected tag "{elem.tag}" at "{path}".')
+                    raise RuntimeError
 
-        pr.print(f'Creating vehicles file at {config["vehiclesfile"]}.', time=True)
+            elif evt == 'end':
+                if elem.tag == 'route':
+                    outfile.write(route_frmt % (
+                        elem.get('distance'),
+                        elem.get('end_link'),
+                        elem.get('start_link'),
+                        self.time(leg[4]),
+                        elem.get('type'),
+                        leg[5],
+                        elem.text if elem.text is not None else ''))
+                else:
+                    outfile.write('</%s>' % elem.tag)
+                
+        outfile.close()
+        del xmliter
+
+        log.info(f'Creating vehicles file at {config["vehiclesfile"]}.')
 
         vehiclesfile = open(config['vehiclesfile'], 'w')
         
@@ -242,7 +281,7 @@ class PlansMerger:
 
         vehc_formt = '<vehicle id="%s" type="%s"/>'
 
-        pr.print('Iterating over vehicles and writing vehicle definitions.', time=True)
+        log.info('Iterating over vehicles and writing vehicle definitions.')
 
         n = 0
         for car in cars:
@@ -254,8 +293,8 @@ class PlansMerger:
         vehiclesfile.write('</vehicleDefinitions>')
         vehiclesfile.close()
 
-        pr.print('Formatting outputed XML files.', time=True)
+        log.info('Formatting outputed XML files.')
         FilesysUtil.format_xml(config['outfile'])
         FilesysUtil.format_xml(config['vehiclesfile'])
 
-        pr.print('Plans file merging complete.', time=True)
+        log.info('Plans file merging complete.')

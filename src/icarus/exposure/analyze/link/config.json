@@ -67,12 +67,28 @@
             "agents": {
                 "schema": [
                     "agent_id MEDIUMINT UNSIGNED",
+                    "household_id MEDIUMINT UNSIGNED",
+                    "household_idx TINYINT UNSIGNED",
                     "plan_size TINYINT UNSIGNED",
-                    "exposure FLOAT"
+                    "exposure FLOAT",
+                    "abort TINYINT UNSIGNED"
+                ],
+                "primary_idx": [ "agent_id" ]
+
+            },
+            "activities": {
+
+            },
+            "temp_agents": {
+                "schema": [
+                    "agent_id MEDIUMINT UNSIGNED",
+                    "plan_size TINYINT UNSIGNED",
+                    "exposure FLOAT",
+                    "abort TINYINT UNSIGNED"
                 ],
                 "primary_idx": [ "agent_id" ]
             },
-            "activities": {
+            "temp_activities": {
                 "schema": [
                     "agent_id MEDIUMINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",
@@ -83,7 +99,7 @@
                     "agent_idx"
                 ]
             },
-            "routes": {
+            "temp_routes": {
                 "schema": [
                     "agent_id MEDIUMINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",
