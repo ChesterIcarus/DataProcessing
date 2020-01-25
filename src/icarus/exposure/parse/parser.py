@@ -1,13 +1,13 @@
 
 from collections import defaultdict
-from netCDF4 import Dataset
+from netCDF4 import Dataset             # pylint: disable=no-name-in-module
 from pyproj import Transformer
 from math import cos, pi
-from scipy.spatial import Voronoi
+from scipy.spatial import Voronoi       # pylint: disable=no-name-in-module
 
 from icarus.exposure.parse.database import DaymetParserDatabaseHandle
 from icarus.util.print import PrintUtil as pr
-from icarus.util.config import ConfigUtil, ConfigError
+from icarus.util.config import ConfigUtil
 
 
 class DaymetParser:
@@ -53,18 +53,18 @@ class DaymetParser:
 
         steps = config['select']['steps']
         if 86400 % steps:
-            raise ConfigError('Parameter "run.steps" must divide 86400 but '
+            raise ValueError('Parameter "run.steps" must divide 86400 but '
                 f'found {steps} (86400 % {steps} = {86400 % steps}).')
 
         if len(config['run']['tmin']) != len(config['run']['tmax']):
-            raise ConfigError('The number of "tmin" and "tmax" files must match.')
+            raise RuntimeError('The number of "tmin" and "tmax" files must match.')
 
         files = zip(config['run']['tmax'], config['run']['tmin'])
         for tmax_file, tmin_file in files:
             tmaxnc = Dataset(tmax_file, 'r')
             tminnc = Dataset(tmin_file, 'r')
             if tmaxnc.variables['tmax'].shape != tminnc.variables['tmin'].shape:
-                raise ConfigError(f'Tmax file "{tmax_file}" dimension does not '
+                raise RuntimeError(f'Tmax file "{tmax_file}" dimension does not '
                     f'match with that of tmin file "{tmin_file}".')
 
         return config

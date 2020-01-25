@@ -1,9 +1,10 @@
 {
     "run": {
-        "plans_file": "",
-        "input_db": "",
+        "plans_file": "/home/Shared/matsim/run14/output/output_plans.xml",
+        "input_db": "output_test",
         "create_idxs": true,
-        "bin_size": 100000
+        "bin_size": 100000,
+        "force": false
     },
     "database": {
         "user": "validation",
@@ -15,7 +16,8 @@
             "agents": {
                 "schema": [
                     "agent_id MEDIUMINT UNSIGNED",
-                    "plan_size TINYINT UNSIGNED"
+                    "plan_size TINYINT UNSIGNED",
+                    "exposure FLOAT"
                 ],
                 "primary_idx": [
                     "agent_id"
@@ -29,10 +31,10 @@
                     "activity_id INT UNSIGNED",
                     "agent_id MEDIUMINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",
-                    "type SMALLINT UNSIGNED",
                     "start_time MEDIUMINT UNSIGNED",
                     "end_time MEDIUMINT UNSIGNED",
-                    "dur_time MEDIUMINT UNSIGNED"
+                    "dur_time MEDIUMINT UNSIGNED",
+                    "exposure FLOAT"
                 ],
                 "primary_idx": [
                     "activity_id"
@@ -51,10 +53,10 @@
                     "route_id INT UNSIGNED",
                     "agent_id MEDIUMINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",
-                    "mode TINYINT UNSIGNED",
                     "start_time MEDIUMINT UNSIGNED",
                     "end_time MEDIUMINT UNSIGNED",
-                    "dur_time MEDIUMINT UNSIGNED"
+                    "dur_time MEDIUMINT UNSIGNED",
+                    "exposure FLOAT"
                 ],
                 "primary_idx": [
                     "route_id"

@@ -2,8 +2,8 @@
 import logging as log
 
 from icarus.input.generate.database import PlansGeneratorDatabase
-from icarus.util.print import PrintUtil as pr
 from icarus.util.config import ConfigUtil
+from icarus.util.filesys import FilesysUtil
 
 class PlansGenerator:
     plan_frmt = '<person id="%s"><plan selected="yes">'
@@ -44,8 +44,8 @@ class PlansGenerator:
     @staticmethod
     def validate_config(configpath, specspath):
         config = ConfigUtil.load_config(configpath)
-        specs = ConfigUtil.load_specs(specspath)
-        config = ConfigUtil.verify_config(specs, config)
+        # specs = ConfigUtil.load_specs(specspath)
+        # config = ConfigUtil.verify_config(specs, config)
 
         return config
 
@@ -83,24 +83,22 @@ class PlansGenerator:
     
     def run(self, planpath, vehiclepath, region=[], time=[], 
             modes=[], sample=1, bin_size=100000):
-        pr.print('Beginning simulation input plans generation.', time=True)
+        log.info('Beginning simulation input plans generation.')
 
         if len(region):
-            pr.print('Fetching MAZs in the specified region.', time = True)
+            log.info('Fetching MAZs in the specified region.', time = True)
             mazs = self.database.get_mazs(region)
-            pr.print(f'Found {len(mazs)} MAZs in specified region.', time=True)
-            pr.print('Fetching agent plans occuring on selected MAZs.', time=True)
+            log.info(f'Found {len(mazs)} MAZs in specified region.')
+            log.info('Fetching agent plans occuring on selected MAZs.')
         else:
-            pr.print(f'Fetching all agent plans across all MAZs.', time=True)
+            log.info(f'Fetching all agent plans across all MAZs.')
             mazs = []
 
         plans = self.database.get_plans(mazs, modes, sample)
         target = len(plans)
 
-        pr.print(f'Found {target} plans under selected conditions.', time=True)
-        pr.print('Iterating over plans and generating plans file.', time=True)
-        pr.print('Plans File Generation Progress', persist=True, replace=True,
-            frmt='bold', progress=0)
+        log.info(f'Found {target} plans under selected conditions.')
+        log.info('Iterating over plans and generating plans file.')
 
         planfile = open(planpath, 'w')
         planfile.write('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE plans'
@@ -109,12 +107,12 @@ class PlansGenerator:
         for group in self.chunk(plans, bin_size):
             size = len(group)
 
-            pr.print(f'Fetching activity and route data for {size} plans.', time=True)
+            log.info(f'Fetching activity and route data for {size} plans.')
             agents = tuple(plan[0] for plan in group)
             routes = self.database.get_routes(agents)
             activities = self.database.get_activities(agents)
 
-            pr.print('Writing activity and route data to plans file.', time=True)
+            log.info('Writing activity and route data to plans file.')
             for agent in agents:
                 rts = routes[agent]
                 acts = activities[agent]
@@ -198,4 +196,8 @@ class PlansGenerator:
         vehiclesfile.write('</vehicleDefinitions>')
         vehiclesfile.close()
 
-        pr.print('Simulation input plans generation complete.', time=True)
+        log.info('Compressing output files.')
+        FilesysUtil.compress_gz(planpath)
+        FilesysUtil.compress_gz(vehiclepath)
+
+        log.info('Simulation input plans generation complete.')

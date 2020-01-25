@@ -1,13 +1,14 @@
 
 import logging
 
-from pkgutil import get_data
 from argparse import ArgumentParser
 from getpass import getpass
 
 from icarus.input.generate.generator import PlansGenerator
+from icarus.util.filesys import FilesysUtil
 
 # command line argument parsing
+
 parser = ArgumentParser(prog='Input Plans Generator',
     description='Generate plans file for MATSIM simulation from database.')
 parser.add_argument('--config', type=str, dest='config', default=None,
@@ -21,6 +22,7 @@ parser.add_argument('--log', type=str, dest='log', default=None,
 args = parser.parse_args()
 
 # configure logging
+
 hanlders = []
 hanlders.append(logging.StreamHandler())
 if args.log is not None:
@@ -32,11 +34,14 @@ logging.basicConfig(
 logging.info('Running input plans generator module.')
 
 # check for config and specs files
+
 try:
     if args.config is None:
-        args.config = get_data('knowledge', 'model/association/config.json')
+        args.config = FilesysUtil.package_resource(
+            'icarus.input.generate', 'config.json')
     if args.specs is None:
-        args.specs = get_data('knowledge', 'model/association/specs.json')
+        args.specs = FilesysUtil.package_resource(
+            'icarus.input.generate', 'specs.json')
     if args.config is None or args.specs is None:
         raise FileNotFoundError
 except Exception:
@@ -44,16 +49,19 @@ except Exception:
     exit()
 
 # validate config file against specs file
+
 logging.info('Validating configuration with specifications.')
 config = PlansGenerator.validate_config(args.config, args.specs)
 
 # database credentials handling
+
 database = config['database']
 encoding = config['encoding']
 if database['user'] is None:
-    database['user'] = input('SQL username for localhost: ')
+    logging.info('SQL username for localhost: ')
+    database['user'] = input()
 if database['user'] is None or database['password'] is None:
-    logging.debug(f'SQL password for {database["user"]}@localhost: ')
+    logging.info(f'SQL password for {database["user"]}@localhost: ')
     database['password'] = getpass('')
 
 try:

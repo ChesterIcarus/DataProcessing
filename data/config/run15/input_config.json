@@ -1,21 +1,21 @@
 {
     "input": {
-        "config_file": "/home/Shared/matsim/run11/input/config.xml",
-        "plans_file": "/home/Shared/matsim/run11/input/plans.xml",
-        "network_file": "/home/Shared/matsim/run11/input/network.xml",
-        "vehicles_file": "/home/Shared/matsim/run11/input/vehicles.xml",
-        "transit_vehicles_file": "/home/Shared/matsim/run11/input/transitVehicles.xml",
-        "transit_schedule_file": "/home/Shared/matsim/run11/input/transitSchedule.xml"
+        "config_file": "/home/Shared/matsim/run15/input/config.xml",
+        "plans_file": "/data/input/plans.xml.gz",
+        "network_file": "/data/input/network.xml.gz",
+        "vehicles_file": "/data/input/vehicles.xml.gz",
+        "transit_vehicles_file": "/data/input/transitVehicles.xml.gz",
+        "transit_schedule_file": "/data/input/transitSchedule.xml.gz"
     },
     "output": {
-        "output_dir": "/home/Shared/matsim/run11/output/",
-        "iterations": 6,
+        "output_dir": "/data/output/",
+        "iterations": 1,
         "save_charts_it": 1,
         "save_plans_it": 1,
         "save_events_it": 5
     },
     "simulation": {
-        "threads": 20,
+        "threads": 36,
         "init": false
     },
     "activities": [

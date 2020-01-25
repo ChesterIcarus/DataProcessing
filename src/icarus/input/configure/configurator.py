@@ -1,5 +1,5 @@
 
-import os
+from icarus.util.filesys import FilesysUtil
 
 class Configurator:
     def __init__(self, config):
@@ -35,6 +35,8 @@ class Configurator:
 
         configfile.write('</config>')
         configfile.close()
+
+        FilesysUtil.format_xml(self.config['input']['config_file'])
         
 
     def module_vehicles(self, configfile):
@@ -114,7 +116,7 @@ class Configurator:
         configfile.write('''
             <param name="endTime" value="31:00:00" />
             <param name="flowCapacityFactor" value="1.0" />
-            <param name="insertingWaitingVehiclesBeforeDrivingVehicles" value="true" />
+            <param name="insertingWaitingVehiclesBeforeDrivingVehicles" value="false" />
             <param name="isRestrictingSeepage" value="true" />
             <param name="isSeepModeStorageFree" value="false" />
             <param name="linkDynamics" value="PassingQ" />
@@ -141,12 +143,10 @@ class Configurator:
 
         if self.config['simulation']['init'] == True:
             configfile.write('''
-                <param name="usePersonIdForMissingVehicleId" value="true" />
                 <param name="vehiclesSource" value="modeVehicleTypesFromVehiclesData" />
                 <param name="vehicleBehavior" value="teleport" /> ''')
         else:
             configfile.write('''
-                <param name="usePersonIdForMissingVehicleId" value="false" />
                 <param name="vehiclesSource" value="fromVehiclesData" />
                 <param name="vehicleBehavior" value="wait" /> ''')
 
@@ -288,7 +288,8 @@ class Configurator:
 				<param name="monetaryDistanceRate" value="0.0" />
 			</parameterset> '''
 
-        modes = self.config['modes']['network'] + self.config['modes']['teleported']
+        modes = self.config['modes']['network'] + \
+            [mode[0] for mode in self.config['modes']['teleported']]
         modes.extend(['default', 'pt'])
 
         for mode in modes:

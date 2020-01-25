@@ -3,7 +3,7 @@
 sudo apt update
 sudo apt upgrade
 sudo apt install \
-    unzip openjdk-11-jdk awscli
+    zip unzip openjdk-11-jdk awscli
 
 sudo mkdir /data
 sudo mkdir /scripts
@@ -15,7 +15,7 @@ sudo chmod 777 /scripts
 git clone https://github.com/ChesterIcarus/DataProcessing.git /scripts
 
 aws configure
-aws s3 cp s3://icarus-simulation-data/matsim/run12/input.zip /data/input.zip
+aws s3 cp s3://icarus-simulation-data/matsim/run15/input.zip /data/input.zip
 aws s3 cp s3://icarus-simulation-data/matsim/matsim-12.0-SNAPSHOT-release.zip /data/matsim-12.0-SNAPSHOT-release.zip
 
 cd /data

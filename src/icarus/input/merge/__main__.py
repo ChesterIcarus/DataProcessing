@@ -1,13 +1,14 @@
 
 import json
+import logging
 
 from getpass import getpass
 from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
 from icarus.input.merge.merger import PlansMerger
-from icarus.util.print import PrintUtil as pr
 
+# command line argument processing
 parser = ArgumentParser(prog='PlansMerger',
     description='Merges output plans with vehicular data.')
 parser.add_argument('--config', type=str,  dest='config',
@@ -19,27 +20,29 @@ parser.add_argument('--log', type=str, dest='log',
     default=None)
 args = parser.parse_args()
 
+# module loggging processing
+handlers = []
+handlers.append(logging.StreamHandler())
 if args.log is not None:
-    pr.log(args.log)
+    handlers.append(logging.FileHandler(args.log, 'w'))
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s',
+    level=logging.DEBUG,
+    handlers=handlers)
 
-try:
-    with open(args.config) as handle:
-        config = json.load(handle)
-except FileNotFoundError as err:
-    pr.print(f'Config file {args.config} not found.', time=True)
-    raise err
-except json.JSONDecodeError as err:
-    pr.print(f'Config file {args.config} is not valid JSON.', time=True)
-    raise err
-except KeyError as err:
-    pr.print(f'Config file {args.config} is not valid config file.', time=True)
-    raise err
+# config validation
+logging.info('Running input plans merger module.')
+logging.info('Validating configuration with module specifications.')
+config = PlansMerger.validate_config(args.config)
 
+# database credentials handling
 database = config['database']
-
-database['password'] = getpass(
-    f'SQL password for {database["user"]}@localhost: ')
+if database['user'] in ('', None):
+    logging.info('SQL username for localhost: ')
+    database['user'] = input('')
+if database['user'] in ('', None) or database['password'] in ('', None):
+    logging.info(f'SQL password for {database["user"]}@localhost: ')
+    database['password'] = getpass('')
 
 merger = PlansMerger(database)
 merger.run(config)
-

@@ -1,4 +1,5 @@
 
+import gzip
 import logging as log
 
 from xml.etree.ElementTree import tostring, iterparse
@@ -6,6 +7,7 @@ from collections import defaultdict, deque
 
 from icarus.input.merge.database import PlansMergerDatabase
 from icarus.util.filesys import FilesysUtil
+from icarus.util.config import ConfigUtil
 
 
 class XmlIterator:
@@ -35,10 +37,6 @@ class XmlIterator:
         while len(self.path) >= size:
             evt, elem = next(self)
         if tag != elem.tag or evt != 'end':
-            print(self.path)
-            print(tag)
-            print(elem.tag)
-            print(evt)
             raise RuntimeError('Tag mismatch in XML element skipping.')
         return elem
 
@@ -47,6 +45,7 @@ class PlansMerger:
     def __init__(self, database):
         self.database = PlansMergerDatabase(database)
 
+
     @staticmethod
     def time(secs):
         hours = secs // 3600
@@ -54,6 +53,15 @@ class PlansMerger:
         mins = secs // 60
         secs -= mins * 60
         return ':'.join(str(t).zfill(2) for t in (hours, mins, secs))
+
+    
+    @classmethod
+    def validate_config(self, configpath, specspath=None):
+        config = ConfigUtil.load_config(configpath)
+        # specs = ConfigUtil.load_specs(specspath)
+        # config = ConfigUtil.verify_config(specs, config)
+
+        return config
 
 
     def get_vehicles(self, agents):
@@ -83,9 +91,15 @@ class PlansMerger:
 
     def run(self, config):
         planspath = config['planspath']
+        mergepath = config['outfile']
+        vehcpath = config['vehiclesfile']
 
         log.info(f'Loading plans from {planspath}.')
-        parser = iterparse(planspath, events=('start', 'end'))
+        if planspath.split('.')[-1] == 'gz':
+            plansfile = gzip.open(planspath, mode='rb')
+        else:
+            plansfile = open(planspath, mode='rb')
+        parser = iterparse(plansfile, events=('start', 'end'))
         parser = iter(parser)
         evt, root = next(parser)
 
@@ -103,20 +117,29 @@ class PlansMerger:
                     if count % 10000 == 0:
                         root.clear()
         root.clear()
+        plansfile.close()
         del parser
+        del plansfile
 
         log.info(f'Found {len(agents)} agents in plans.')
         log.info(f'Fetching vehicular data for agent plans.')
         legs, acts, cars = self.get_vehicles(agents)
 
-        outfile = open(config['outfile'], 'w')
-        outfile.write('<?xml version="1.0" encoding="utf-8"?>'
-            '<!DOCTYPE population SYSTEM "http://www.matsim.org/files/dtd/population_'
-            'v6.dtd"><population>')
+        log.info(f'Creating merged plans file at {mergepath}.')
+        if planspath.split('.')[-1] == 'gz':
+            plansfile = gzip.open(planspath, mode='rb')
+        else:
+            plansfile = open(planspath, mode='rb')
+        if mergepath.split('.')[-1] == 'gz':
+            mergefile = gzip.open(mergepath, mode='wt')
+        else:
+            mergefile = open(mergepath, mode='wt')
+
+        mergefile.write('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE population '
+            'SYSTEM "http://www.matsim.org/files/dtd/population_v6.dtd"><population>')
 
         agent = None
-        xmliter = XmlIterator(planspath)
-        iter(xmliter)
+        xmliter = XmlIterator(plansfile)        
         act = []
         leg = []
         count = 0
@@ -125,8 +148,7 @@ class PlansMerger:
         activities = ('home', 'workplace', 'university', 'school', 'shopping',
             'other_maintenence', 'eating', 'breakfast', 'lunch', 'dinner',
             'visiting', 'other_discretionary', 'special_event', 'work',
-            'work_business', 'work_lunch', 'work_other', 'work_related', 
-            'asu_related')
+            'work_business', 'work_lunch', 'work_other', 'work_related', 'asu_related')
         modes = ('car', 'bike', 'walk')
 
         person_frmt = '<person id="%s">'
@@ -138,16 +160,16 @@ class PlansMerger:
         route_frmt = ('<route distance="%s" end_link="%s" start_link="%s" '
             'trav_time="%s" type="%s" vehicleRefId="%s">%s</route>')
 
-        log.info('Iterating over plans to append/modify vehicular data.')
+        log.info('Iterating over plans and generating merged plans file.')
         for evt, elem in xmliter:
             if evt == 'start':
                 if elem.tag == 'person':
                     agent = int(elem.get('id'))
-                    outfile.write(person_frmt % agent)
+                    mergefile.write(person_frmt % agent)
                     count += 1
                     if count % 10000 == 0:
-                        outfile.flush()
-                        root.clear()
+                        mergefile.flush()
+                        xmliter.root.clear()
                     if n == count:
                         log.info(f'Writing plan {count}.')
                         n <<= 1
@@ -155,10 +177,10 @@ class PlansMerger:
                     selected = elem.get('selected', 'no')
                     score = elem.get('score')
                     if selected == 'yes':
-                        outfile.write(plan_frmt % (score, selected))
+                        mergefile.write(plan_frmt % (score, selected))
                     else:
                         elem = xmliter.skip()
-                        outfile.write(tostring(elem).decode('utf-8'))
+                        mergefile.write(tostring(elem).decode('utf-8'))
                 elif elem.tag == 'activity':
                     if elem.get('type') in activities:
                         act = acts[agent].pop(0)
@@ -168,30 +190,30 @@ class PlansMerger:
                         start = self.time(act[2])
                         end = self.time(act[3])
                         if elem.get('start_time') is None:
-                            outfile.write(start_frmt % (end, kind, x, y))
+                            mergefile.write(start_frmt % (end, kind, x, y))
                         elif elem.get('end_time') is None:
-                            outfile.write(end_frmt % (start, kind, x, y))
+                            mergefile.write(end_frmt % (start, kind, x, y))
                         else:
-                            outfile.write(act_frmt % (start, end, kind, x, y))
+                            mergefile.write(act_frmt % (start, end, kind, x, y))
                         xmliter.skip()
                     else:
                         elem = xmliter.skip()
-                        outfile.write(tostring(elem).decode('utf-8'))
+                        mergefile.write(tostring(elem).decode('utf-8'))
                 elif elem.tag == 'leg':
                     if elem.get('mode') in modes:
                         leg = legs[agent].pop(0)
-                        outfile.write(leg_frmt % (
+                        mergefile.write(leg_frmt % (
                             self.time(leg[3]), 
                             elem.get('mode'), 
                             self.time(leg[4])))
                     else:
                         elem = xmliter.skip()
-                        outfile.write(tostring(elem).decode('utf-8'))
+                        mergefile.write(tostring(elem).decode('utf-8'))
                 elif elem.tag == 'route':
                     pass
                 elif elem.tag == 'attributes':
                     elem = xmliter.skip()
-                    outfile.write(tostring(elem).decode('utf-8'))
+                    mergefile.write(tostring(elem).decode('utf-8'))
                 else:
                     path = '.'.join(list(xmliter.path))
                     log.error(f'Found expected tag "{elem.tag}" at "{path}".')
@@ -199,7 +221,7 @@ class PlansMerger:
 
             elif evt == 'end':
                 if elem.tag == 'route':
-                    outfile.write(route_frmt % (
+                    mergefile.write(route_frmt % (
                         elem.get('distance'),
                         elem.get('end_link'),
                         elem.get('start_link'),
@@ -208,21 +230,26 @@ class PlansMerger:
                         leg[5],
                         elem.text if elem.text is not None else ''))
                 else:
-                    outfile.write('</%s>' % elem.tag)
+                    mergefile.write('</%s>' % elem.tag)
+
+        if count != (n >> 1):
+            log.info(f'Writing plan {count}.')
                 
-        outfile.close()
+        mergefile.close()
         del xmliter
 
-        log.info(f'Creating vehicles file at {config["vehiclesfile"]}.')
-
-        vehiclesfile = open(config['vehiclesfile'], 'w')
+        log.info(f'Creating vehicles file at {vehcpath}.')
+        if vehcpath.split('.')[-1] == 'gz':
+            vehcfile = gzip.open(vehcpath, mode='wt')
+        else:
+            vehcfile = open(vehcpath, mode='wt')
         
-        vehiclesfile.write('<?xml version="1.0" encoding="UTF-8" ?>'
+        vehcfile.write('<?xml version="1.0" encoding="UTF-8" ?>'
             '<vehicleDefinitions xmlns="http://www.matsim.org/files/dtd" '
             'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
             'xsi:schemaLocation="http://www.matsim.org/files/dtd '
             'http://www.matsim.org/files/dtd/vehicleDefinitions_v1.0.xsd">')
-        vehiclesfile.write('''
+        vehcfile.write('''
             <vehicleType id="Bus">
                 <capacity>
                     <seats persons="70"/>
@@ -235,7 +262,7 @@ class PlansMerger:
                 <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="2.8"/>
             </vehicleType>''')
-        vehiclesfile.write('''
+        vehcfile.write('''
             <vehicleType id="Tram">
                 <capacity>
                     <seats persons="180"/>
@@ -248,7 +275,7 @@ class PlansMerger:
                 <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="5.2"/>
             </vehicleType>''')
-        vehiclesfile.write('''
+        vehcfile.write('''
             <vehicleType id="car">
                 <length meter="7.5"/>
                 <width meter="1.0"/>
@@ -258,7 +285,7 @@ class PlansMerger:
                 <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="1.0"/>
             </vehicleType>''')
-        vehiclesfile.write('''
+        vehcfile.write('''
             <vehicleType id="bike">
                 <length meter="5.0"/>
                 <width meter="1.0"/>
@@ -268,7 +295,7 @@ class PlansMerger:
                 <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="0.25"/>
             </vehicleType> ''')
-        vehiclesfile.write('''
+        vehcfile.write('''
             <vehicleType id="walk">
                 <length meter="1.0"/>
                 <width meter="1.0"/>
@@ -280,21 +307,21 @@ class PlansMerger:
             </vehicleType> ''')
 
         vehc_formt = '<vehicle id="%s" type="%s"/>'
+        count = 0
+        n = 1
 
         log.info('Iterating over vehicles and writing vehicle definitions.')
-
-        n = 0
         for car in cars:
-            vehiclesfile.write(vehc_formt % car)
-            n += 1
-            if n % 10000 == 0:
-                vehiclesfile.flush()
+            vehcfile.write(vehc_formt % car)
+            count += 1
+            if count % 10000 == 0:
+                vehcfile.flush()
+            if count == n:
+                log.info(f'Writing vehicle {n}.')
+                n <<= 1
 
-        vehiclesfile.write('</vehicleDefinitions>')
-        vehiclesfile.close()
+        if count != (n >> 1):
+            log.info(f'Writing vehicle {n}.')
 
-        log.info('Formatting outputed XML files.')
-        FilesysUtil.format_xml(config['outfile'])
-        FilesysUtil.format_xml(config['vehiclesfile'])
-
-        log.info('Plans file merging complete.')
+        vehcfile.write('</vehicleDefinitions>')
+        vehcfile.close()

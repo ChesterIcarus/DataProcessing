@@ -1,4 +1,5 @@
 
+import gzip
 import logging as log
 
 from collections import defaultdict
@@ -23,11 +24,8 @@ class ExposureLinkAnalysis:
 
 
     def run(self, config):
-        log.info('Prallocating process files and tables.')
         force = config['run']['force']
-        self.create_tables(*tuple(self.database.tables.keys()), force=force)
-
-        eventsfile = config['run']['events_file']
+        eventspath = config['run']['events_file']
         # input_db = config['run']['input_db']
         network_db = config['run']['network_db']
         default_temps = config['temperature']
@@ -36,6 +34,9 @@ class ExposureLinkAnalysis:
         agents = defaultdict(lambda: [list(), None, 14400, 0])
 
         acts = tuple(config['encoding']['activity'].keys())
+
+        log.info('Preallocating process files and tables.')
+        self.create_tables(*tuple(self.database.tables.keys()), force=force)
 
         log.info('Fetching network and simulation data.')
         # log.info(f'Fetching population plans.')
@@ -47,6 +48,12 @@ class ExposureLinkAnalysis:
         steps = len(temps[0])
         # log.info(f'Fetching network parcels.')
         # parcels = self.database.fetch_parcels(network_db)
+
+        log.info(f'Loading events from {eventspath}.')
+        if eventspath.split('.')[-1] == 'gz':
+            eventsfile = gzip.open(eventspath, mode='rb')
+        else:
+            eventsfile = open(eventspath, mode='rb')
         
         events = iter(iterparse(eventsfile, events=('start', 'end')))
         evt, root = next(events)
@@ -56,104 +63,104 @@ class ExposureLinkAnalysis:
 
         log.info('Iterating over events file.')
         for evt, elem in events:
-            try:
-                if evt == 'start' and elem.tag == 'event':
-                    event = elem.get('type')
-                    time = int(float(elem.get('time')))
+            if evt == 'start' and elem.tag == 'event':
+                event = elem.get('type')
+                time = int(float(elem.get('time')))
 
-                    if event == 'TransitDriverStarts':
-                        agent_id = elem.get('driverId')
+                if event == 'TransitDriverStarts':
+                    agent_id = elem.get('driverId')
+                    agent = agents[agent_id]
+                    agent[0].append(0)
+                    agent[2] = time
+
+                if event == 'entered link':
+                    vehicle_id = elem.get('vehicle')
+                    vehicle = vehicles[vehicle_id]
+                    vehicle[2] = time
+
+                elif event == 'left link':
+                    vehicle_id = elem.get('vehicle')
+                    link_id = elem.get('link')
+                    vehicle = vehicles[vehicle_id]
+                    vehc_time = vehicle[2]
+                    if vehicle[0]:
+                        # if vehicle_id.isdigit():
+                        #     temp = default_temps['car']
+                        if vehicle_id[:3] == 'car':
+                            temp = default_temps['car']
+                        elif vehicle_id[:4] in ('walk', 'bike'):
+                            step = int(time / 86400 * steps) % steps
+                            temp = temps[links[link_id]][step]
+                        elif vehicle_id[-3:] == 'bus':
+                            temp = default_temps['bus']
+                        elif vehicle_id[-4:] == 'tram':
+                            temp = default_temps['tram']
+                        else:
+                            log.error(f'Unexpected vehicle with id {vehicle_id}.')
+                            raise ValueError
+                        exposure = temp * (time - vehc_time)
+                        for agent_id in vehicle[0]:
+                            agent = agents[agent_id]
+                            agent[0][-1] += exposure
+                    vehicle[2] = time
+
+                elif event == 'PersonEntersVehicle':
+                    agent_id = elem.get('person')
+                    vehicle_id = elem.get('vehicle')
+                    vehicle = vehicles[vehicle_id]
+                    vehicle[0].add(agent_id)
+
+                elif event == 'PersonLeavesVehicle':
+                    agent_id = elem.get('person')
+                    vehicle_id = elem.get('vehicle')
+                    vehicle = vehicles[vehicle_id]
+                    vehicle[0].remove(agent_id)
+
+                elif event == 'actend':
+                    act = elem.get('actType')
+                    if act in acts:
+                        agent_id = elem.get('person')
+                        link_id = elem.get('link')
                         agent = agents[agent_id]
+                        agent[0].append(default_temps['room'] * (time - agent[2]))
                         agent[0].append(0)
+                        agent[1] = link_id
                         agent[2] = time
 
-                    if event == 'entered link':
-                        vehicle_id = elem.get('vehicle')
-                        vehicle = vehicles[vehicle_id]
-                        vehicle[2] = time
-
-                    elif event == 'left link':
-                        vehicle_id = elem.get('vehicle')
+                elif event == 'actstart':
+                    act = elem.get('actType')
+                    if act in acts:
+                        agent = elem.get('person')
                         link_id = elem.get('link')
-                        vehicle = vehicles[vehicle_id]
-                        vehc_time = vehicle[2]
-                        if vehicle[0]:
-                            if vehicle_id[:3] == 'car':
-                                temp = default_temps['car']
-                            elif vehicle_id[:4] in ('walk', 'bike'):
-                                step = int(time / 86400 * steps) % steps
-                                temp = temps[links[link_id]][step]
-                            elif vehicle_id[-3:] == 'bus':
-                                temp = default_temps['bus']
-                            elif vehicle_id[-4:] == 'tram':
-                                temp = default_temps['tram']
-                            else:
-                                log.error(f'Unexpected vehicle with id {vehicle_id}.')
-                                raise ValueError
-                            exposure = temp * (time - vehc_time)
-                            for agent_id in vehicle[0]:
-                                agent = agents[agent_id]
-                                agent[0][-1] += exposure
-                        vehicle[2] = time
-
-                    elif event == 'PersonEntersVehicle':
-                        agent_id = elem.get('person')
-                        vehicle_id = elem.get('vehicle')
-                        vehicle = vehicles[vehicle_id]
-                        vehicle[0].add(agent_id)
-
-                    elif event == 'PersonLeavesVehicle':
-                        agent_id = elem.get('person')
-                        vehicle_id = elem.get('vehicle')
-                        vehicle = vehicles[vehicle_id]
-                        vehicle[0].remove(agent_id)
-
-                    elif event == 'actend':
-                        act = elem.get('actType')
-                        if act in acts:
-                            agent_id = elem.get('person')
-                            link_id = elem.get('link')
-                            agent = agents[agent_id]
-                            agent[0].append(default_temps['room'] * (time - agent[2]))
-                            agent[0].append(0)
-                            agent[1] = link_id
-                            agent[2] = time
-
-                    elif event == 'actstart':
-                        act = elem.get('actType')
-                        if act in acts:
-                            agent = elem.get('person')
-                            link_id = elem.get('link')
-                            agent = agents[agent_id]
-                            agent[1] = link_id
-                            agent[2] = time
-
-                    elif event == 'stuckAndAbort':
-                        agent_id = elem.get('person')
                         agent = agents[agent_id]
-                        agent[3] = 1
+                        agent[1] = link_id
+                        agent[2] = time
 
-                    count += 1
-                    if time >= n:
-                        log.info(f'Simulation analysis at {str(time//3600).zfill(2)}'
-                            f':00:00 with {count} events processed.')
-                        n += 3600
-                    if count % 100000 == 0:
-                        root.clear()
+                elif event == 'stuckAndAbort':
+                    agent_id = elem.get('person')
+                    agent = agents[agent_id]
+                    agent[3] = 1
 
-            except Exception:
-                log.exception(f'Exception while handling event {count}.')
-                exit()
+                count += 1
+                if time >= n:
+                    log.info(f'Simulation analysis at {str(time//3600).zfill(2)}'
+                        f':00:00 with {count} events processed.')
+                    n += 3600
+                if count % 100000 == 0:
+                    root.clear()
 
-        log.info('Simulation events iteration complete.')
-        log.info('Processing and analyzing results.')
+        log.info('Closing events file and completing parsing.')
+        root.clear()
+        eventsfile.close()
 
         activities = []
         routes = []
         plans = []
         end_time = time
+        count = 0
+        n = 1
 
-
+        log.info('Processing and analyzing results.')
         for agent_id, agent in agents.items():
             if agent_id.isdigit():
                 for idx, exp in enumerate(agent[0]):
@@ -169,23 +176,25 @@ class ExposureLinkAnalysis:
                 else:
                     size = len(agent[0])
                 plans.append((agent_id, len(agent[0]), size, agent[3]))
+                count += 1
+                if count == n:
+                    log.info(f'Handled agent {n}.')
+                    n <<= 1
+
+        del agents
+        del vehicles
 
         log.info(f'Saving results to database.')
-
         self.database.write_rows(plans, 'agents')
         self.database.write_rows(activities, 'activities')
         self.database.write_rows(routes, 'routes')
 
+
+    def create_idxs(self, config):
         if config['run']['create_idxs']:
-            log.info(f'Creating all indexes in database '
-                f'{self.database.db}.')
-            self.create_idxs()
-            log.info(f'Index creating complete.')
-
-
-    def create_idxs(self):
-        for tbl in self.database.tables:
-            self.database.create_all_idxs(tbl)
+            log.info(f'Creating all indexes in database {self.database.db}.')
+            for tbl in self.database.tables:
+                self.database.create_all_idxs(tbl)
 
 
     def create_tables(self, *tables, force=False):

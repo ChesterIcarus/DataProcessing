@@ -1,9 +1,9 @@
 {
     "run": {
-        "events_file": "/home/Shared/matsim/temp/events.xml",
+        "events_file": "/home/Shared/matsim/run14/output/output_events.xml.gz",
         "input_db": "input_all",
         "network_db": "network",
-        "log": "/home/Shared/matsim/logs/test.log",
+        "log": null,
         "force": false,
         "create_idxs": true
     },
@@ -62,24 +62,9 @@
         "host": "localhost",
         "db": "output_test",
         "unix_socket": "/home/mysql/mysql.sock",
-        "password": "",
+        "password": null,
         "tables": {
-            "agents": {
-                "schema": [
-                    "agent_id MEDIUMINT UNSIGNED",
-                    "household_id MEDIUMINT UNSIGNED",
-                    "household_idx TINYINT UNSIGNED",
-                    "plan_size TINYINT UNSIGNED",
-                    "exposure FLOAT",
-                    "abort TINYINT UNSIGNED"
-                ],
-                "primary_idx": [ "agent_id" ]
-
-            },
-            "activities": {
-
-            },
-            "temp_agents": {
+            "exp_agents": {
                 "schema": [
                     "agent_id MEDIUMINT UNSIGNED",
                     "plan_size TINYINT UNSIGNED",
@@ -88,7 +73,7 @@
                 ],
                 "primary_idx": [ "agent_id" ]
             },
-            "temp_activities": {
+            "exp_activities": {
                 "schema": [
                     "agent_id MEDIUMINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",
@@ -99,7 +84,7 @@
                     "agent_idx"
                 ]
             },
-            "temp_routes": {
+            "exp_routes": {
                 "schema": [
                     "agent_id MEDIUMINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",

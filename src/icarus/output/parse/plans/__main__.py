@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 from icarus.output.parse.plans.parser import PlansParser
 
 # command line argument processing
+
 parser = ArgumentParser(prog='Simulation Output Plans Parsing',
     description='Parse output plans from MATSim simulation into MySQL.')
 parser.add_argument('--config', type=str,  dest='config',
@@ -23,27 +24,37 @@ parser.add_argument('--log', type=str, dest='log',
 args = parser.parse_args()
 
 # module loggging processing
+
+handlers = []
+handlers.append(logging.StreamHandler())
+if args.log is not None:
+    handlers.append(logging.FileHandler(args.log, 'w'))
+
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s',
-    level=logging.INFO,
-    handlers=[
-        logging.FileHandler(args.log, 'w'),
-        logging.StreamHandler()
-    ])
+    level=logging.DEBUG,
+    handlers=handlers)
 
 # config validation
+
 logging.info('Running output plans parsing module module.')
 logging.info('Validating configuration with module specifications.')
 config = PlansParser.validate_config(args.config, args.specs)
 
 # database credentials handling
+
 database = config['database']
 if database['user'] in ('', None):
-    logging.debug('SQL username for localhost: ')
-    database['user'] = input()
+    logging.info('SQL username for localhost: ')
+    database['user'] = input('')
 if database['user'] in ('', None) or database['password'] in ('', None):
-    logging.debug(f'SQL password for {database["user"]}@localhost: ')
-    database['password'] = getpass()
+    logging.info(f'SQL password for {database["user"]}@localhost: ')
+    database['password'] = getpass('')
 
-module = PlansParser(database, config['encoding'])
-module.run(config)
+try:
+    module = PlansParser(database, config['encoding'])
+    module.run(config)
+    module.create_indexes(config)
+    logging.info('Ouput data parsing complete.')
+except Exception:
+    logging.exception('Fatal error while running module.')

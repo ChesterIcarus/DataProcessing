@@ -1,5 +1,6 @@
 
 import os
+import sys
 import tempfile
 import subprocess
 
@@ -55,6 +56,14 @@ class FilesysUtil:
         else:
             subprocess.run(f'xmllint --format {source} > {target}', shell=True)
 
+
+    @classmethod
+    def compress_gz(self, source, target=None):
+        'decompress a gz file'
+        if target is None:
+            subprocess.run(('gzip', source), shell=False)
+            return source + '.gz'
+
     @classmethod
     def decompress_gz(self, source, target=None):
         'decompress a gz file'
@@ -65,3 +74,12 @@ class FilesysUtil:
             targetfile.close()
         subprocess.run(f'gunzip --stdout {source} > {target}', shell=True)
         return target
+
+    @classmethod
+    def package_resource(self, package, resource):
+        'get filepath of a package file'
+        try:
+            module = os.path.dirname(sys.modules[package].__file__)
+            return os.path.join(module, resource)
+        except:
+            return None
