@@ -1,22 +1,22 @@
 {
     "input": {
-        "config_file": "/home/Shared/matsim/run6/input/config.xml",
-        "plans_file": "D:\\Benjamin Brownlee\\matsim\\run6\\input\\plans.xml",
-        "network_file": "D:\\Benjamin Brownlee\\matsim\\run6\\input\\network.xml",
-        "vehicles_file": "D:\\Benjamin Brownlee\\matsim\\run6\\input\\vehicles.xml",
-        "transit_vehicles_file": "D:\\Benjamin Brownlee\\matsim\\run6\\input\\transitVehicles.xml",
-        "transit_schedule_file": "D:\\Benjamin Brownlee\\matsim\\run6\\input\\transitSchedule.xml"
+        "config_file": "/home/Shared/matsim/runs/simplified/input/config.xml",
+        "plans_file": "/home/Shared/matsim/runs/simplified/input/plans.xml.gz",
+        "network_file": "/home/Shared/matsim/runs/simplified/input/network.xml.gz",
+        "vehicles_file": "/home/Shared/matsim/runs/simplified/input/vehicles.xml.gz",
+        "transit_vehicles_file": "/home/Shared/matsim/runs/simplified/input/transitVehicles.xml.gz",
+        "transit_schedule_file": "/home/Shared/matsim/runs/simplified/input/transitSchedule.xml.gz"
     },
     "output": {
-        "output_dir": "D:\\Benjamin Brownlee\\matsim\\run6\\output\\",
-        "iterations": 6,
+        "output_dir": "/home/Shared/matsim/runs/simplified/output/",
+        "iterations": 20,
         "save_charts_it": 1,
         "save_plans_it": 1,
         "save_events_it": 5
     },
     "simulation": {
-        "threads": 20,
-        "init": true
+        "threads": 4,
+        "init": false
     },
     "activities": [
         "home",
@@ -51,8 +51,8 @@
             "walk"
         ],
         "transit": [
-            "bus",
-            "rail"
+            "Bus",
+            "Tram"
         ],
         "teleported": [
             ["non_network_walk", 1.4]

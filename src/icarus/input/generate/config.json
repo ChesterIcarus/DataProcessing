@@ -1,35 +1,41 @@
 {
-    "savepath": "",
-    "sample": 0.05,
-    "time": [],
-    "region": [],
-    "types": [],
-    "modes": [],
-    "silent": false,
-    "bin_size": 100000,
+    "run": {
+        "plans_file": "/home/Shared/matsim/run16/input/plans.xml.gz",
+        "vehicles_file": "/home/Shared/matsim/run16/input/vehicles.xml.gz",
+        "bin_size": 50000,
+        "sample": 0.05,
+        "max": 20000
+    },
+    "modes": {
+        "vehicle": true,
+        "walk": true,
+        "bike": true,
+        "transit": true,
+        "party": false
+    },
     "database": {
         "user": "validation",
         "host": "localhost",
-        "db": "input",
+        "db": "input_test",
         "unix_socket": "/home/mysql/mysql.sock",
-        "password": null 
+        "password": null
     },
     "encoding": {
         "mode": {
-            "sov": 1,
-            "hov2_driver": 2,
-            "hov3_driver": 3,
-            "hov_passenger": 4,
-            "conv_transit_walk_access": 5,
-            "conv_transit_knr": 6,
-            "conv_transit_pnr": 7,
-            "prem_transit_walk_access": 8,
-            "prem_transit_knr": 9,
-            "prem_transit_pnr": 10,
-            "walk": 11,
-            "bike": 12,
-            "taxi": 13,
-            "school_bus": 14
+            "1": "car",
+            "2": "car",
+            "3": "car",
+            "4": "car",
+            "5": "pt",
+            "6": "pt",
+            "7": "pt",
+            "8": "pt",
+            "9": "pt",
+            "10": "pt",
+            "11": "network_walk",
+            "12": "bike",
+            "13": "car",
+            "14": "car"
         },
         "activity": {
             "home": 0,

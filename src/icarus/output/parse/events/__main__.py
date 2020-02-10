@@ -5,7 +5,7 @@ from getpass import getpass
 from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
-from icarus.exposure.analyze.link.analysis import ExposureLinkAnalysis
+from icarus.output.parse.events.analysis import ExposureLinkAnalysis
 
 # command line argument processing
 
@@ -53,5 +53,6 @@ if database['user'] in ('', None) or database['password'] in ('', None):
 try:
     module = ExposureLinkAnalysis(database)
     module.run(config)
+    module.create_idxs(config)
 except Exception:
     logging.exception('Fatal error while running module.')

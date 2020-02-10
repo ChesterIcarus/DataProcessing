@@ -1,6 +1,6 @@
 {
     "run": {
-        "network_file": "/home/Shared/matsim/network/mapper/network.xml",
+        "network_file": "/home/Shared/matsim/network/mapper/network.xml.gz",
         "bin_size": 100000,
         "force": false,
         "create_idxs": true

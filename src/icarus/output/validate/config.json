@@ -1,0 +1,14 @@
+{
+    "files": {
+        "input_db": "input_all",
+        "output_db": "output_test",
+        "result_dir": "/home/Shared/matsim/experimental/results/"
+    },
+    "charts": {
+        "activity_differentials": true,
+        "route_differentials": true
+    },
+    "database": {
+
+    }
+}

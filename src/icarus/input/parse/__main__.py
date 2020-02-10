@@ -1,60 +1,58 @@
 
-import json
+import logging
 
 from getpass import getpass
 from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
 from icarus.input.parse.parser import PlansParser
-from icarus.util.print import PrintUtil as pr
 
+# command line argument processing
 
 parser = ArgumentParser(prog='ABM Parser',
     description='Converts ABM trips to MATSim plans, activities, and routes.')
 parser.add_argument('--config', type=str,  dest='config',
     default=resource_filename('icarus', 'input/parse/config.json'),
-    help=('Specify a config file location; default is "config.json" in '
-        'the current working directory.'))
+    help=('Specify a configuration file location; default is "config.json"'
+        ' in the package module directory.'))
+parser.add_argument('--specs', type=str, dest='specs',
+    default=resource_filename('icarus', 'input/parse/specs.json'),
+    help=('Specify a specifications file location; default is "specs.json"'
+        ' in the package module directory.'))
 parser.add_argument('--log', type=str, dest='log',
-    help='specify a log file location; by default the log will not be saved',
-    default=None)
+    help='specify a log file location; by default the log will not be saved',)
 args = parser.parse_args()
 
-if args.log is not None:
-    pr.log(args.log)
+# module loggging processing
 
-try:
-    with open(args.config) as handle:
-        config = json.load(handle)
-except FileNotFoundError as err:
-    pr.print(f'Config file {args.config} not found.', time=True)
-    raise err
-except json.JSONDecodeError as err:
-    pr.print(f'Config file {args.config} is not valid JSON.', time=True)
-    raise err
-except KeyError as err:
-    pr.print(f'Config file {args.config} is not valid config file.', time=True)
-    raise err
+handlers = []
+handlers.append(logging.StreamHandler())
+if args.log is not None:
+    handlers.append(logging.FileHandler(args.log, 'w'))
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s',
+    level=logging.DEBUG,
+    handlers=handlers)
+
+# config validation
+
+logging.info('Running ABM trips to MATSim plans parser.')
+logging.info('Validating configuration with module specifications.')
+config = PlansParser.validate_config(args.config, args.specs)
+
+# database credentials handling
 
 database = config['database']
-encoding = config['encoding']
+if database['user'] in ('', None):
+    logging.info('SQL username for localhost: ')
+    database['user'] = input('')
+if database['user'] in ('', None) or database['password'] in ('', None):
+    logging.info(f'SQL password for {database["user"]}@localhost: ')
+    database['password'] = getpass('')
 
-database['password'] = getpass(
-    f'SQL password for {database["user"]}@localhost: ')
-
-parser = PlansParser(database, encoding)
-
-if not config['resume']:
-    for table in database['tables'].keys():
-        parser.database.create_table(table)
-
-options = ('silent', 'bin_size', 'resume')
-params = {key:config[key] for key in options if key in config}
-
-parser.parse(config['modes'], config['acts'], **params)
-
-if config['create_idxs']:
-    parser.index()
-
-if config['verify']:
-    parser.verify() 
+try:
+    module = PlansParser(database)
+    module.run(config)
+    module.create_idxs(config)
+except Exception:
+    logging.exception('Fatal error while running module.')

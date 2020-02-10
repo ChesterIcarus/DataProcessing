@@ -1,4 +1,5 @@
 
+import gzip
 import logging as log
 
 from icarus.input.generate.database import PlansGeneratorDatabase
@@ -81,123 +82,153 @@ class PlansGenerator:
             act[self.act_keys['y']])
 
     
-    def run(self, planpath, vehiclepath, region=[], time=[], 
-            modes=[], sample=1, bin_size=100000):
+    def run(self, config):
         log.info('Beginning simulation input plans generation.')
+        planspath = config['run']['plans_file']
+        vehiclespath = config['run']['vehicles_file']
+        bin_size = config['run']['bin_size']
+        seed = config['run']['seed']
 
-        if len(region):
-            log.info('Fetching MAZs in the specified region.', time = True)
-            mazs = self.database.get_mazs(region)
-            log.info(f'Found {len(mazs)} MAZs in specified region.')
-            log.info('Fetching agent plans occuring on selected MAZs.')
-        else:
-            log.info(f'Fetching all agent plans across all MAZs.')
-            mazs = []
-
-        plans = self.database.get_plans(mazs, modes, sample)
-        target = len(plans)
+        log.info('Fetching plans for input generation.')
+        limit = min(int(self.database.get_size('agents') *
+            config['run']['sample']), config['run']['max'])
+        plans = self.database.get_plans(config['modes'], limit, seed)
+        target = len(plans)        
 
         log.info(f'Found {target} plans under selected conditions.')
         log.info('Iterating over plans and generating plans file.')
+        count = 0
+        n = 1
 
-        planfile = open(planpath, 'w')
-        planfile.write('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE plans'
+        if planspath.split('.')[-1] == 'gz':
+            plansfile = gzip.open(planspath, mode='wt')
+        else:
+            plansfile = open(planspath, 'w')
+            
+        plansfile.write('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE plans'
             ' SYSTEM "http://www.matsim.org/files/dtd/plans_v4.dtd"><plans>')
 
         for group in self.chunk(plans, bin_size):
             size = len(group)
 
-            log.info(f'Fetching activity and route data for {size} plans.')
+            log.debug(f'Fetching activity and route data for {size} plans.')
             agents = tuple(plan[0] for plan in group)
             routes = self.database.get_routes(agents)
             activities = self.database.get_activities(agents)
 
-            log.info('Writing activity and route data to plans file.')
+            log.debug('Writing activity and route data to plans file.')
             for agent in agents:
                 rts = routes[agent]
                 acts = activities[agent]
-                planfile.write(self.plan_frmt % agent)
-                planfile.write(self.encode_start(acts.pop(0)))
+                plansfile.write(self.plan_frmt % agent)
+                plansfile.write(self.encode_start(acts.pop(0)))
                 for rt, act in zip(rts[:-1], acts[:-1]):
-                    planfile.write(self.encode_route(rt))
-                    planfile.write(self.encode_act(act))
-                planfile.write(self.encode_route(rts[-1]))
-                planfile.write(self.encode_end(acts[-1]))
-                planfile.write('</plan></person>')
-                del routes[agent]
-                del activities[agent]
+                    plansfile.write(self.encode_route(rt))
+                    plansfile.write(self.encode_act(act))
+                plansfile.write(self.encode_route(rts[-1]))
+                plansfile.write(self.encode_end(acts[-1]))
+                plansfile.write('</plan></person>')
+                
+                count += 1
+                if count == n:
+                    log.info(f'Writing plan {count}.')
+                    n <<= 1
 
-        planfile.write('</plans>')
-        planfile.close()
+        plansfile.write('</plans>')
+        plansfile.close()
 
-        vehiclesfile = open(vehiclepath, 'w')
-        
-        vehiclesfile.write('<?xml version="1.0" encoding="UTF-8" ?>'
-            '<vehicleDefinitions xmlns="http://www.matsim.org/files/dtd" '
-            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-            'xsi:schemaLocation="http://www.matsim.org/files/dtd '
-            'http://www.matsim.org/files/dtd/vehicleDefinitions_v1.0.xsd">')
+        if count != (n>>1):
+            log.info(f'Writing plan {count}.')
+        log.info('Writing vehicle defintiions file.')
+
+        if vehiclespath.split('.')[-1] == 'gz':
+            vehiclesfile = gzip.open(vehiclespath, mode='wt')
+        else:
+            vehiclesfile = open(vehiclespath, 'w')
+
+        vehiclesfile.write('''<?xml version="1.0" encoding="UTF-8" ?>
+            <vehicleDefinitions
+                xmlns="http://www.matsim.org/files/dtd"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xsi:schemaLocation="http://www.matsim.org/files/dtd 
+                    http://www.matsim.org/files/dtd/vehicleDefinitions_v2.0.xsd">''')
+
         vehiclesfile.write('''
             <vehicleType id="Bus">
-                <capacity>
-                    <seats persons="70"/>
-                    <standingRoom persons="0"/>
-                </capacity>
+                <attributes>
+                    <attribute name="accessTimeInSecondsPerPerson" class="java.lang.Double">0.5</attribute>
+                    <attribute name="doorOperationMode" class="java.lang.String">serial</attribute>
+                    <attribute name="egressTimeInSecondsPerPerson" class="java.lang.Double">0.5</attribute>
+                </attributes>
+                <capacity seats="70" standingRoomInPersons="0"/>
                 <length meter="18.0"/>
                 <width meter="2.5"/>
-                <accessTime secondsPerPerson="0.5"/>
-                <egressTime secondsPerPerson="0.5"/>
-                <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="2.8"/>
+                <networkMode networkMode="Bus"/>
+                <flowEfficiencyFactor factor="1.0"/>
             </vehicleType>''')
+
         vehiclesfile.write('''
             <vehicleType id="Tram">
-                <capacity>
-                    <seats persons="180"/>
-                    <standingRoom persons="0"/>
-                </capacity>
+                <attributes>
+                    <attribute name="accessTimeInSecondsPerPerson" class="java.lang.Double">0.25</attribute>
+                    <attribute name="doorOperationMode" class="java.lang.String">serial</attribute>
+                    <attribute name="egressTimeInSecondsPerPerson" class="java.lang.Double">0.25</attribute>
+                </attributes>
+                <capacity seats="180" standingRoomInPersons="0"/>
                 <length meter="36.0"/>
                 <width meter="2.4"/>
-                <accessTime secondsPerPerson="0.25"/>
-                <egressTime secondsPerPerson="0.25"/>
-                <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="5.2"/>
+                <networkMode networkMode="Tram"/>
+                <flowEfficiencyFactor factor="1.0"/>
             </vehicleType>''')
+
         vehiclesfile.write('''
             <vehicleType id="car">
+                <attributes>
+                    <attribute name="accessTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                    <attribute name="doorOperationMode" class="java.lang.String">serial</attribute>
+                    <attribute name="egressTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                </attributes>
+                <capacity seats="5" standingRoomInPersons="0"/>
                 <length meter="7.5"/>
                 <width meter="1.0"/>
                 <maximumVelocity meterPerSecond="40.0"/>
-                <accessTime secondsPerPerson="1.0"/>
-                <egressTime secondsPerPerson="1.0"/>
-                <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="1.0"/>
+                <networkMode networkMode="car"/>
+                <flowEfficiencyFactor factor="1.0"/>
             </vehicleType>''')
+
         vehiclesfile.write('''
             <vehicleType id="bike">
+                <attributes>
+                    <attribute name="accessTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                    <attribute name="doorOperationMode" class="java.lang.String">serial</attribute>
+                    <attribute name="egressTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                </attributes>
+                <capacity seats="1" standingRoomInPersons="0"/>
                 <length meter="5.0"/>
                 <width meter="1.0"/>
                 <maximumVelocity meterPerSecond="4.4704"/>
-                <accessTime secondsPerPerson="1.0"/>
-                <egressTime secondsPerPerson="1.0"/>
-                <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="0.25"/>
-            </vehicleType> ''')
+                <networkMode networkMode="bike"/>
+                <flowEfficiencyFactor factor="1.0"/>
+            </vehicleType>''')
+
         vehiclesfile.write('''
-            <vehicleType id="walk">
+            <vehicleType id="netwalk">
+                <attributes>
+                    <attribute name="accessTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                    <attribute name="doorOperationMode" class="java.lang.String">serial</attribute>
+                    <attribute name="egressTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                </attributes>
+                <capacity seats="1" standingRoomInPersons="0"/>
                 <length meter="1.0"/>
                 <width meter="1.0"/>
                 <maximumVelocity meterPerSecond="1.4"/>
-                <accessTime secondsPerPerson="1.0"/>
-                <egressTime secondsPerPerson="1.0"/>
-                <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="0.0"/>
-            </vehicleType> ''')
+                <networkMode networkMode="bike"/>
+                <flowEfficiencyFactor factor="1.0"/>
+            </vehicleType>''')
+
         vehiclesfile.write('</vehicleDefinitions>')
-        vehiclesfile.close()
-
-        log.info('Compressing output files.')
-        FilesysUtil.compress_gz(planpath)
-        FilesysUtil.compress_gz(vehiclepath)
-
-        log.info('Simulation input plans generation complete.')

@@ -1,4 +1,6 @@
 
+import gzip
+
 from xml.etree.ElementTree import iterparse
 
 from icarus.network.parse.roads.database import RoadParserDatabase
@@ -25,8 +27,13 @@ class RoadParser:
         self.create_tables('links', 'nodes', force=force)
 
         pr.print(f'Loading process metadata and resources.', time=True)
-        network_file = config['run']['network_file']
+        network_path = config['run']['network_file']
         bin_size = config['run']['bin_size']
+
+        if network_path.split('.')[-1] == 'gz':
+            network_file = gzip.open(network_path, mode='rb')
+        else:
+            network_file = open(network_path, mode='rb')
 
         parser = iter(iterparse(network_file, events=('start', 'end')))
         evt, root = next(parser)
@@ -85,6 +92,8 @@ class RoadParser:
             self.database.write_links(links)
             links = []
             root.clear()
+
+        network_file.close()
 
         pr.print('Network road parsing complete.', time=True)
 

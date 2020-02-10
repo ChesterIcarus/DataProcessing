@@ -74,7 +74,7 @@ class PlansMerger:
 
         for route in route_list:
             if route[2] == 11:
-                cars.add((route[5], 'walk'))
+                cars.add((route[5], 'netwalk'))
             elif route[2] == 12:
                 cars.add((route[5], 'bike'))
             elif route[2] in (1,2,3,4,13,14):
@@ -149,7 +149,7 @@ class PlansMerger:
             'other_maintenence', 'eating', 'breakfast', 'lunch', 'dinner',
             'visiting', 'other_discretionary', 'special_event', 'work',
             'work_business', 'work_lunch', 'work_other', 'work_related', 'asu_related')
-        modes = ('car', 'bike', 'walk')
+        modes = ('car', 'bike', 'netwalk')
 
         person_frmt = '<person id="%s">'
         plan_frmt = '<plan score="%s" selected="%s">'
@@ -240,71 +240,94 @@ class PlansMerger:
 
         log.info(f'Creating vehicles file at {vehcpath}.')
         if vehcpath.split('.')[-1] == 'gz':
-            vehcfile = gzip.open(vehcpath, mode='wt')
+            vehiclesfile = gzip.open(vehcpath, mode='wt')
         else:
-            vehcfile = open(vehcpath, mode='wt')
+            vehiclesfile = open(vehcpath, mode='wt')
         
-        vehcfile.write('<?xml version="1.0" encoding="UTF-8" ?>'
-            '<vehicleDefinitions xmlns="http://www.matsim.org/files/dtd" '
-            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-            'xsi:schemaLocation="http://www.matsim.org/files/dtd '
-            'http://www.matsim.org/files/dtd/vehicleDefinitions_v1.0.xsd">')
-        vehcfile.write('''
+        vehiclesfile.write('''<?xml version="1.0" encoding="UTF-8" ?>
+            <vehicleDefinitions
+                xmlns="http://www.matsim.org/files/dtd"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xsi:schemaLocation="http://www.matsim.org/files/dtd 
+                    http://www.matsim.org/files/dtd/vehicleDefinitions_v2.0.xsd">''')
+
+        vehiclesfile.write('''
             <vehicleType id="Bus">
-                <capacity>
-                    <seats persons="70"/>
-                    <standingRoom persons="0"/>
-                </capacity>
+                <attributes>
+                    <attribute name="accessTimeInSecondsPerPerson" class="java.lang.Double">0.5</attribute>
+                    <attribute name="doorOperationMode" class="java.lang.String">serial</attribute>
+                    <attribute name="egressTimeInSecondsPerPerson" class="java.lang.Double">0.5</attribute>
+                </attributes>
+                <capacity seats="70" standingRoomInPersons="0"/>
                 <length meter="18.0"/>
                 <width meter="2.5"/>
-                <accessTime secondsPerPerson="0.5"/>
-                <egressTime secondsPerPerson="0.5"/>
-                <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="2.8"/>
+                <networkMode networkMode="Bus"/>
+                <flowEfficiencyFactor factor="1.0"/>
             </vehicleType>''')
-        vehcfile.write('''
+
+        vehiclesfile.write('''
             <vehicleType id="Tram">
-                <capacity>
-                    <seats persons="180"/>
-                    <standingRoom persons="0"/>
-                </capacity>
+                <attributes>
+                    <attribute name="accessTimeInSecondsPerPerson" class="java.lang.Double">0.25</attribute>
+                    <attribute name="doorOperationMode" class="java.lang.String">serial</attribute>
+                    <attribute name="egressTimeInSecondsPerPerson" class="java.lang.Double">0.25</attribute>
+                </attributes>
+                <capacity seats="180" standingRoomInPersons="0"/>
                 <length meter="36.0"/>
                 <width meter="2.4"/>
-                <accessTime secondsPerPerson="0.25"/>
-                <egressTime secondsPerPerson="0.25"/>
-                <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="5.2"/>
+                <networkMode networkMode="Tram"/>
+                <flowEfficiencyFactor factor="1.0"/>
             </vehicleType>''')
-        vehcfile.write('''
+
+        vehiclesfile.write('''
             <vehicleType id="car">
+                <attributes>
+                    <attribute name="accessTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                    <attribute name="doorOperationMode" class="java.lang.String">serial</attribute>
+                    <attribute name="egressTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                </attributes>
+                <capacity seats="5" standingRoomInPersons="0"/>
                 <length meter="7.5"/>
                 <width meter="1.0"/>
                 <maximumVelocity meterPerSecond="40.0"/>
-                <accessTime secondsPerPerson="1.0"/>
-                <egressTime secondsPerPerson="1.0"/>
-                <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="1.0"/>
+                <networkMode networkMode="car"/>
+                <flowEfficiencyFactor factor="1.0"/>
             </vehicleType>''')
-        vehcfile.write('''
+
+        vehiclesfile.write('''
             <vehicleType id="bike">
+                <attributes>
+                    <attribute name="accessTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                    <attribute name="doorOperationMode" class="java.lang.String">serial</attribute>
+                    <attribute name="egressTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                </attributes>
+                <capacity seats="1" standingRoomInPersons="0"/>
                 <length meter="5.0"/>
                 <width meter="1.0"/>
                 <maximumVelocity meterPerSecond="4.4704"/>
-                <accessTime secondsPerPerson="1.0"/>
-                <egressTime secondsPerPerson="1.0"/>
-                <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="0.25"/>
-            </vehicleType> ''')
-        vehcfile.write('''
-            <vehicleType id="walk">
+                <networkMode networkMode="bike"/>
+                <flowEfficiencyFactor factor="1.0"/>
+            </vehicleType>''')
+
+        vehiclesfile.write('''
+            <vehicleType id="netwalk">
+                <attributes>
+                    <attribute name="accessTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                    <attribute name="doorOperationMode" class="java.lang.String">serial</attribute>
+                    <attribute name="egressTimeInSecondsPerPerson" class="java.lang.Double">1.0</attribute>
+                </attributes>
+                <capacity seats="1" standingRoomInPersons="0"/>
                 <length meter="1.0"/>
                 <width meter="1.0"/>
                 <maximumVelocity meterPerSecond="1.4"/>
-                <accessTime secondsPerPerson="1.0"/>
-                <egressTime secondsPerPerson="1.0"/>
-                <doorOperation mode="serial"/>
                 <passengerCarEquivalents pce="0.0"/>
-            </vehicleType> ''')
+                <networkMode networkMode="bike"/>
+                <flowEfficiencyFactor factor="1.0"/>
+            </vehicleType>''')
 
         vehc_formt = '<vehicle id="%s" type="%s"/>'
         count = 0
@@ -312,10 +335,10 @@ class PlansMerger:
 
         log.info('Iterating over vehicles and writing vehicle definitions.')
         for car in cars:
-            vehcfile.write(vehc_formt % car)
+            vehiclesfile.write(vehc_formt % car)
             count += 1
             if count % 10000 == 0:
-                vehcfile.flush()
+                vehiclesfile.flush()
             if count == n:
                 log.info(f'Writing vehicle {n}.')
                 n <<= 1
@@ -323,5 +346,5 @@ class PlansMerger:
         if count != (n >> 1):
             log.info(f'Writing vehicle {n}.')
 
-        vehcfile.write('</vehicleDefinitions>')
-        vehcfile.close()
+        vehiclesfile.write('</vehicleDefinitions>')
+        vehiclesfile.close()

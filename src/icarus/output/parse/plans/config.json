@@ -1,10 +1,11 @@
 {
     "run": {
-        "plans_file": "/home/Shared/matsim/run14/output/output_plans.xml",
+        "plans_file": "/home/Shared/matsim/run15/output/output_plans.xml",
         "input_db": "output_test",
         "create_idxs": true,
-        "bin_size": 100000,
-        "force": false
+        "bin_size": 10,
+        "force": false,
+        "test": true
     },
     "database": {
         "user": "validation",

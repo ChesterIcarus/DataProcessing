@@ -1,6 +1,6 @@
 {
     "run": {
-        "events_file": "/home/Shared/matsim/run14/output/output_events.xml.gz",
+        "events_file": "/home/Shared/matsim/runs/experimental/output/output_events.xml.gz",
         "input_db": "input_all",
         "network_db": "network",
         "log": null,
@@ -8,10 +8,16 @@
         "create_idxs": true
     },
     "temperature": {
-        "room": 25.5,
+        "act": 25.5,
         "car": 25.5,
         "bus": 25.5,
+        "room": 25.5,
         "tram": 25.5
+    },
+    "csv": {
+        "activities": "/home/Shared/matsim/runs/experimental/results/activities.csv",
+        "agents": "/home/Shared/matsim/runs/experimental/results/agents.csv",
+        "routes": "/home/Shared/matsim/runs/experimental/results/routes.csv"
     },
     "encoding": {
         "mode": {
@@ -64,31 +70,38 @@
         "unix_socket": "/home/mysql/mysql.sock",
         "password": null,
         "tables": {
-            "exp_agents": {
+            "agents": {
                 "schema": [
                     "agent_id MEDIUMINT UNSIGNED",
-                    "plan_size TINYINT UNSIGNED",
-                    "exposure FLOAT",
-                    "abort TINYINT UNSIGNED"
+                    "size TINYINT UNSIGNED",
+                    "exposure DOUBLE"
                 ],
                 "primary_idx": [ "agent_id" ]
             },
-            "exp_activities": {
+            "activities": {
                 "schema": [
                     "agent_id MEDIUMINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",
-                    "expsoure FLOAT"
+                    "start MEDIUMINT UNSIGNED",
+                    "end MEDIUMINT UNSIGNED",
+                    "duration MEDIUMINT UNSIGNED",
+                    "type VARCHAR(255)",
+                    "exposure DOUBLE"
                 ],
                 "primary_idx": [
                     "agent_id",
                     "agent_idx"
                 ]
             },
-            "exp_routes": {
+            "routes": {
                 "schema": [
                     "agent_id MEDIUMINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",
-                    "exposure FLOAT"
+                    "start MEDIUMINT UNSIGNED",
+                    "end MEDIUMINT UNSIGNED",
+                    "duration MEDIUMINT UNSIGNED",
+                    "mode VARCHAR(255)",
+                    "exposure DOUBLE"
                 ],
                 "primary_idx": [
                     "agent_id",

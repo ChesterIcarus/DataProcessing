@@ -3,8 +3,8 @@ import gzip
 import logging as log
 import numpy as np
 
-from datetime import datetime
-from xml.etree.ElementTree import iterparse
+from pprint import pprint
+from xml.etree.ElementTree import iterparse, tostring
 
 from icarus.output.parse.plans.database import PlansParserDatabase
 from icarus.util.filesys import FilesysUtil
@@ -34,6 +34,7 @@ class PlansParser:
         planspath = config['run']['plans_file']
         bin_size = config['run']['bin_size']
         force = config['run']['force']
+        test = config['run']['test']
 
         act_types = tuple(config['encoding']['activity'].keys())
         leg_modes = ('bike', 'walk', 'car')
@@ -47,8 +48,7 @@ class PlansParser:
         else:
             plansfile = open(planspath, mode='rb')
 
-        parser = iterparse(plansfile, events=('start', 'end'))
-        parser = iter(parser)
+        parser = iter(iterparse(plansfile, events=('start', 'end')))
         evt, root = next(parser)
 
         agents = []
@@ -90,54 +90,26 @@ class PlansParser:
                     if count == n:
                         log.info(f'Processed plan {count}.')
                         n <<= 1
-
                     if count % bin_size == 0:
                         log.debug('Pushing plans to mysql database.')
+                        pprint(routes)
                         self.database.write_agents(agents)
                         self.database.write_activities(acts)
                         self.database.write_routes(routes)
-
                         agents = []
                         acts = []
                         routes = []
                         root.clear()
 
+                        if test:
+                            break
+
                 elif elem.tag == 'activity':
                     act_type = elem.get('type')
+                    start = self.parse_time(elem.get('start_time', '04:00:00'))
+                    end = self.parse_time(elem.get('end_time', '31:00:00'))
                     if active:
                         if leg_mode in leg_modes:
-                            start = self.parse_time(elem.get('dep_time'))
-                            travel = self.parse_time(elem.get('trav_time'))
-                            routes.append((
-                                route_id,
-                                agent_id,
-                                route_idx,
-                                start,
-                                start + travel,
-                                travel,
-                                None))
-                            route_id += 1
-                            route_idx += 1
-                        elif leg_mode in ('pt', 'non_network_walk'):
-                            transit = True
-                        else:
-                            log.error(f'Found unexpected leg mode: "{leg_mode}".')
-                            raise ValueError
-                        active = False
-                    if act_type in act_types:
-                        prev_end = end
-                        start = self.parse_time(elem.get('start_time', '04:00:00'))
-                        end = self.parse_time(elem.get('end_time', '31:00:00'))
-                        acts.append((
-                            act_id,
-                            agent_id,
-                            act_idx,
-                            start,
-                            end,
-                            end - start))
-                        act_id += 1
-                        act_idx += 1
-                        if transit:
                             routes.append((
                                 route_id,
                                 agent_id,
@@ -148,7 +120,24 @@ class PlansParser:
                                 None))
                             route_id += 1
                             route_idx += 1
-                            transit = False
+                        elif leg_mode in ('pt', 'non_network_walk'):
+                            transit = True
+                        else:
+                            log.error(f'Found unexpected leg mode: "{leg_mode}".')
+                            raise ValueError
+                        active = False
+                    if act_type in act_types:
+                        acts.append((
+                            act_id,
+                            agent_id,
+                            act_idx,
+                            start,
+                            end,
+                            end - start,
+                            None))
+                        prev_end = end
+                        act_id += 1
+                        act_idx += 1
                     elif act_type in ('pt interaction',):
                         transit = True
                     else:
@@ -158,6 +147,7 @@ class PlansParser:
                 elif elem.tag == 'leg':
                     leg_mode = elem.get('mode')
                     active = True
+
 
         if count != (n >> 1):
             log.info(f'Processed plan {count}')

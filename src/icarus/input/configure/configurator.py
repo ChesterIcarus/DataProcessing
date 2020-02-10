@@ -119,7 +119,7 @@ class Configurator:
             <param name="insertingWaitingVehiclesBeforeDrivingVehicles" value="false" />
             <param name="isRestrictingSeepage" value="true" />
             <param name="isSeepModeStorageFree" value="false" />
-            <param name="linkDynamics" value="PassingQ" />
+            <param name="linkDynamics" value="FIFO" />
             <param name="linkWidth" value="30.0" />
             <param name="nodeOffset" value="0.0" />
             <param name="mainMode" value="car,Bus,Tram" />
@@ -134,7 +134,7 @@ class Configurator:
             <param name="stuckTime" value="10.0" />
             <param name="timeStepSize" value="00:00:01" />
             <param name="trafficDynamics" value="queue" />
-            <param name="useLanes" value="true" />
+            <param name="useLanes" value="false" />
             <param name="usingFastCapacityUpdate" value="true" />
             <param name="usingThreadpool" value="true" /> ''')
 
@@ -210,6 +210,7 @@ class Configurator:
     def module_planscalcroute(self, configfile):
         configfile.write('<module name="planscalcroute">')
 
+        configfile.write('<param name="clearDefaultTeleportedModeParams" value="true"/>')
         configfile.write('<param name="networkModes" value="%s" />' %
             ','.join(self.config['modes']['network']))
 
@@ -217,11 +218,11 @@ class Configurator:
             <parameterset type="teleportedModeParameters" >
                 <param name="beelineDistanceFactor" value="1.3" />
                 <param name="mode" value="%s" />
-                <param name="teleportedModeFreespeedFactor" value="null" />
                 <param name="teleportedModeSpeed" value="%s" />
             </parameterset> '''
 
         modes = self.config['modes']['teleported']
+        modes.append(['default', 1.4])
 
         for mode in modes:
             configfile.write(teleport % tuple(mode))
@@ -233,7 +234,7 @@ class Configurator:
         configfile.write('<module name="planCalcScore">')
 
         configfile.write('''
-		    <param name="BrainExpBeta" value="2.0" />
+		    <param name="BrainExpBeta" value="1.0" />
 		    <param name="PathSizeLogitBeta" value="1.0" />
 		    <param name="fractionOfIterationsToStartScoreMSA" value="null" />
 		    <param name="learningRate" value="1.0" />
@@ -254,24 +255,18 @@ class Configurator:
         activity_pattern = '''
             <parameterset type="activityParams">
                 <param name="activityType" value="%s" />
-                <param name="closingTime" value="undefined" />
-                <param name="earliestEndTime" value="undefined" />
-                <param name="latestStartTime" value="undefined" />
-                <param name="minimalDuration" value="undefined" />
-                <param name="openingTime" value="undefined" />
-                <param name="priority" value="1.0" />
                 <param name="scoringThisActivityAtAll" value="%s" />
                 <param name="typicalDuration" value="%s" />
-                <param name="typicalDurationScoreComputation" value="relative" />
             </parameterset> '''
 
         acts = [f'{mode} interaction' for mode in self.config['modes']['network']]
-        acts.extend(['other interaction', 'pt interaction'])
+        acts.append('other interaction') 
+        acts.append('pt interaction')
         
         for act in acts:
-            configfile.write(activity_pattern % (act, 'false', 'undefined'))
+            configfile.write(activity_pattern % (act, 'false', '00:00:01'))
 
-        configfile.write(activity_pattern % ('default', 'true', '12:00:00'))
+        configfile.write(activity_pattern % ('default', 'true', '00:00:01'))
 
         acts = self.config['activities']
         for act in acts:
@@ -279,19 +274,14 @@ class Configurator:
 
         mode_pattern = '''
             <parameterset type="modeParams" >
-				<param name="constant" value="0.0" />
-				<param name="dailyMonetaryConstant" value="0.0" />
-				<param name="dailyUtilityConstant" value="0.0" />
-				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
-				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
 				<param name="mode" value="%s" />
-				<param name="monetaryDistanceRate" value="0.0" />
 			</parameterset> '''
 
         modes = self.config['modes']['network'] + \
             [mode[0] for mode in self.config['modes']['teleported']]
-        modes.extend(['default', 'pt'])
-
+        modes.append('default')
+        modes.append('pt')
+        
         for mode in modes:
             configfile.write(mode_pattern % mode)
 

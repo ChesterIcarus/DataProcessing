@@ -1,27 +1,26 @@
 {
-    "resume": false,
-    "silent": false,
-    "create_idxs": true,
-    "verify": true,
-    "seed": null,
-    "modes": [
-        1, 2, 3, 4, 5, 6, 7, 8, 9,
-        10, 11, 12, 13, 14
-    ],
-    "acts": [
-        0, 1, 2, 3, 4,
-        41, 411, 412, 42,
-        5, 6, 7,
-        71, 72, 73,
-        8, 9, 10, 11, 12, 
-        13, 14, 15, 16
-    ],
-    "bin_size": 50000,
+    "run": {
+        "abm_db": "abm2018",
+        "bin": 100000,
+        "create_idxs": true,
+        "seed": 1234,
+        "simulation_start": 14400,
+        "simulation_end": 111600
+    },
+    "filter": {
+        "acts": [
+            0, 1, 2, 3, 4, 41, 411, 412, 42,5, 6, 7, 71, 
+            72, 73, 8, 9, 10, 11, 12, 13, 14, 15, 16
+        ],
+        "modes": [
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
+        ],
+        "function": ""
+    },
     "database": {
         "user": "validation",
         "host": "localhost",
         "db": "input_test",
-        "abm_db": "abm2018",
         "unix_socket": "/home/mysql/mysql.sock",
         "password": "",
         "tables": {
@@ -30,7 +29,12 @@
                     "agent_id MEDIUMINT UNSIGNED",
                     "household_id MEDIUMINT UNSIGNED",
                     "household_idx TINYINT UNSIGNED",
-                    "plan_size TINYINT UNSIGNED"
+                    "uses_vehicle TINYINT UNSIGNED",
+                    "uses_walk TINYINT UNSIGNED",
+                    "uses_bike TINYINT UNSIGNED",
+                    "uses_transit TINYINT UNSIGNED",
+                    "uses_party TINYINT UNSIGNED",
+                    "size TINYINT UNSIGNED"
                 ],
                 "primary_idx": [ "agent_id" ],
                 "btree_idxs": {
@@ -44,22 +48,17 @@
             },
             "activities": {
                 "schema": [
-                    "activity_id INT UNSIGNED",
                     "agent_id MEDIUMINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",
                     "maz SMALLINT UNSIGNED",
-                    "apn VARCHAR(10)",
+                    "apn VARCHAR(255)",
                     "type SMALLINT UNSIGNED",
-                    "start_time MEDIUMINT UNSIGNED",
-                    "end_time MEDIUMINT UNSIGNED",
-                    "dur_time MEDIUMINT UNSIGNED"
+                    "start MEDIUMINT UNSIGNED",
+                    "end MEDIUMINT UNSIGNED",
+                    "duration MEDIUMINT UNSIGNED"
                 ],
-                "primary_idx": [ "activity_id" ],
+                "primary_idx": ["agent_id", "agent_idx"],
                 "btree_idxs": {
-                    "agent": [
-                        "agent_id",
-                        "agent_idx"
-                    ],
                     "maz": [ "maz" ]
                 },
                 "hash_idxs": {
@@ -69,26 +68,31 @@
             },
             "routes": {
                 "schema": [
-                    "route_id INT UNSIGNED",
                     "agent_id MEDIUMINT UNSIGNED",
                     "agent_idx TINYINT UNSIGNED",
                     "mode TINYINT UNSIGNED",
-                    "vehicle_id VARCHAR(255)",
-                    "start_time MEDIUMINT UNSIGNED",
-                    "end_time MEDIUMINT UNSIGNED",
-                    "dur_time MEDIUMINT UNSIGNED"
+                    "vehicle VARCHAR(255)",
+                    "shared TINYINT UNSIGNED",
+                    "start MEDIUMINT UNSIGNED",
+                    "end MEDIUMINT UNSIGNED",
+                    "duration MEDIUMINT UNSIGNED"
                 ],
-                "primary_idx": [ "route_id" ],
-                "btree_idxs": {
-                    "agent": [
-                        "agent_id",
-                        "agent_idx"
-                    ]
-                },
+                "primary_idx": [ "agent_id", "agent_idx" ],
+                "btree_idxs": {},
+                "hash_idxs": {},
+                "spatial_idxs": {}
+            },
+            "households": {
+                "schema": [
+                    "household_id MEDIUMINT UNSIGNED",
+                    "agents TINYINT UNSIGNED",
+                    "parties TINYINT UNSIGNED"
+                ],
+                "primary_idx": [ "household_id" ],
+                "btree_idxs": {},
                 "hash_idxs": {},
                 "spatial_idxs": {}
             }
         }
-    },
-    "encoding": {}
+    }
 }

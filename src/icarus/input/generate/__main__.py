@@ -65,12 +65,8 @@ if database['user'] is None or database['password'] is None:
     database['password'] = getpass('')
 
 try:
-    options = ('region', 'time', 'modes', 'sample', 'bin_size')
-    params = {key: config[key] for key in options if key in config}
     generator = PlansGenerator(database, encoding)
-    generator.run(config['planpath'], config['vehiclepath'], **params)
+    generator.run(config)
+    logging.info('Input plans generation run complete.')
 except Exception:
     logging.exception('Fatal error while running association model.')
-    exit()
-
-logging.info('Input plans generation run complete.')

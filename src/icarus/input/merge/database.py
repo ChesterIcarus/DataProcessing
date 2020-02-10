@@ -20,9 +20,9 @@ class PlansMergerDatabase(DatabaseUtil):
                 routes.agent_id,
                 routes.agent_idx,
                 routes.mode,
-                routes.start_time,
-                routes.dur_time,
-                routes.vehicle_id
+                routes.start,
+                routes.duration,
+                routes.vehicle
             FROM {self.db}.routes
             {f"WHERE agent_id IN {agents}" if agent else ""}
             ORDER BY agent_id, agent_idx
@@ -38,8 +38,8 @@ class PlansMergerDatabase(DatabaseUtil):
             SELECT
                 agent_id,
                 agent_idx,
-                start_time,
-                end_time
+                start,
+                end
             FROM {self.db}.activities
             {f"WHERE agent_id IN {agents}" if agent else ""}
             ORDER BY agent_id, agent_idx

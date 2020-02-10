@@ -4,69 +4,38 @@ from collections import defaultdict
 from icarus.util.database import DatabaseUtil
 
 class PlansGeneratorDatabase(DatabaseUtil):
-    def get_mazs(self, pts):
-        poly = ','.join(f'{pt[0]} {pt[1]}' for pt in pts)
+    def get_size(self, table):
         query = f'''
-            SELECT
-                mazs.maz
-            FROM network.mazs
-            WHERE ST_CONTAINS(ST_POLYGONFROMTEXT(
-                "POLYGON(({poly}))", 2223),
-                mazs.region)
-        '''
+            SELECT COUNT(*)
+            FROM {self.db}.{table}  '''
         self.cursor.execute(query)
-        return tuple(row[0] for row in self.cursor.fetchall())
+        return self.cursor.fetchall()[0][0]
+        
 
-    def get_plans(self, mazs=[], modes=[], sample=1, seed=4321):
-        modes = tuple(modes)
-        mode = len(modes)
-        maz = len(mazs)
-        subquery = f'''
-            (SELECT
-                plans.agent_id,
-                plans.plan_size
-                {", COUNT(*) AS rtcount" if mode else ""}
-            FROM {self.db}.agents AS plans
-            {f"""
-            INNER JOIN {self.db}.routes AS routes
-                ON plans.agent_id = routes.agent_id
-                AND routes.mode IN {modes}
-            """ if mode else ""}
-            {f"""
-            WHERE agent_id IN (
-                SELECT agent_id
-                FROM activities
-                WHERE maz IN {mazs})
-            """ if maz else ""}
-            {"""
-            GROUP BY 
-                plans.agent_id,
-                plans.plan_size
-            """ if mode else ""}
-            ) AS temp
-        '''
+    def get_plans(self, modes={}, limit=None, seed=''):
+        condition = ' AND '.join(f'uses_{mode} = {int(val)}'
+            for mode, val in modes.items() if val is not None)
+        condition = f'WHERE {condition}' if len(condition) else ''
+        limit = f'LIMIT {limit}' if limit is not None else ''
         query = f'''
-            SELECT
+            SELECT 
                 agent_id,
-                plan_size
-            FROM {subquery if maz or mode else f"{self.db}.agents"}
-            {"WHERE" if mode or sample < 1 else ""}
-            {"plan_size DIV 2 = temp.rtcount" if mode else ""}
-            {"AND" if mode and sample < 1 else ""}
-            {f"RAND({seed}) <= {sample}" if sample < 1 else ""}
-            ORDER BY agent_id
-        '''
+                size
+            FROM {self.db}.agents
+            {condition}
+            ORDER BY RAND({seed})
+            {limit}  '''
         self.cursor.execute(query)
         return self.cursor.fetchall()
 
-    def get_activities(self, agents=[]):
-        agent = len(agents)
+
+    def get_activities(self, agents):
         query = f'''
             SELECT
                 acts.agent_id,
                 acts.agent_idx,
-                acts.start_time,
-                acts.end_time,
+                acts.start,
+                acts.end,
                 acts.type,
                 ST_X(parcels.center),
                 ST_Y(parcels.center)
@@ -88,8 +57,7 @@ class PlansGeneratorDatabase(DatabaseUtil):
                 FROM network.mazparcels
             ) AS parcels
             USING (apn)
-            {f"WHERE acts.agent_id IN {agents}" if agent else ""}
-        '''
+            WHERE acts.agent_id IN {agents} '''
         self.cursor.execute(query)
         activities = defaultdict(list)
         for act in self.cursor.fetchall():
@@ -98,17 +66,16 @@ class PlansGeneratorDatabase(DatabaseUtil):
             activities[agent].sort(key=lambda a: a[1])
         return activities
 
-    def get_routes(self, agents= []):
-        agent = len(agents)
+
+    def get_routes(self, agents):
         query = f'''
             SELECT
                 agent_id,
                 agent_idx,
                 mode,
-                dur_time
+                duration
             FROM {self.db}.routes
-            {f"WHERE agent_id IN {agents}" if agent else ""}
-        '''
+            WHERE agent_id IN {agents}  '''
         self.cursor.execute(query)
         routes = defaultdict(list)
         for route in self.cursor.fetchall():

@@ -1,7 +1,7 @@
 {
-    "planpath": "/home/Shared/matsim/run5/input/plans.xml",
-    "vehiclepath": "/home/Shared/matsim/run5/input/vehicles.xml",
-    "sample": 0.0001,
+    "planpath": "/home/Shared/matsim/runs/experimental/input/plans.xml.gz",
+    "vehiclepath": "/home/Shared/matsim/runs/experimental/input/vehicles.xml.gz",
+    "sample": 0.01,
     "time": [],
     "region": [],
     "types": [],
@@ -13,7 +13,7 @@
         "host": "localhost",
         "db": "input_all",
         "unix_socket": "/home/mysql/mysql.sock",
-        "password": "" 
+        "password": null
     },
     "encoding": {
         "mode": {
@@ -21,15 +21,16 @@
             "2": "car",
             "3": "car",
             "4": "car",
-            "5": "walk",
+            "5": "pt",
             "6": "pt",
             "7": "pt",
-            "8": "walk",
+            "8": "pt",
             "9": "pt",
             "10": "pt",
-            "11": "walk",
+            "11": "netwalk",
             "12": "bike",
-            "13": "car"
+            "13": "car",
+            "14": "car"
         },
         "activity": {
             "home": 0,
