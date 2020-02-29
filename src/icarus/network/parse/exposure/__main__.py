@@ -5,17 +5,17 @@ from getpass import getpass
 from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
-from icarus.exposure.parse.parser import DaymetParser
+from icarus.network.parse.exposure.parser import DaymetParser
 from icarus.util.print import PrintUtil as pr
 
 parser = ArgumentParser(prog='Daymet Parser',
     description='Parses daymet tmerperature data into MySQL database.')
 parser.add_argument('--config', type=str,  dest='config',
-    default=resource_filename('icarus', 'exposure/parse/config.json'),
+    default=resource_filename('icarus', 'network/parse/exposure/config.json'),
     help=('Specify a config file location; default is "config.json" in '
         'the current working directory.'))
 parser.add_argument('--specs', type=str, dest='specs',
-    default=resource_filename('icarus', 'exposure/parse/specs.json'),
+    default=resource_filename('icarus', 'network/parse/exposure/specs.json'),
     help=('Specify a specs file location; default is "specs.json" in '
         'the current module directory.'))
 parser.add_argument('--log', type=str, dest='log',

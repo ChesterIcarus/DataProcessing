@@ -6,8 +6,7 @@ class PlansMergerDatabase(DatabaseUtil):
     def get_max(self, db, tbl, col):
         query = f'''
             SELECT MAX({col})
-            FROM {db}.{tbl}
-        '''
+            FROM {db}.{tbl} '''
         self.cursor.execute(query)
         return self.cursor.fetchall()[0][0]
 
@@ -25,8 +24,7 @@ class PlansMergerDatabase(DatabaseUtil):
                 routes.vehicle
             FROM {self.db}.routes
             {f"WHERE agent_id IN {agents}" if agent else ""}
-            ORDER BY agent_id, agent_idx
-        '''
+            ORDER BY agent_id, agent_idx    '''
         self.cursor.execute(query)
         return self.cursor.fetchall()
 
@@ -42,7 +40,6 @@ class PlansMergerDatabase(DatabaseUtil):
                 end
             FROM {self.db}.activities
             {f"WHERE agent_id IN {agents}" if agent else ""}
-            ORDER BY agent_id, agent_idx
-        '''
+            ORDER BY agent_id, agent_idx    '''
         self.cursor.execute(query)
         return self.cursor.fetchall()

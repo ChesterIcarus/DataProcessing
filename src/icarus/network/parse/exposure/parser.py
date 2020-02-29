@@ -5,7 +5,7 @@ from pyproj import Transformer
 from math import cos, pi
 from scipy.spatial import Voronoi       # pylint: disable=no-name-in-module
 
-from icarus.exposure.parse.database import DaymetParserDatabaseHandle
+from icarus.network.parse.exposure.database import DaymetParserDatabaseHandle
 from icarus.util.print import PrintUtil as pr
 from icarus.util.config import ConfigUtil
 

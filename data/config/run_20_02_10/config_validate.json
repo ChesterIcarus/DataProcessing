@@ -1,0 +1,187 @@
+{
+    "run": {
+        "input_db": "input_test",
+        "output_db": "output_test",
+        "result_dir": "/home/Shared/matsim/runs/simplified/results/",
+        "continue": true
+    },
+    "charts": {
+        "route_duration_distributions_all": {
+            "run": true,
+            "title": "Route Durations (All)",
+            "file": "route_duration_distributions_all.png",
+            "type": "route_distributions",
+            "parameter": "duration",
+            "axes": [
+                "ABM route duration",
+                "MATSim route duration"
+            ],
+            "bounds": null,
+            "sample": null,
+            "modes": null
+        },
+        "route_duration_distributions_all_trimmed": {
+            "run": true,
+            "title": "Route Durations (All)",
+            "file": "route_duration_distributions_all_trimmed.png",
+            "type": "route_distributions",
+            "parameter": "duration",
+            "axes": [
+                "ABM route duration",
+                "MATSim route duration"
+            ],
+            "bounds": [ 0, 0, 4000, 20000 ],
+            "sample": null,
+            "modes": null
+        },
+        "route_duration_distributions_vehicle": {
+            "run": true,
+            "title": "Route Durations (Vehicles)",
+            "file": "route_duration_distributions_vehicle.png",
+            "type": "route_distributions",
+            "parameter": "duration",
+            "axes": [
+                "ABM route duration",
+                "MATSim route duration"
+            ],
+            "bounds": null,
+            "sample": null,
+            "modes": [ "car" ]
+        },
+        "route_duration_distributions_vehicle_trimmed": {
+            "run": true,
+            "title": "Route Durations (Vehicles)",
+            "file": "route_duration_distributions_vehicle_trimmed.png",
+            "type": "route_distributions",
+            "parameter": "duration",
+            "axes": [
+                "ABM route duration",
+                "MATSim route duration"
+            ],
+            "bounds": [ 0, 0, 3000, 20000 ],
+            "sample": null,
+            "modes": [ "car" ]
+        },
+        "route_duration_distributions_walk": {
+            "run": true,
+            "title": "Route Durations (Walk)",
+            "file": "route_duration_distributions_walk.png",
+            "type": "route_distributions",
+            "parameter": "duration",
+            "axes": [
+                "ABM route duration",
+                "MATSim route duration"
+            ],
+            "bounds": null,
+            "sample": null,
+            "modes": [ "netwalk" ]
+        },
+        "route_duration_distributions_walk_trimmed": {
+            "run": true,
+            "title": "Route Durations (Walk)",
+            "file": "route_duration_distributions_walk_trimmed.png",
+            "type": "route_distributions",
+            "parameter": "duration",
+            "axes": [
+                "ABM route duration",
+                "MATSim route duration"
+            ],
+            "bounds": [0, 0, 3000, 20000],
+            "sample": null,
+            "modes": [ "netwalk" ]
+        },
+        "route_duration_distributions_bike": {
+            "run": true,
+            "title": "Route Durations (Bike)",
+            "file": "route_duration_distributions_bike.png",
+            "type": "route_distributions",
+            "parameter": "duration",
+            "axes": [
+                "ABM route duration",
+                "MATSim route duration"
+            ],
+            "bounds": null,
+            "sample": null,
+            "modes": [ "bike" ]
+        },
+        "route_duration_distributions_bike_trimmed": {
+            "run": true,
+            "title": "Route Durations (Bike)",
+            "file": "route_duration_distributions_bike_trimmed.png",
+            "type": "route_distributions",
+            "parameter": "duration",
+            "axes": [
+                "ABM route duration",
+                "MATSim route duration"
+            ],
+            "bounds": [0, 0, 3000, 25000],
+            "sample": null,
+            "modes": [ "bike" ]
+        },
+        "activity_duration_distributions_all": {
+            "run": true,
+            "title": "Activity Durations (All)",
+            "file": "activity_duration_distributions_all.png",
+            "type": "activity_distributions",
+            "parameter": "duration",
+            "axes": [
+                "ABM activity duration",
+                "MATSim activity duration"
+            ],
+            "bounds": null,
+            "sample": null,
+            "types": null 
+        },
+        "activity_duration_distributions_all_trimmed": {
+            "run": true,
+            "title": "Activity Durations (All)",
+            "file": "activity_duration_distributions_all_trimmed.png",
+            "type": "activity_distributions",
+            "parameter": "duration",
+            "axes": [
+                "ABM activity duration",
+                "MATSim activity duration"
+            ],
+            "bounds": [ 0, 0, 20000, 20000 ],
+            "sample": null,
+            "types": null 
+        },
+
+        "route_duration_differentials_all": {
+            "run": true,
+            "title": "Route Duration Deltas (All)",
+            "file": "route_duration_differentials_all.png",
+            "type": "route_differentials",
+            "parameter": "duration",
+            "axes": [
+                "MATSim and ABM route duration difference",
+                "frequency"
+            ],
+            "bounds": null,
+            "sample": null,
+            "types": null 
+        },
+        "route_duration_differentials_all_trimmed": {
+            "run": true,
+            "title": "Route Duration Deltas (All)",
+            "file": "route_duration_differentials_all_trimmed.png",
+            "type": "route_differentials",
+            "parameter": "duration",
+            "axes": [
+                "MATSim and ABM route duration difference",
+                "frequency"
+            ],
+            "bounds": [-25000, 5000],
+            "sample": null,
+            "types": null 
+        }
+    },
+    "database": {
+        "user": "validation",
+        "host": "localhost",
+        "db": "output_test",
+        "unix_socket": "/home/mysql/mysql.sock",
+        "password": null,
+        "tables": {}
+    }
+}

@@ -1,6 +1,6 @@
 {
     "run": {
-        "events_file": "/home/Shared/matsim/runs/simplified/merge_output/output_events.xml.gz",
+        "events_file": "/home/Shared/matsim/runs/simplified/output/output_events.xml.gz",
         "input_db": "input_test",
         "network_db": "network",
         "log": null,

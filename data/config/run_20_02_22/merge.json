@@ -1,7 +1,7 @@
 {
     "planspath": "/home/Shared/matsim/runs/simplified/output/output_plans.xml.gz",
-    "vehiclesfile": "/home/Shared/matsim/runs/simplified/input/vehicles.xml.gz",
-    "outfile": "/home/Shared/matsim/runs/simplified/merge_input/plans.xml.gz",
+    "vehiclesfile": "/home/Shared/matsim/runs/run_20_02_22/input/vehicles.xml.gz",
+    "outfile": "/home/Shared/matsim/runs/run_20_02_22/input/plans.xml.gz",
     "database": {
         "user": "validation",
         "host": "localhost",

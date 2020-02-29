@@ -5,18 +5,18 @@ from getpass import getpass
 from pkg_resources import resource_filename
 from argparse import ArgumentParser
 
-from icarus.output.parse.events.analysis import ExposureLinkAnalysis
+from icarus.output.parse.events.parser import OutputEventsParser
 
 # command line argument processing
 
 parser = ArgumentParser(prog='Simulation Exposure Analysis (Link Granularity)',
     description='')
 parser.add_argument('--config', type=str,  dest='config',
-    default=resource_filename('icarus', 'exposure/analyze/link/config.json'),
+    default=resource_filename('icarus', 'output/parse/events/config.json'),
     help=('Specify a configuration file location; default is "config.json"'
         ' in the package module directory.'))
 parser.add_argument('--specs', type=str, dest='specs',
-    default=resource_filename('icarus', 'exposure/analyze/link/specs.json'),
+    default=resource_filename('icarus', 'output/parse/events/specs.json'),
     help=('Specify a specifications file location; default is "specs.json"'
         ' in the package module directory.'))
 parser.add_argument('--log', type=str, dest='log',
@@ -38,7 +38,7 @@ logging.basicConfig(
 
 logging.info('Running exposure link analysis module.')
 logging.info('Validating configuration with module specifications.')
-config = ExposureLinkAnalysis.validate_config(args.config, args.specs)
+config = OutputEventsParser.validate_config(args.config, args.specs)
 
 # database credentials handling
 
@@ -51,7 +51,7 @@ if database['user'] in ('', None) or database['password'] in ('', None):
     database['password'] = getpass('')
 
 try:
-    module = ExposureLinkAnalysis(database)
+    module = OutputEventsParser(database)
     module.run(config)
     module.create_idxs(config)
 except Exception:

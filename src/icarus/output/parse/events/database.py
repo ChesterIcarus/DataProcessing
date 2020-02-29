@@ -3,7 +3,7 @@ from collections import defaultdict
 
 from icarus.util.database import DatabaseUtil
 
-class ExposureLinkAnalysisDatabase(DatabaseUtil):
+class OutputEventsParserDatabaseUtil(DatabaseUtil):
     def fetch_temperatures(self, db):
         query = f'''
             SELECT

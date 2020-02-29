@@ -1,14 +1,74 @@
 {
-    "files": {
-        "input_db": "input_all",
+    "run": {
+        "input_db": "input_test",
         "output_db": "output_test",
-        "result_dir": "/home/Shared/matsim/experimental/results/"
+        "result_dir": "/home/Shared/matsim/runs/simplified/results/",
+        "continue": true
     },
     "charts": {
-        "activity_differentials": true,
-        "route_differentials": true
+        "route_differentials_all": {
+            "run": true,
+            "title": "Route Durations (All)",
+            "file": "route_differentials_all.png",
+            "type": "route_differentials",
+            "parameter": "duration",
+            "axes": [
+                "ABM route duration",
+                "MATSim route duration"
+            ],
+            "bounds": [ 0, 0, 20000, 20000 ],
+            "sample": 100000000,
+            "modes": null
+        },
+        "short_route_differentials_all": {
+            "run": true,
+            "title": "Short Route Durations (All)",
+            "file": "short_route_differentials_all.png",
+            "type": "route_differentials",
+            "parameter": "duration",
+            "axes": [
+                "ABM route duration",
+                "MATSim route duration"
+            ],
+            "bounds": [ 0, 0, 4000, 4000 ],
+            "sample": 100000000,
+            "modes": null
+        },
+        "activity_differentials_all": {
+            "run": true,
+            "title": "Activity Durations (All)",
+            "file": "activity_differentials_all.png",
+            "type": "activity_differentials",
+            "parameter": "duration",
+            "axes": [
+                "ABM activity duration",
+                "MATSim activity duration"
+            ],
+            "bounds": [ 0, 0, 20000, 20000 ],
+            "sample": 10000000,
+            "types": null 
+        },
+        "short_activity_differentials_all": {
+            "run": true,
+            "title": "Short Activity Durations (All)",
+            "file": "short_activity_differentials_all.png",
+            "type": "activity_differentials",
+            "parameter": "duration",
+            "axes": [
+                "ABM activity duration",
+                "MATSim activity duration"
+            ],
+            "bounds": [ 0, 0, 20000, 20000 ],
+            "sample": 10000000,
+            "types": null 
+        }
     },
     "database": {
-
+        "user": "validation",
+        "host": "localhost",
+        "db": "output_test",
+        "unix_socket": "/home/mysql/mysql.sock",
+        "password": null,
+        "tables": {}
     }
 }
