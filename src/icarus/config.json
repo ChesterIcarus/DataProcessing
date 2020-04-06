@@ -1,0 +1,73 @@
+{
+    "network": {
+        "epsg": 2223,
+        "exposure": {
+            "tmax_files": [
+                "/home/Shared/source/daymet/2018/tmax_11014.nc",
+                "/home/Shared/source/daymet/2018/tmax_11015.nc",
+                "/home/Shared/source/daymet/2018/tmax_11194.nc",
+                "/home/Shared/source/daymet/2018/tmax_11195.nc"
+            ],
+            "tmin_files": [
+                "/home/Shared/source/daymet/2018/tmin_11014.nc",
+                "/home/Shared/source/daymet/2018/tmin_11015.nc",
+                "/home/Shared/source/daymet/2018/tmin_11194.nc",
+                "/home/Shared/source/daymet/2018/tmin_11195.nc"
+            ],
+            "day": 181,
+            "steps": 48
+        },
+        "roads": {
+            "osm_file": "/home/Shared/source/openstreet/arizona-latest.osm.pbf",
+            "schedule_dir": "/home/Shared/source/valleymetro/",
+            "osmosis": "/home/Shared/exec/osmosis-0.47/bin/osmosis",
+            "pt2matsim": "/home/Shared/exec/pt2matsim-19.5/pt2matsim-19.5-shaded.jar",
+            "transit": true,
+            "modes": {
+                "walk": ["walk", "ptwalk", "netwalk"],
+                "bike": ["bike"],
+                "car": ["car"],
+                "bus": ["bus"]
+            },
+            "region": [
+                [-0.113054810E+03, 0.32623183E+02],
+                [-0.113054810E+03, 0.33993473E+02],
+                [-0.110917969E+03, 0.33993473E+02],
+                [-0.110917969E+03, 0.32623183E+02],
+                [-0.113054810E+03, 0.32623183E+02]
+            ]
+
+        },
+        "regions": {
+            "region_file": "/home/Shared/source/maz_taz/maz_taz.shp"
+        },
+        "parcels": {
+            "residence_file": "/home/Shared/source/parcels/residential_parcels.dbf",
+            "commerce_file": "/home/Shared/source/parcels/commercial_parcels.dbf",
+            "parcel_file": "/home/Shared/source/parcels/parcels.shp"
+
+        }
+    },
+    "population": {
+        "trips_file": "/home/Shared/source/abm/recent/trips.csv",
+        "households_file": "/home/Shared/source/abm/2018/households.csv",
+        "persons_file": "/home/Shared/source/abm/2018/persons.csv",
+        "modes": null,
+        "activity_types": null,
+        "seed": null
+    },
+    "simulation": {
+        "matsim": "",
+        "iterations": 10,
+        "threads": 4,
+        "modes": {
+            "network": ["car"],
+            "routed": ["bike", "ptwalk", "netwalk"],
+            "transit": ["Bus", "Tram"],
+            "teleported": ["walk", "non_network_walk"]
+        }
+    },
+    "analysis": {
+
+    }
+}
