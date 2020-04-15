@@ -35,7 +35,7 @@ def run(database, config, action, replace, folder):
         planspath = path('input/plans.xml.gz')
         vehiclespath = path('input/vehicles.xml.gz')
         if (exists(planspath) or exists(vehiclespath)) and not replace:
-            pass
+            log.info('Input population already sampled; skipping sampling.')
         else:
             # hardcoded parameters
             sampling.sample(
@@ -43,7 +43,9 @@ def run(database, config, action, replace, folder):
                 vehiclespath,
                 sample_perc=0.01,
                 sample_size=10000,
-                party=False)    
+                transit=None,
+                party=None,
+                virtual=['pt', 'car'])
     elif action == 'validate':
         validation = Validation(database)
         validation.validate()

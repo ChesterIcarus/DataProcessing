@@ -8,6 +8,7 @@ from icarus.output.objects.network import Network
 from icarus.output.objects.types import VehicleMode, ActivityType, LegMode
 from dataclasses import dataclass
 
+
 class Population:
     def __init__(self, network):
         self.network = network
@@ -21,7 +22,7 @@ class Population:
             agent = self.agents[agent_id]
         else:
             agent = Agent(agent_id)
-            self.agents[agent_id] = Agent(agent_id)
+            self.agents[agent_id] = agent
         return agent
 
 
@@ -59,13 +60,13 @@ class Population:
             agent = self.get_agent(event.get('person'))
             link = agent.active_leg.active_link
             vehicle = self.get_vehicle(event.get('vehicle'), time, link)
-            vehicle.add_agent(agent)
+            vehicle.add_agent(time, agent)
 
         elif action == 'PersonLeavesVehicle':
             agent = self.get_agent(event.get('person'))
             link = agent.active_leg.active_link
             vehicle = self.get_vehicle(event.get('vehicle'), time, link)
-            vehicle.remove_agent(agent)
+            vehicle.remove_agent(time, agent)
 
         elif action == 'actstart':
             link = self.network.links[event.get('link')]

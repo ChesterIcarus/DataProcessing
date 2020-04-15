@@ -28,12 +28,14 @@ class Vehicle:
         self.link = link
 
 
-    def add_agent(self, agent):
+    def add_agent(self, time, agent):
+        self.leave_link(time, self.link)
         agent.expose(-self.exposure)
         self.agents.add(agent)
     
 
-    def remove_agent(self, agent):
+    def remove_agent(self, time, agent):
+        self.leave_link(time, self.link)
         agent.active_leg.active_link = self.link
         agent.active_leg.active_time = self.time
         agent.expose(self.exposure)

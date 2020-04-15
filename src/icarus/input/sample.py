@@ -24,7 +24,7 @@ class Sampling:
     @staticmethod
     def encode_agent(agent):
         string = '<person id="%s"><plan selected="yes">'
-        return string % agent
+        return string % agent[0]
 
 
     @staticmethod
@@ -62,6 +62,28 @@ class Sampling:
             Sampling.time(leg[3]),
             leg[2])
 
+    
+    @staticmethod
+    def virtualize(leg, activity):
+        fakeleg = Sampling.encode_leg([
+            None, 
+            None, 
+            'fakemode', 
+            0])
+        fakeactivity = Sampling.encode_activity([
+            None,
+            None,
+            activity[2] - leg[3],
+            activity[2],
+            'fakeactivity',
+            activity[5]])
+        realleg = Sampling.encode_leg([
+            None,
+            None,
+            leg[2],
+            0])
+        return fakeleg + fakeactivity + realleg
+
 
     def __init__(self, database):
         self.database = database
@@ -96,17 +118,23 @@ class Sampling:
             'CREATE UNIQUE INDEX sample_agent ON sample(agent_id)')
         self.database.connection.commit()
 
+
+    def delete_sample(self):
+        self.database.drop_table('sample')
+        self.database.connection.commit()
+
     
-    def fetch_plans(self):
+    def fetch_agents(self):
         self.database.cursor.execute(f'''
             SELECT 
                 agent_id,
                 plan_size
-            FROM sample;    ''')
+            FROM sample
+            ORDER BY agent_id;  ''')
         return self.database.cursor.fetchall()
 
     
-    def fetch_activities(self, agents):
+    def fetch_activities(self):
         self.database.cursor.execute(f'''
             SELECT
                 activities.agent_id,
@@ -118,16 +146,15 @@ class Sampling:
             FROM activities
             INNER JOIN parcels
             USING(apn)
-            WHERE agent_id IN {agents};  ''')
-        activities = defaultdict(lambda x: [])
-        for activity in self.database.cursor.fetchall():
-            activities[activity[0]].append(activity)
-        for agent in activities:
-            activities[agent].sort(key=lambda a: a[1])
-        return activities
+            INNER JOIN sample
+            USING(agent_id)
+            ORDER BY
+                agent_id,
+                agent_idx;  ''')
+        return self.database.cursor.fetchall()
 
     
-    def fetch_legs(self, agents):
+    def fetch_legs(self):
         self.database.cursor.execute(f'''
             SELECT
                 agent_id,
@@ -135,21 +162,17 @@ class Sampling:
                 mode,
                 duration
             FROM legs
-            WHERE agent_id IN {agents};  ''')
-        legs = defaultdict(lambda x: [])
-        for leg in self.database.cursor.fetchall():
-            legs[leg[0]].append(leg)
-        for agent in legs:
-            legs[agent].sort(key=lambda a: a[1])
-        return legs
+            INNER JOIN sample
+            USING(agent_id);    ''')
+        return self.database.cursor.fetchall()
 
 
     def complete(self, config):
         return False
-
+        
 
     def sample(self, planspath, vehiclespath, sample_perc=1, sample_size=math.inf,
-            transit=None, vehicle=None, walk=None, bike=None, party=None):
+            virtual=[], transit=None, vehicle=None, walk=None, bike=None, party=None):
         log.info('Creating a sample population.')
         population = self.database.count_rows('agents')
         size = population * sample_perc
@@ -162,7 +185,11 @@ class Sampling:
             log.info(f'Target sample was {size} but only found {actual} '
                 'agents under specified parameters.')
 
-        plans = self.fetch_plans()
+        log.info('Fetching agents, activities and legs.')
+        agents = self.fetch_agents()
+        activities = iter(self.fetch_activities())
+        legs = iter(self.fetch_legs())
+
         log.info('Iterating over plans and generating plans file.')
         count = 0
         n = 1       
@@ -171,35 +198,48 @@ class Sampling:
         plansfile.write('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE plans'
             ' SYSTEM "http://www.matsim.org/files/dtd/plans_v4.dtd"><plans>')
 
-        for group in bins(plans, 10000):
-            size = len(group)
-            agents = tuple(plan[0] for plan in group)
-            activities = self.fetch_activities(agents)
-            legs = self.fetch_legs(agents)
-
-            for agent in agents:
-                agent_activities = activities[agent]
-                agent_legs = legs[agent]
-                plansfile.write(Sampling.encode_agent(agent))
-                plansfile.write(Sampling.encode_start_activity(
-                    agent_activities.pop(0)))
-                for leg, activity in zip(agent_legs[:-1], agent_activities[:-1]):
+        for agent in agents:
+            plansfile.write(Sampling.encode_agent(agent))
+            plansfile.write(Sampling.encode_start_activity(next(activities)))
+            for _ in range(agent[1] // 2 - 1):
+                leg = next(legs)
+                activity = next(activities)
+                if leg[2] in virtual:
+                    plansfile.write(Sampling.virtualize(leg, activity))
+                else:
                     plansfile.write(Sampling.encode_leg(leg))
-                    plansfile.write(Sampling.encode_activity(activity))
-                plansfile.write(Sampling.encode_leg(agent_legs[-1]))
-                plansfile.write(Sampling.encode_end_activity(agent_activities[-1]))
-                plansfile.write('</plan></person>')
+                plansfile.write(Sampling.encode_activity(activity))
+            leg = next(legs)
+            activity = next(activities)
+            if leg[2] in virtual:
+                plansfile.write(Sampling.virtualize(leg,activity))
+            else:
+                plansfile.write(Sampling.encode_leg(leg))
+            plansfile.write(Sampling.encode_end_activity(activity))
+            plansfile.write('</plan></person>')
 
-                count += 1
-                if count == n:
-                    log.info(f'Writing plan {count}.')
-                    n <<= 1
+            count += 1
+            if count == n:
+                log.info(f'Writing plan {count}.')
+                n <<= 1
 
         if count != (n >> 1):
             log.info(f'Writing plan {count}.')
 
         plansfile.write('</plans>')
         plansfile.close()
+
+        try:
+            next(activities)
+            raise RuntimeError('Agent plan sizes did not align with activity count.')
+        except StopIteration:
+            log.info('Confirmed all activities used.')
+
+        try:
+            next(legs)
+            raise RuntimeError('Agent plan sizes did not align with leg count.')
+        except StopIteration:
+            log.info('Confirmed all legs used.')
 
         log.info('Writing vehicle definitions file.')
         vehiclesfile = multiopen(vehiclespath, mode='wt')
@@ -290,6 +330,10 @@ class Sampling:
             </vehicleType>''')
 
         vehiclesfile.write('</vehicleDefinitions>')
+        vehiclesfile.close()
+
+        log.info('Cleaning up.')
+        self.delete_sample()
 
 
         

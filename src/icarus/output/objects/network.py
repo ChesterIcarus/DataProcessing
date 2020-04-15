@@ -18,14 +18,15 @@ class Route:
         self.distance = distance
         self.mode = mode
 
-    def get_exposure(self, start, stop):
+    def get_exposure(self, start, stop):  
         exposure = 0
-        total = stop - start
+        duration = stop - start
         time = start
         distance = sum(link.length for link in self.path)
         for link in self.path:
-            elapse = int(total * link.length / distance)
-            exposure += link.get_exposure(time, time + elapse)
+            elapse = duration * link.length / distance
+            exp = link.get_exposure(time, time + elapse)
+            exposure += exp
             time += elapse
         return exposure
 
@@ -57,7 +58,7 @@ class Link:
 
 
 class Centroid:
-    steps = None
+    __slots__ = ('id', 'x', 'y', 'temperatures')
 
     def __init__(self, uuid, x, y, temperatures):
         self.id = uuid
@@ -67,25 +68,28 @@ class Centroid:
 
 
     def get_temperature(self, time):
-        step = int(time / 86400 * self.steps) % self.steps
+        steps = len(self.temperatures)
+        step = int(time / 86400 * steps) % steps
         return self.temperatures[step]
 
 
     def get_exposure(self, start, stop):
         steps = len(self.temperatures)
         step_size = int(86400 / steps)
-        start_step = int(start / 86400 * steps) % steps
-        stop_step = int(stop / 86400 * steps) % steps
+        start_step = int(start / 86400 * steps)
+        stop_step = int(stop / 86400 * steps)
         exposure = 0
         if start_step == stop_step:
-            exposure = (stop - start) * self.temperatures[start_step]
+            exposure = (stop - start) * self.temperatures[start_step % steps]
         else:
             exposure = ((start_step + 1) * step_size - start) * \
-                self.temperatures[start_step]
+                self.temperatures[start_step % steps]
             for step in range(start_step + 1, stop_step):
-                exposure += step_size * self.temperatures[step]
-            exposure += (stop - stop_step * step_size) * self.temperatures[stop_step]
+                exposure += step_size * self.temperatures[step % steps]
+            exposure += (stop - stop_step * step_size) * \
+                self.temperatures[stop_step % steps]
         return exposure
+
 
     def entry(self):
         return (self.id, (self.x, self.y, self.x, self.y), None)
@@ -96,7 +100,6 @@ class Network:
     def __init__(self, database):
         self.database = database
         self.temperatures = defaultdict(lambda x: [])
-        self.routes = []
         self.agents = {}
         self.links = {}
         self.centroids = {}
@@ -145,7 +148,7 @@ class Network:
             agent = self.agents[agent_id]
         else:
             agent = Agent(agent_id)
-            self.agents[agent_id] = Agent(agent_id)
+            self.agents[agent_id] = agent
         return agent
 
     
@@ -159,7 +162,7 @@ class Network:
         selected = False
         mode = None
         count = 0
-        n = 0
+        n = 1
 
         for evt, elem in plans:
             if evt == 'start':
@@ -182,17 +185,16 @@ class Network:
                         route = Route(self.links[start], self.links[end], 
                             path, distance, LegMode(mode))
                         self.get_agent(agent).routes[uuid] = route
-                        routes.append(route)
-                elif elem.tag == 'agent':
+                elif elem.tag == 'person':
                     count += 1
                     if count % 10000 == 0:
                         root.clear()
                     if count == n:
-                        log.info(f'Processing plan {count}.')
+                        log.info(f'Processed plan {count}.')
                         n <<= 1
 
         if count != (n >> 1):
-            log.info(f'Processing plan {count}.')
+            log.info(f'Processed plan {count}.')
         plansfile.close()
 
         return routes
@@ -211,7 +213,6 @@ class Network:
             uuid = centroid[0]
             x, y = map(float, centroid[2][7:-1].split(' '))
             self.centroids[uuid] = Centroid(uuid, x, y, self.temperatures[centroid[1]])
-        Centroid.steps = len(next(iter(self.temperatures.values())))
 
         log.info('Loading network links from database.')
         links = self.fetch_links()
@@ -241,8 +242,8 @@ class Network:
 
 
     def get_temperature(self, link, time):
-        self.links[link].get_temperature(time)
+        return self.links[link].get_temperature(time)
 
         
     def get_exposure(self, link, start, stop):
-        self.links[link].get_exposure(start, stop)
+        return self.links[link].get_exposure(start, stop)

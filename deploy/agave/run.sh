@@ -12,5 +12,5 @@
 #SBATCH --mail-user=bmbrownl@asu.edu    # send-to address
 
 java -Xms8G -Xmx16G \
-    -cp /home/bmbrownl/scripts/icarus/data/exec/matsim-12.0/matsim.jar \
-    org.matsim.run.Controler /home/bmbrownl/scripts/icarus/data/runs/run_20_03_01/input/config.xml
+    -cp /home/bmbrownl/icarus/run/matsim.jar \
+    org.matsim.run.Controler /home/bmbrownl/icarus/run/input/config.xml

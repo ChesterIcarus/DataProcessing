@@ -64,7 +64,8 @@
             "network": ["car"],
             "routed": ["bike", "ptwalk", "netwalk"],
             "transit": ["Bus", "Tram"],
-            "teleported": ["walk", "non_network_walk"]
+            "teleported": ["walk", "non_network_walk"],
+            "virtual": []
         }
     },
     "analysis": {

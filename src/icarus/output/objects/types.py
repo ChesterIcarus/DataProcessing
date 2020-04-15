@@ -1,3 +1,4 @@
+
 import logging as log
 from enum import Enum
 
@@ -37,9 +38,13 @@ class LegMode(Enum):
     NETWALK = 'netwalk'
     WALK = 'walk'
     PT = 'pt'
+    FAKEMODE = 'fakemode'
 
     def transit(self):
         return self in (self.PT, self.WALK)
+
+    def artificial(self):
+        return self == self.FAKEMODE
 
     def string(self):
         string = None
@@ -66,7 +71,7 @@ class ActivityType(Enum):
     OTHER_ESCORT = 42
     SHOPPING = 5
     OTHER_MAINTENANCE = 6
-    EATING_OUT = 7
+    EATING = 7
     BREAKFAST = 71
     LUNCH = 72
     DINNER = 73
@@ -79,21 +84,18 @@ class ActivityType(Enum):
     WORK_OTHER = 14
     WORK_RELATED = 15
     ASU = 16
+
     PT_INTERACTION = 100
+    FAKEACTIVITY = 101
 
     @classmethod
     def parse(self, name):
         name = name.upper().replace(' ', '_')
-        # if name == 'ASU':
-        #     name = 'ASU_RELATED'
-        # elif name == 'RIDESHARE':
-        #     name = 'RIDESHARE_ESCORT'
-        # elif name == 'OTHER_MAINTENENCE':
-        #     name = 'OTHER_MAINTENANCE'
-        # elif name == 'EATING':
-        #     name = 'EATING_OUT'
         return getattr(self, name)
 
 
     def transit(self):
         return self == self.PT_INTERACTION
+
+    def artificial(self):
+        return self == self.FAKEACTIVITY

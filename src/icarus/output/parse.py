@@ -54,15 +54,13 @@ class Parsing:
     def create_indexes(self):
         self.database.cursor.execute('''
             CREATE INDEX output_agents_agent
-            ON output_agents(agent_id);
-        ''')
+            ON output_agents(agent_id); ''')
         self.database.cursor.execute('''
             CREATE INDEX output_activities_agent
-            ON output_activities(agent_id, agent_idx);
-        ''')
+            ON output_activities(agent_id, agent_idx); ''')
         self.database.cursor.execute('''
-            CREATE INDEX output
-        ''')
+            CREATE INDEX output_legs_agent
+            ON output_legs(agent_id, agent_idx); ''')
 
     
     def complete(self):
@@ -114,7 +112,5 @@ class Parsing:
         self.database.insert_values('output_agents', agents, 3)
         self.database.insert_values('output_activities', activities, 7)
         self.database.insert_values('output_legs', legs, 7)
-        # self.create_indexes()
+        self.create_indexes()
         self.database.connection.commit()
-
-        breakpoint()

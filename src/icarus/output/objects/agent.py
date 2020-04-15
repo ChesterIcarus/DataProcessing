@@ -80,6 +80,9 @@ class Leg:
 
 
 class Agent:
+    __slots__ = ('id', 'activities', 'legs', 'routes', 'active_activity', 
+            'active_leg')
+    
     def __init__(self, uuid):
         self.id = uuid
         self.activities = []
@@ -127,15 +130,21 @@ class Agent:
 
     def start_activity(self, time, activity_type, link):
         transit = self.active_leg is not None and self.active_leg.mode.transit()
-        if not activity_type.transit():
+
+        if activity_type.artificial():
+            pass
+        elif activity_type.transit():
+            if transit:
+                self.active_leg.teleport(time, link)
+            else:
+                RuntimeError('Unexpected transit activity outside of transit route.')
+        else:
             if transit:
                 self.active_leg.end(time, link)
                 self.legs.append(self.active_leg)
                 self.active_leg = None
             self.active_activity = Activity(activity_type)
             self.active_activity.start(time, link)
-        elif transit:
-            self.active_leg.teleport(time, link)
     
 
     def end_activity(self, time, link=None):
@@ -153,29 +162,35 @@ class Agent:
 
     
     def depart(self, time, mode, link):
-        if self.active_leg is not None:
-            if self.active_leg.mode.transit():
-                self.active_leg.teleport(time, link)
+        transit = self.active_leg is not None and self.active_leg.mode.transit()
+        artificial = self.active_leg is not None and self.active_leg.mode.artificial()
+
+        if artificial:
+            self.active_leg.mode = mode
+            self.active_leg.wait(time, 25.5)
+        elif transit:
+            self.active_leg.teleport(time, link)
         else:
             self.active_leg = Leg(mode)
             self.active_leg.start(time, link)
 
 
     def arrive(self, time, link):
-        if self.active_leg.active_link != link:
-            mode = self.active_leg.mode.value
-            start = self.active_leg.active_link.id
-            end = link.id
-            uuid = f'{mode}-{start}-{end}'
-            if uuid in self.routes:
-                self.active_leg.travel(time, self.routes[uuid])
-            else:
-                self.active_leg.teleport(time, link)
+        if not self.active_leg.mode.artificial():
+            if self.active_leg.active_link != link:
+                mode = self.active_leg.mode.value
+                start = self.active_leg.active_link.id
+                end = link.id
+                uuid = f'{mode}-{start}-{end}'
+                if uuid in self.routes:
+                    self.active_leg.travel(time, self.routes[uuid])
+                else:
+                    self.active_leg.teleport(time, link)
 
-        if not self.active_leg.mode.transit():
-            self.active_leg.end(time, link)
-            self.legs.append(self.active_leg)
-            self.active_leg = None
+            if not self.active_leg.mode.transit():
+                self.active_leg.end(time, link)
+                self.legs.append(self.active_leg)
+                self.active_leg = None
 
 
     def expose(self, exposure):

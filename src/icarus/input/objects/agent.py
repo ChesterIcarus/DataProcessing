@@ -131,11 +131,6 @@ class Agent:
             party.origin_group.add_activity(activity, self)
             self.groups.add(party.origin_group)
 
-        # if self.agent_id == 4:
-        #     breakpoint()
-
-        assert party.origin_group in self.groups, 'Missing group!'
-
         mode = Mode(trip.mode)
         start = int(trip.depart_time * 60) + 14400
         end = int(trip.arrive_time * 60) + 14400
