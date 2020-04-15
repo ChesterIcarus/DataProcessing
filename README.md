@@ -1,6 +1,54 @@
 
 # Icarus Simulation Data Processing
 
+## About
+
+## Building
+
+This project is organized as a python package. Clone this repository and then install it using pip. Also see the requirements file for additional dependencies that may be needed to run certain modules.
+
+```bash
+    git clone https://github.com/ChesterIcarus/DataProcessing.git
+    pip install DataProcessing
+```
+
+Note that there exists more dependencies beyond those in python installed by pip. All source data and helper programs will need to obtained and linked to in the configuration folder. 
+
+## Project Structure
+
+This package has a collection of scripts which can prepare simulation input data and analyze output data. A given simulation run has a folder dedicated to it where all modules need to be executed from; these modules will read and write from files inside this folder, as well as read other files and execute other programs specified in the config file.
+
+Here is a run down of the internal structure of a simulation run folder.
+
+### Files
+
+#### config.json
+
+This is the master configuration file which describes how the simulation ought to be constructed and executed. Every module will reference the config file to locate external source data and executeables as well as information regarding how it should run.
+
+#### database.db
+
+
+
+#### config/
+
+#### input/
+
+#### output/
+
+#### result/
+
+### Tables
+
+## Running
+
+```bash
+    python -m icarus [action] [item] [extra args]
+```
+
+
+<!-- # Icarus Simulation Data Processing
+
 This repository is dedicated to the data processing of simulation input and output data for the MATSim traffic simulation portion of the Icarus project. This processing includes parsing source data into SQL, generating input files for simulation from SQL data, and validating data integrity in all steps of processing.
 
 ## Data Sources
@@ -190,4 +238,4 @@ Requirements:
 Configuration:
 
 | name | purpose | type | deafult |
-| - | - | - | - |
+| - | - | - | - | -->

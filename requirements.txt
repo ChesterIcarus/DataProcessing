@@ -1,3 +1,5 @@
 numpy
-mysqlclient
+pandas
 scipy
+shapely
+pyshp

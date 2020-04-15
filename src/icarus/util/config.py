@@ -20,33 +20,39 @@ class ConfigUtil:
     @classmethod
     def load_config(self, filepath):
         'load a config file; catches file and JSON errors'
+
+        config = None
         try:
             with open(filepath) as handle:
-                return json.load(handle)
-        except FileNotFoundError:
+                config =  json.load(handle)
+        except FileNotFoundError as err:
             log.exception(f'Config file "{filepath}" does not exist; '
                 'terminating model run.')
-            exit()
-        except json.JSONDecodeError:
+            raise err
+        except json.JSONDecodeError as err:
             log.exception(f'Config file "{filepath}" is not valid json; '
                 'terminating model run.')
-            exit()
+            raise err
+        return config
         
 
     @classmethod
     def load_specs(self, filepath):
         'load a config file; catches file and JSON errors'
+
+        specs = None
         try:
             with open(filepath) as handle:
-                return json.load(handle)
-        except FileNotFoundError:
+                specs = json.load(handle)
+        except FileNotFoundError as err:
             log.exception(f'Specs file "{filepath}" does not exist; '
                 'terminating model run.')
-            exit()
-        except json.JSONDecodeError:
+            raise err
+        except json.JSONDecodeError as err:
             log.exception(f'Specs file "{filepath}" is not valid json; '
                 'terminating model run.')
-            exit()
+            raise err
+        return specs
 
 
     @classmethod
@@ -96,12 +102,10 @@ class ConfigUtil:
                 if param is None:
                     if 'required' not in spec or not spec['required']:
                         config[attr] = spec['default'] if 'default' in spec else None
-                        continue
                     else:
                         log.error(f'Parameter "{attr}" is required.')
                         raise ValueError
-
-                if spec['type'] == 'dict':
+                elif spec['type'] == 'dict':
                     if type(param) == dict:
                         if 'min' in spec and spec['min'] > len(param):
                             log.error(f'Parameter "{path}" expected to have at least '
