@@ -1,8 +1,8 @@
 
 import logging as log
 from xml.etree.ElementTree import iterparse
-from icarus.output.objects.network import Network
-from icarus.output.objects.population import Population
+from icarus.parse.events.network import Network
+from icarus.parse.events.population import Population
 from icarus.util.file import multiopen
 from icarus.util.general import defaultdict
 
@@ -17,7 +17,7 @@ def hhmmss(secs):
 
 
 
-class Parsing:
+class Events:
     def __init__(self, database):
         self.database = database
 

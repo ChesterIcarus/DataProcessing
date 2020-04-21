@@ -1,6 +1,6 @@
 
 import logging as log
-from icarus.output.objects.types import ActivityType, LegMode
+from icarus.parse.events.types import ActivityType, LegMode
 
 
 class Activity:

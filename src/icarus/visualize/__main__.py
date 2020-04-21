@@ -2,22 +2,16 @@
 import os
 import logging as log
 from argparse import ArgumentParser
-from icarus.output.parse import Parsing
-from icarus.util.sqlite import SqliteUtil
+
+from icarus.visualize.charts import Charts
 from icarus.util.config import ConfigUtil
-
-def run(database):
-    parsing = Parsing(database)
-    # if not parsing.complete():
-    parsing.parse('output/output_plans.xml.gz', 'output/output_events.xml.gz')
-
+from icarus.util.sqlite import SqliteUtil
 
 parser = ArgumentParser()
 parser.add_argument('--folder', type=str, dest='folder', default='.')
 parser.add_argument('--log', type=str, dest='log', default=None)
 parser.add_argument('--level', type=str, dest='level', default='info',
     choices=('notset', 'debug', 'info', 'warning', 'error', 'critical'))
-# TODO add argument parsing
 args = parser.parse_args()
 
 handlers = []
@@ -33,4 +27,5 @@ path = lambda x: os.path.join(args.folder, x)
 config = ConfigUtil.load_config(path('config.json'))
 database = SqliteUtil(path('database.db'))
 
-run(database)
+charts = Charts(database, args.folder)
+charts.chart(config['visualization']['charts'], error=True)

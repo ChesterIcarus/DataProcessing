@@ -2,8 +2,8 @@
 import logging as log
 from xml.etree.ElementTree import iterparse, tostring
 from rtree import index
-from icarus.output.objects.types import LegMode
-from icarus.output.objects.agent import Agent
+from icarus.parse.events.types import LegMode
+from icarus.parse.events.agent import Agent
 from icarus.util.general import defaultdict
 from icarus.util.file import multiopen
 

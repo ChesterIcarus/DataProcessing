@@ -2,10 +2,10 @@
 import logging as log
 from xml.etree.ElementTree import tostring
 from icarus.util.general import defaultdict
-from icarus.output.objects.agent import Agent
-from icarus.output.objects.vehicle import Vehicle
-from icarus.output.objects.network import Network
-from icarus.output.objects.types import VehicleMode, ActivityType, LegMode
+from icarus.parse.events.agent import Agent
+from icarus.parse.events.vehicle import Vehicle
+from icarus.parse.events.network import Network
+from icarus.parse.events.types import VehicleMode, ActivityType, LegMode
 from dataclasses import dataclass
 
 

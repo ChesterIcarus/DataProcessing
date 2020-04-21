@@ -24,6 +24,25 @@ class Exposure:
         self.database = database
 
     
+    def create_tables(self):
+        self.database.drop_table('centroids')
+        self.database.drop_table('temperatures')
+        self.database.cursor.execute('''
+            CREATE TABLE centroids(
+                centroid_id MEDIUMINT UNSIGNED,
+                temperature_id MEDIUMINT UNSIGNED,
+                center VARCHAR(255),
+                region TEXT
+            );  ''')
+        self.database.cursor.execute('''
+            CREATE TABLE temperatures(
+                temperature_id MEDIUMINT UNSIGNED,
+                temperature_idx TINYINT UNSIGNED,
+                time MEDIUMINT UNSIGNED UNSIGNED,
+                temperature FLOAT
+            );  ''')
+
+    
     def parse(self, tmin_files, tmax_files, steps, day):
         'parse centroids and temperatures from daymet data'
 
@@ -91,27 +110,7 @@ class Exposure:
                 centers.append(centroid + (dumps(reg.centroid), dumps(reg)))
 
         log.info('Writing parsed centroids and temperatures to database.')
-        self.database.drop_table('centroids')
-        self.database.drop_table('temperatures')
-        self.database.cursor.execute('''
-            CREATE TABLE centroids(
-                centroid_id MEDIUMINT UNSIGNED,
-                temperature_id MEDIUMINT UNSIGNED,
-                center VARCHAR(255),
-                region TEXT
-            );  ''')
-        self.database.cursor.execute('''
-            CREATE TABLE temperatures(
-                temperature_id MEDIUMINT UNSIGNED,
-                temperature_idx TINYINT UNSIGNED,
-                time MEDIUMINT UNSIGNED UNSIGNED,
-                temperature FLOAT
-            );  ''')
-        self.database.cursor.executemany('INSERT INTO centroids VALUES'
-            ' (?, ?, ?, ?)', centers)
-        self.database.cursor.executemany('INSERT INTO temperatures VALUES'
-            ' (?, ?, ?, ?)', temperatures)
+        self.create_tables()
+        self.database.insert_values('centroids', centers, 4)
+        self.database.insert_values('temperatures', temperatures, 4)
         self.database.connection.commit()
-
-
-                

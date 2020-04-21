@@ -3,39 +3,10 @@ import multiprocessing
 import shapefile
 import logging as log
 
+from rtree import index
 from shapely.geometry import Point, Polygon
 from shapely.strtree import STRtree
 from shapely.wkt import loads, dumps
-
-
-# def read_parcels(parcel_file, queue):
-#     parcels = []
-#     count = 0
-#     n = 1
-#     parser = shapefile.Reader(parcel_file)
-#     for parcel in parser:
-#         if len(parcel.shape.points):
-#             apn = parcel.record['APN']
-#             parcels.append((apn, parcel.shape.points))
-#             count += 1
-#         if count == n:
-#             n <<= 1
-#         if count % 32768:
-#             queue.put(parcels)
-#             parcels = []
-
-
-# def parse_parcels(tree, mazs, queue):
-#     parcels = {}
-#     request = queue.get()
-#     while request != 'kill':
-#         apn, points = request
-#         polygon = Polygon(points)
-#         maz = next((mazs[id(region)] for region in tree.query(polygon.centroid)
-#             if region.buffer(0.00001).contains(polygon.centroid)), None)
-#         if maz is not None:
-#             parcels[apn] = (maz, polygon)
-#     return parcels
 
 
 class Parcels:
@@ -50,7 +21,7 @@ class Parcels:
         parcels = []
 
         log.info('Loading region code data.')
-        self.database.cursor.execute('SELECT maz, region FROM regions')
+        self.database.cursor.execute('SELECT maz, region FROM regions;')
         regions = self.database.cursor.fetchall()
 
         log.info('Constructing strtree spatial index.')
