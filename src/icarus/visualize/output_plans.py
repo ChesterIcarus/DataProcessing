@@ -7,7 +7,7 @@ import pandas as pd
 from icarus.util.sqlite import SqliteUtil
 
 
-class Charts:
+class OutputPlans:
     def __init__(self, database: SqliteUtil, folder: str):
         self.database = database
         self.folder = folder

@@ -1,12 +1,14 @@
 
-from icarus.input.objects.party import Party
-from icarus.input.objects.agent import Agent
-from icarus.input.objects.vehicle import Vehicle
-from icarus.input.objects.group import Group
-from icarus.input.objects.mode import Mode
+from icarus.generate.population.agent import Agent
+from icarus.generate.population.party import Party
+from icarus.generate.population.vehicle import Vehicle
+from icarus.generate.population.group import Group
+from icarus.generate.population.types import Mode
 
 
 class Household:
+    __slots__ = ('id', 'parties', 'agents', 'vehicles', 'groups', 'parcel', 'maz')
+    
     def __init__(self, household):
         self.id = household
         self.parties = {}

@@ -14,6 +14,12 @@ def multiopen(filepath, mode='rt', **kwargs):
     return data
 
 
+def touch(filepath, recurse=False):
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, 'w'):
+        pass
+
+
 def exists(filepath):
     return os.path.exists(filepath)
 

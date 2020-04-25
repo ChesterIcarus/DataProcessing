@@ -1,8 +1,9 @@
 
-from icarus.input.objects.activity_type import ActivityType
+from icarus.generate.population.types import ActivityType
 
 class Group:
     uuid = 0
+    __slots__ = ('maz', 'activities', 'agents', 'parties', 'home', 'id')
 
     @staticmethod
     def group_hash(time, members):

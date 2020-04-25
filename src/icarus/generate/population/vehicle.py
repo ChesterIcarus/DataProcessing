@@ -1,5 +1,5 @@
 
-from icarus.input.objects.mode import Mode
+from icarus.generate.population.types import Mode
 
 class Vehicle:
     @staticmethod

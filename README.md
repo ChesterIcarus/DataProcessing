@@ -42,10 +42,6 @@ This is the master configuration file which describes how the simulation ought t
 
 ## Running
 
-```bash
-    python -m icarus [action] [item] [extra args]
-```
-
 
 <!-- # Icarus Simulation Data Processing
 

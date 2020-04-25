@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.validate.population import Population
+from icarus.validate.trips import Trips
 from icarus.util.config import ConfigUtil
 from icarus.util.sqlite import SqliteUtil
 
@@ -24,5 +24,5 @@ log.basicConfig(
     handlers=handlers)
 
 database = SqliteUtil('database.db')
-population = Population(database)
-population.minimum_distance()
+trips = Trips(database)
+trips.minimum_distance()

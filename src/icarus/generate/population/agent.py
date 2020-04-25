@@ -1,15 +1,71 @@
 
-from icarus.input.objects.mode import Mode
-from icarus.input.objects.activity_type import ActivityType
-from icarus.input.objects.activity import Activity
-from icarus.input.objects.leg import Leg
+from __future__ import annotations
+from typing import Set, Iterator, Tuple
+
+from icarus.generate.population.party import Party
+from icarus.generate.population.trip import Trip
+from icarus.generate.population.group import Group
+from icarus.generate.population.vehicle import Vehicle
+from icarus.generate.population.network import Parcel
+from icarus.generate.population.types import ActivityType, Mode
+
+
+class Leg:
+    uuid = 0
+    __slots__ = ('id', 'mode', 'start', 'end', 'party', 'vehicle')
+
+    def __init__(self, mode: Mode, start: int, end: int, party: Party):
+        self.mode = mode
+        self.start = start
+        self.end = end
+        self.party = party
+        self.vehicle = None
+        self.id = None
+
+
+    def request_id(self):
+        if self.id is None:
+            Leg.uuid += 1
+            self.id = Leg.uuid
+
+
+    def assign_vehicle(self, vehicle: Vehicle):
+        self.vehicle = vehicle
+
+
+
+class Activity:
+    uuid = 0
+    __slots__ = ('activity_type', 'start', 'end', 'maz', 'group', 'parcel', 'id')
+
+    def __init__(self, activity_type: ActivityType, start: int, end:int,
+            maz: int, group: Group):
+        self.activity_type = activity_type
+        self.start = start
+        self.end = end
+        self.maz = maz
+        self.group = group
+        self.parcel = None
+        self.id = None
+
+
+    def request_id(self):
+        if self.id is None:
+            Activity.uuid += 1
+            self.id = Activity.uuid
+
+    
+    def assign_parcel(self, parcel: Parcel):
+        self.parcel = parcel
+
 
 
 class Agent:
     uuid = 0
+    __slots__ = ('agent_id', 'activities', 'legs', 'modes', 'activity_types',
+            'mazs', 'parties', 'groups', 'id')
 
-    def __init__(self, agent_id):
-        self.id = None
+    def __init__(self, agent_id: str):
         self.agent_id = agent_id
         self.activities = []
         self.legs = []
@@ -18,32 +74,33 @@ class Agent:
         self.mazs = set()
         self.parties = set()
         self.groups = set()
+        self.id = None
 
     def request_id(self):
         if self.id is None:
             Agent.uuid += 1
             self.id = Agent.uuid
 
-    def uses_walk(self):
+    def uses_walk(self) -> bool:
         return Mode.WALK in self.modes
 
-    def uses_vehicle(self):
+    def uses_vehicle(self) -> bool:
         return any((mode.vehicle() for mode in self.modes))
 
-    def uses_bike(self):
+    def uses_bike(self) -> bool:
         return Mode.BIKE in self.modes
 
-    def uses_transit(self):
+    def uses_transit(self) -> bool:
         return any((mode.transit() for mode in self.modes))
 
-    def uses_party(self):
+    def uses_party(self) -> bool:
         return any((len(party.agents) > 1 for party in self.parties))
 
-    def size(self):
+    def size(self) -> int:
         return len(self.activities) + len(self.legs)
     
 
-    def dependents(self, agents=None):
+    def dependents(self, agents: Set[Agent] = None) -> Set[Agent]:
         if agents is None:
             agents = set()
         agents.add(self)
@@ -72,7 +129,7 @@ class Agent:
         self.activities = []
 
 
-    def export_activities(self):
+    def export_activities(self) -> Iterator[Tuple]:
         activities = ((
             act.id,
             self.id,
@@ -87,7 +144,7 @@ class Agent:
         return activities
 
 
-    def export_legs(self):
+    def export_legs(self) -> Iterator[Tuple]:
         legs = ((
             leg.id,
             self.id,
@@ -101,21 +158,21 @@ class Agent:
         return legs
 
 
-    def last_group(self):
+    def last_group(self) -> Group:
         group = None
         if len(self.activities):
             group = self.activities[-1].group
         return group
 
 
-    def last_party(self):
+    def last_party(self) -> Party:
         leg = None
         if len(self.legs):
             leg = self.legs[-1].leg
         return leg
 
 
-    def parse_trip(self, trip, vehicle, party):
+    def parse_trip(self, trip: Trip, vehicle: Vehicle, party: Party):
         if vehicle is not None:
             party.set_driver(self, vehicle)
                 

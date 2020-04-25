@@ -1,5 +1,6 @@
 
 import logging as log
+import seaborn as sns
 from pyproj import Transformer
 from shapely.geometry import Polygon
 
@@ -17,7 +18,7 @@ def region_coords(region):
     return result
 
 
-class Population:
+class Trips:
     def __init__(self, database: SqliteUtil):
         self.database = database
 
@@ -54,13 +55,13 @@ class Population:
         return regions
 
 
-    def get_trips(self, bin_size=100000):
+    def get_trips(self, bin_size=1000000):
         query = '''
             SELECT
                 origMaz,
                 destMaz,
                 mode,
-                isamAdjDurMin
+                isamAdjArrMin - isamAdjDepMin
             FROM trips; '''
         self.database.cursor.execute(query)
         trips = self.database.cursor.fetchmany(bin_size)
@@ -68,16 +69,32 @@ class Population:
             for trip in trips:
                 yield trip
             trips = self.database.cursor.fetchmany(bin_size)
+            break
+
+    
+    def plot_histogram(self, data, title, xaxis, yaxis, save, trim):
+        options = { 'cumulative': True }
+        axes = sns.distplot(data, hist_kws=options, kde_kws=options)
+        axes.set_title(title)
+        axes.set_xlabel(xaxis)
+        axes.set_ylabel(yaxis)
+        # plot = axes.get_figure()
+        # plot.savefig(f'{save}.png', bbox_inches='tight')
+        # plot.clf()
+        # axes.set(ylim=(0.5, 1), xlim=(0, trim))
+        plot = axes.get_figure()
+        plot.savefig(f'{save}_trimmed.png', bbox_inches='tight')
+        plot.clf()
 
 
-    def minimum_distance(self):
+    def minimum_speed(self):
         log.info('Running lower bound speed test.')
         
         log.info('Loading regions.')
         regions = self.load_regions()
         distances = {}
-        bad_walk, bad_bike, bad_transit, bad_vehicle, bad_maz = 0, 0, 0, 0, 0
-        walk, bike, transit, vehicle = 0, 0, 0, 0
+
+        walk, bike, transit, vehicle = [], [], [], []
 
         log.info('Iterating over ABM population trips.')
         n = 1
@@ -95,27 +112,18 @@ class Population:
                 distance = regions[origin_maz].distance(regions[dest_maz])
                 distances[key] = distance
             else:
-                distance = 0
-                bad_maz += 0
+                continue
 
             speed = distance / duration / 60
 
             if mode == Mode.WALK:
-                walk += 1
-                if speed > 3:
-                    bad_walk += 1
+                walk.append(speed)
             elif mode == Mode.BIKE:
-                bike += 1
-                if speed > 10:
-                    bad_bike += 1
+                bike.append(speed)
             elif mode.transit():
-                transit += 1
-                if speed > 30:
-                    bad_transit += 1
+                transit.append(speed)
             elif mode.vehicle():
-                vehicle += 1
-                if speed > 35:
-                    bad_vehicle += 1
+                vehicle.append(speed)
 
             count += 1
             if count == n:
@@ -125,15 +133,20 @@ class Population:
         if count != n >> 1:
             log.info(f'Analyzing trip {count}.')
 
-        log.info('Lower bound speed test results:\n'
-            '===================================================\n'
-            f'unreasonable walks: {bad_walk} ({bad_walk / walk}%)\n'
-            f'unreasonable bikes: {bad_bike} ({bad_bike / bike}%)\n'
-            f'unreasonable transits: {bad_transit} ({bad_transit / transit}%)\n'
-            f'unreasonable vehicles: {bad_vehicle} ({bad_vehicle / vehicle}%)\n'
-            f'unreasonable maz: {bad_maz} ({bad_maz / count}%)\n'
-            '===================================================')
-        
+        del distances
 
+        log.info('Generating charts.')
+        log.info('Generating walking chart.')
+        self.plot_histogram(walk, 'Walking Trip Minimum Speed', 'Speed (m/s)', 
+            'Cummulative Proportion', 'result/abm_walking_speed_dist', 100)
+        log.info('Generating biking chart.')
+        self.plot_histogram(bike, 'Biking Minimum Trip Speed', 'Speed (m/s)',
+            'Cummulative Proportion', 'result/abm_biking_speed_dist', 100)
+        log.info('Generating transit chart.')
+        self.plot_histogram(transit, 'Bus/Rail Trip Minimum Speed', 'Speed (m/s)',
+            'Cummulative Proportion', 'result/abm_transit_speed_dist', 100)
+        log.info('Generating vehicular chart.')
+        self.plot_histogram(vehicle, 'Vehicle Trip Minimum Speed', 'Speed (m/s)',
+            'Cummulative Proportion', 'result/abm_vehicle_speed_dist', 100)
 
-
+        log.info('Complete.')

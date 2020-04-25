@@ -1,91 +1,90 @@
 
 import math
 import logging as log
-from icarus.util.file import multiopen
-from icarus.util.general import chunk, defaultdict, bins
-from shapely.wkt import loads
+
+from icarus.util.file import multiopen, exists, touch
+from icarus.util.sqlite import SqliteUtil
+from icarus.util.general import counter 
 
 
-class Sampling:
-    @staticmethod
-    def time(secs):
-        hours = secs // 3600
-        secs -= hours * 3600
-        mins = secs // 60
-        secs -= mins * 60
-        return ':'.join(str(t).zfill(2) for t in (hours, mins, secs))
-
-    
-    @staticmethod
-    def xy(point):
-        return point[7:-1].split(' ')
+def hhmmss(secs):
+    hours = secs // 3600
+    secs -= hours * 3600
+    mins = secs // 60
+    secs -= mins * 60
+    return ':'.join(str(t).zfill(2) for t in (hours, mins, secs))
 
 
-    @staticmethod
-    def encode_agent(agent):
-        string = '<person id="%s"><plan selected="yes">'
-        return string % agent[0]
+def xy(point):
+    return point[7:-1].split(' ')
 
 
-    @staticmethod
-    def encode_start_activity(activity):
+class Leg:
+    __slots__ = ('agent_id', 'agent_idx', 'mode', 'duration')
+
+    def __init__(self, leg):
+        self.agent_id, self.agent_idx, self.mode, self.duration = leg
+
+    def virtualize(self, activity):
+        string = Leg([None, None, 'fakemode', 0]).encode()
+        string += Activity([None, None, activity.start - self.duration, 
+            activity.start, 'fakeactivity', activity.x, activity.y]).encode()
+        string += Leg([None, None, self.duration, 0]).encode()
+        return string
+
+    def encode(self, activity=None):
+        string = None
+        if self.mode in ('car', 'pt'):
+            string = self.virtualize(activity)
+        else:
+            if self.mode == 'walk':
+                self.mode = 'netwalk'
+            dur = hhmmss(self.duration)
+            mode = self.mode
+            string = f'<leg trav_time="{dur}" mode="{mode}"/>'
+        return string
+
+        # string = None
+        # if self.mode in modes['virtualized']:
+        #     self.mode = f'virtual_{self.mode}'
+        #     string = self.virtualize(activity)
+        # else:
+        #     if self.mode in modes['networked']:
+        #         self.mode = f'network_{self.mode}'
+        #     elif self.mode in modes['teleported']:
+        #         self.mode = f'teleport_{self.mode}'
+        #     elif self.mode in modes['routed']:
+        #         self.
+        #     else:
+        #         pass
+        #     string = '<leg trav_time="%s" mode="%s"/>'
+        # return string
+
+
+class Activity:
+    __slots__ = ('agent_id', 'agent_idx', 'start', 'end', 'type', 'x', 'y')
+
+    def __init__(self, activity):
+        self.agent_id, self.agent_idx, self.start, self.end, \
+            self.type, self.x, self.y = activity
+
+    def encode_start(self):
         string = '<act end_time="%s" type="%s" x="%s" y="%s"/>'
-        return string % (
-            Sampling.time(activity[3]),
-            activity[4],
-            *Sampling.xy(activity[5]))
+        return string % (hhmmss(self.end), self.type, self.x, self.y)
 
-    
-    @staticmethod
-    def encode_activity(activity):
+    def encode(self):
         string = '<act start_time="%s" end_time="%s" type="%s" x="%s" y="%s"/>'
-        return string % (
-            Sampling.time(activity[2]),
-            Sampling.time(activity[3]),
-            activity[4],
-            *Sampling.xy(activity[5]))
-    
+        return string % (hhmmss(self.start), hhmmss(self.end), self.type, self.x, self.y)
 
-    @staticmethod
-    def encode_end_activity(activity):
+    def encode_end(self):
         string = '<act start_time="%s" type="%s" x="%s" y="%s"/>'
-        return string % (
-            Sampling.time(activity[3]),
-            activity[4],
-            *Sampling.xy(activity[5]))
-
-
-    @staticmethod
-    def encode_leg(leg):
-        string = '<leg trav_time="%s" mode="%s"/>'
-        return string % (
-            Sampling.time(leg[3]),
-            leg[2])
-
+        return string % (hhmmss(self.start), self.type, self.x, self.y)
     
-    @staticmethod
-    def virtualize(leg, activity):
-        fakeleg = Sampling.encode_leg([
-            None, 
-            None, 
-            'fakemode', 
-            0])
-        fakeactivity = Sampling.encode_activity([
-            None,
-            None,
-            activity[2] - leg[3],
-            activity[2],
-            'fakeactivity',
-            activity[5]])
-        realleg = Sampling.encode_leg([
-            None,
-            None,
-            leg[2],
-            0])
-        return fakeleg + fakeactivity + realleg
 
 
-    def __init__(self, database):
+
+class Plans:
+    def __init__(self, database: SqliteUtil):
         self.database = database
 
 
@@ -124,17 +123,17 @@ class Sampling:
         self.database.connection.commit()
 
     
-    def fetch_agents(self):
+    def fetch_agents(self, table):
         self.database.cursor.execute(f'''
             SELECT 
                 agent_id,
                 plan_size
-            FROM sample
+            FROM {table}
             ORDER BY agent_id;  ''')
         return self.database.cursor.fetchall()
 
     
-    def fetch_activities(self):
+    def fetch_activities(self, table):
         self.database.cursor.execute(f'''
             SELECT
                 activities.agent_id,
@@ -146,15 +145,16 @@ class Sampling:
             FROM activities
             INNER JOIN parcels
             USING(apn)
-            INNER JOIN sample
+            INNER JOIN {table}
             USING(agent_id)
             ORDER BY
                 agent_id,
                 agent_idx;  ''')
-        return self.database.cursor.fetchall()
+        for activity in self.database.cursor.fetchall():
+            yield Activity(list(activity[:-1]) + list(xy(activity[-1])))
 
     
-    def fetch_legs(self):
+    def fetch_legs(self, table):
         self.database.cursor.execute(f'''
             SELECT
                 agent_id,
@@ -162,86 +162,85 @@ class Sampling:
                 mode,
                 duration
             FROM legs
-            INNER JOIN sample
+            INNER JOIN {table}
             USING(agent_id);    ''')
-        return self.database.cursor.fetchall()
+        for leg in self.database.cursor.fetchall():
+            yield Leg(leg)
 
 
-    def complete(self, config):
-        return False
+    def ready(self):
+        tables = ('activities', 'legs', 'agents')
+        exists = self.database.table_exists(*tables)
+        if len(exists) < len(tables):
+            missing = ', '.join(set(tables) - set(exists))
+            log.info(f'Could not find tables {missing} in database.')
+        return len(exists) == len(tables)
+
+
+    def complete(self, planspath, vehiclespath):
+        complete = False
+        if exists(planspath):
+            complete = True
+            log.info(f'Found file {planspath} already in run files.')
+        if exists(vehiclespath):
+            complete = True
+            log.info(f'Found file {vehiclespath} already in run files.')
+        return complete
         
 
-    def sample(self, planspath, vehiclespath, sample_perc=1, sample_size=math.inf,
-            virtual=[], transit=None, vehicle=None, walk=None, bike=None, party=None):
+    def generate(self, planspath, vehiclespath, modes, sample_percent=1, 
+            sample_size=math.inf, transit=None, vehicle=None, walk=None, 
+            bike=None, party=None):
         log.info('Creating a sample population.')
-        population = self.database.count_rows('agents')
-        size = population * sample_perc
-        if size is not None:
-            size = min(size, sample_size)
-        self.create_sample(sample_size, transit, vehicle, walk, bike, party)
+        conditions = {
+            'transit': transit, 
+            'vehicle': vehicle, 
+            'walk': walk, 
+            'bike': bike, 
+            'party': party
+        }
+        max_size = self.database.count_rows('agents')
+        size = min(max_size * sample_percent, sample_size)
 
-        actual = self.database.count_rows('sample')
-        if actual < size:
-            log.info(f'Target sample was {size} but only found {actual} '
-                'agents under specified parameters.')
+        table = 'agents'
+        if size < max_size or any(cond is not None for cond in conditions.values()):
+            table = 'sample'
+            self.create_sample(size, **conditions)
+            actual = self.database.count_rows('sample')
+            if actual < size:
+                log.info(f'Target sample was {size} but only found {actual} '
+                    'agents under specified parameters.')
 
         log.info('Fetching agents, activities and legs.')
-        agents = self.fetch_agents()
-        activities = iter(self.fetch_activities())
-        legs = iter(self.fetch_legs())
+        agents = self.fetch_agents(table)
+        activities = self.fetch_activities(table)
+        legs = self.fetch_legs(table)
 
         log.info('Iterating over plans and generating plans file.')
-        count = 0
-        n = 1       
-
+        touch(planspath)
         plansfile = multiopen(planspath, mode='wt')
         plansfile.write('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE plans'
             ' SYSTEM "http://www.matsim.org/files/dtd/plans_v4.dtd"><plans>')
 
-        for agent in agents:
-            plansfile.write(Sampling.encode_agent(agent))
-            plansfile.write(Sampling.encode_start_activity(next(activities)))
-            for _ in range(agent[1] // 2 - 1):
+        for agent_id, plan_size in counter(agents, 'Writing plan %s.'):
+            plansfile.write(f'<person id="{agent_id}"><plan select="yes">')
+            plansfile.write(next(activities).encode_start())
+            for _ in range(plan_size // 2 - 1):
                 leg = next(legs)
                 activity = next(activities)
-                if leg[2] in virtual:
-                    plansfile.write(Sampling.virtualize(leg, activity))
-                else:
-                    plansfile.write(Sampling.encode_leg(leg))
-                plansfile.write(Sampling.encode_activity(activity))
+                plansfile.write(leg.encode(activity))
+                plansfile.write(activity.encode())
             leg = next(legs)
             activity = next(activities)
-            if leg[2] in virtual:
-                plansfile.write(Sampling.virtualize(leg,activity))
-            else:
-                plansfile.write(Sampling.encode_leg(leg))
-            plansfile.write(Sampling.encode_end_activity(activity))
+            plansfile.write(leg.encode(activity))
+            plansfile.write(activity.encode_end())
             plansfile.write('</plan></person>')
-
-            count += 1
-            if count == n:
-                log.info(f'Writing plan {count}.')
-                n <<= 1
-
-        if count != (n >> 1):
-            log.info(f'Writing plan {count}.')
+            plansfile.flush
 
         plansfile.write('</plans>')
-        plansfile.close()
-
-        try:
-            next(activities)
-            raise RuntimeError('Agent plan sizes did not align with activity count.')
-        except StopIteration:
-            log.info('Confirmed all activities used.')
-
-        try:
-            next(legs)
-            raise RuntimeError('Agent plan sizes did not align with leg count.')
-        except StopIteration:
-            log.info('Confirmed all legs used.')
 
         log.info('Writing vehicle definitions file.')
+        touch(vehiclespath)
         vehiclesfile = multiopen(vehiclespath, mode='wt')
 
         vehiclesfile.write('''<?xml version="1.0" encoding="UTF-8" ?>
@@ -325,7 +324,7 @@ class Sampling:
                 <width meter="1.0"/>
                 <maximumVelocity meterPerSecond="1.4"/>
                 <passengerCarEquivalents pce="0.0"/>
-                <networkMode networkMode="bike"/>
+                <networkMode networkMode="netwalk"/>
                 <flowEfficiencyFactor factor="1.0"/>
             </vehicleType>''')
 

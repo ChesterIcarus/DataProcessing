@@ -1,8 +1,10 @@
 
-from icarus.input.objects.route_mode import RouteMode
+from icarus.generate.population.types import RouteMode
 
 class Party:
     uuid = 0
+    __slots__ = ('origin_group', 'dest_group', 'legs', 'agents', 'driver',
+        'vehicle', 'mode', 'id')
 
     @staticmethod
     def party_hash(depart_time, arrive_time, members):

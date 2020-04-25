@@ -62,7 +62,7 @@ class Network:
         subprocess.run((
             osmosis, 
             '--read-pbf-fast', 'workers=4', f'file={osm}', 
-            '--bounding-polygon', self.path('file=config/trim.poly'), 
+            '--bounding-polygon', 'file=' + self.path('config/trim.poly'), 
             '--tag-filter', 'accept-ways', 'highway=*', 'railway=*', 
             '--tag-filter', 'reject-relations',
             '--used-node', 

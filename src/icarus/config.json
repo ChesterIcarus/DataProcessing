@@ -18,10 +18,10 @@
             "steps": 48
         },
         "roads": {
-            "osm_file": "/home/Shared/source/openstreet/arizona-latest.osm.pbf",
-            "schedule_dir": "/home/Shared/source/valleymetro/",
-            "osmosis": "/home/Shared/exec/osmosis-0.47/bin/osmosis",
-            "pt2matsim": "/home/Shared/exec/pt2matsim-19.5/pt2matsim-19.5-shaded.jar",
+            "osm_file": "/home/benjamin/Documents/Icarus/data/source/openstreet/arizona-latest.osm.pbf",
+            "schedule_dir": "/home/benjamin/Documents/Icarus/data/source/valleymetro/",
+            "osmosis": "/home/benjamin/Documents/Icarus/data/exec/osmosis-0.47/bin/osmosis",
+            "pt2matsim": "/home/benjamin/Documents/Icarus/data/exec/pt2matsim-19.5/pt2matsim-19.5-shaded.jar",
             "transit": true,
             "region": [
                 [ -0.113054810E+03, 0.32623183E+02 ],
@@ -32,7 +32,7 @@
             ]
         },
         "regions": {
-            "region_file": "/home/Shared/source/maz_taz/maz_taz.shp"
+            "region_file": "//home/benjamin/Documents/Icarus/data/sourec/maz_taz/maz_taz.shp"
         },
         "parcels": {
             "residence_file": "/home/Shared/source/parcels/residential_parcels.dbf",
@@ -78,6 +78,15 @@
     },
     "simulation": {
         "iterations": 10,
+        "sample": {
+            "sample_size": 10000,
+            "sample_percent": 0.01,
+            "transit": null,
+            "vehicle": null,
+            "bike": null,
+            "walk": null,
+            "party": null
+        },
         "modes": {
             "networked": [],
             "routed": [
