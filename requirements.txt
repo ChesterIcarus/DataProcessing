@@ -2,4 +2,6 @@ numpy
 pandas
 scipy
 shapely
-pyshp
+geopandas
+stickytape
+ray

@@ -5,10 +5,14 @@ import sqlite3
 class SqliteUtil:
     def __init__(self, database):
         self.name = database
+        self.connection = None
+        self.cursor = None
         self.open()
 
 
     def open(self):
+        if self.connection is not None:
+            self.close()
         self.connection = sqlite3.connect(self.name)
         self.cursor = self.connection.cursor()
 
@@ -32,13 +36,12 @@ class SqliteUtil:
 
     def table_exists(self, *tables):
         exist = self.fetch_tables()
-        return set(exist).intersection(tables)
+        return tuple(set(exist).intersection(tables))
 
 
     def drop_table(self, *tables):
         for table in tables:
             self.cursor.execute(f'DROP TABLE IF EXISTS {table};')
-        self.connection.commit()
 
     
     def insert_values(self, table, values, num_cols):
