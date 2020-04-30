@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.parse.events.events import Events
+from icarus.parse.roads.roads import Roads
 from icarus.util.config import ConfigUtil
 from icarus.util.sqlite import SqliteUtil
 
@@ -27,31 +27,30 @@ path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
 config = ConfigUtil.load_config(path('config.json'))
 
-eventspath = path('output/output_events.xml.gz')
-planspath = path('output/output_plans.xml.gz')
+networkpath = path('input/network.xml.gz')
 
-log.info('Running events parsing tool.')
+log.info('Running roads parsing tool.')
 log.info(f'Loading run data from {home}.')
 
 database = SqliteUtil(path('database.db'))
-events = Events(database)
+roads = Roads(database)
 
-if not events.ready(eventspath, planspath):
+if not roads.ready(networkpath):
     log.warning('Dependent data not parsed or generated.')
-    log.warning('Population generation dependencies include simulation output, '
-        'exposure parsing, and network parsing.')
+    log.warning('Roads parsing dependencies include network generation as well '
+        'as exposure and regions parsing.')
     exit(1)
-elif events.complete():
-    log.warning('Events already parsed. Would you like to replace it? [Y/n]')
+elif roads.complete():
+    log.warning('Roads already parsed. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
-        log.info('User chose to keep existing events; exiting parsing tool.')
+        log.info('User chose to keep existing roads; exiting parsing tool.')
         exit()
 
 try:
-    log.info('Starting events parsing.')
-    events.parse(planspath, eventspath)
+    log.info('Starting roads parsing.')
+    roads.parse(networkpath)
 except:
-    log.exception('Critical error while parsing events; '
+    log.exception('Critical error while parsing roads; '
         'terminating process and exiting.')
     exit(1)
 

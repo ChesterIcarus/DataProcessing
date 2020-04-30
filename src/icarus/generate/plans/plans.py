@@ -29,12 +29,12 @@ class Leg:
         string = Leg([None, None, 'fakemode', 0]).encode()
         string += Activity([None, None, activity.start - self.duration, 
             activity.start, 'fakeactivity', activity.x, activity.y]).encode()
-        string += Leg([None, None, self.duration, 0]).encode()
+        string += Leg([None, None, self.mode, self.duration]).encode()
         return string
 
     def encode(self, activity=None):
         string = None
-        if self.mode in ('car', 'pt'):
+        if self.mode in ('car', 'pt') and activity is not None:
             string = self.virtualize(activity)
         else:
             if self.mode == 'walk':
@@ -44,21 +44,6 @@ class Leg:
             string = f'<leg trav_time="{dur}" mode="{mode}"/>'
         return string
 
-        # string = None
-        # if self.mode in modes['virtualized']:
-        #     self.mode = f'virtual_{self.mode}'
-        #     string = self.virtualize(activity)
-        # else:
-        #     if self.mode in modes['networked']:
-        #         self.mode = f'network_{self.mode}'
-        #     elif self.mode in modes['teleported']:
-        #         self.mode = f'teleport_{self.mode}'
-        #     elif self.mode in modes['routed']:
-        #         self.
-        #     else:
-        #         pass
-        #     string = '<leg trav_time="%s" mode="%s"/>'
-        # return string
 
 
 class Activity:
@@ -170,11 +155,11 @@ class Plans:
 
     def ready(self):
         tables = ('activities', 'legs', 'agents')
-        exists = self.database.table_exists(*tables)
-        if len(exists) < len(tables):
-            missing = ', '.join(set(tables) - set(exists))
+        present = self.database.table_exists(*tables)
+        if len(present) < len(tables):
+            missing = ', '.join(set(tables) - set(present))
             log.info(f'Could not find tables {missing} in database.')
-        return len(exists) == len(tables)
+        return len(present) == len(tables)
 
 
     def complete(self, planspath, vehiclespath):
@@ -223,7 +208,7 @@ class Plans:
             ' SYSTEM "http://www.matsim.org/files/dtd/plans_v4.dtd"><plans>')
 
         for agent_id, plan_size in counter(agents, 'Writing plan %s.'):
-            plansfile.write(f'<person id="{agent_id}"><plan select="yes">')
+            plansfile.write(f'<person id="{agent_id}"><plan selected="yes">')
             plansfile.write(next(activities).encode_start())
             for _ in range(plan_size // 2 - 1):
                 leg = next(legs)
@@ -235,7 +220,7 @@ class Plans:
             plansfile.write(leg.encode(activity))
             plansfile.write(activity.encode_end())
             plansfile.write('</plan></person>')
-            plansfile.flush
+            plansfile.flush()
 
         plansfile.write('</plans>')
 

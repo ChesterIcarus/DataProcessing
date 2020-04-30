@@ -1,4 +1,5 @@
 
+from typing import Dict
 from icarus.generate.population.agent import Agent
 from icarus.generate.population.party import Party
 from icarus.generate.population.vehicle import Vehicle

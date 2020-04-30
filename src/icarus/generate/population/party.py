@@ -1,5 +1,8 @@
 
+from typing import Set
+
 from icarus.generate.population.types import RouteMode
+
 
 class Party:
     uuid = 0
@@ -24,7 +27,7 @@ class Party:
 
 
     def request_id(self):
-        if self.id is None and self.mode != RouteMode.CAR:
+        if self.id is None and len(self.agents) > 1:
             Party.uuid += 1
             self.id = Party.uuid
 

@@ -1,10 +1,12 @@
 
 import logging as log
 from xml.etree.ElementTree import iterparse
+
 from icarus.parse.events.network import Network
 from icarus.parse.events.population import Population
-from icarus.util.file import multiopen
+from icarus.util.file import multiopen, exists
 from icarus.util.general import defaultdict
+
 
 
 def hhmmss(secs):
@@ -27,7 +29,7 @@ class Events:
             CREATE TABLE output_agents (
                 agent_id MEDIUMINT UNSIGNED,
                 plan_size TINYINT UNSIGNED,
-                exposure FLOAT
+                exposure FLOATw
             );  ''')
         self.database.cursor.execute('''
             CREATE TABLE output_activities (
@@ -52,20 +54,38 @@ class Events:
 
     
     def create_indexes(self):
-        self.database.cursor.execute('''
-            CREATE INDEX output_agents_agent
-            ON output_agents(agent_id); ''')
-        self.database.cursor.execute('''
-            CREATE INDEX output_activities_agent
-            ON output_activities(agent_id, agent_idx); ''')
-        self.database.cursor.execute('''
-            CREATE INDEX output_legs_agent
-            ON output_legs(agent_id, agent_idx); ''')
+        query = 'CREATE INDEX output_agents_agent ON output_agents(agent_id);'
+        self.database.cursor.execute(query)
+        query = 'CREATE INDEX output_activities_agent ON output_activities(agent_id, agent_idx);'
+        self.database.cursor.execute(query)
+        query = 'CREATE INDEX output_legs_agent ON output_legs(agent_id, agent_idx);'
+        self.database.cursor.execute(query)
+
+
+    def ready(self, eventspath, planspath):
+        ready = True
+        tables = ('temperatures', 'links', 'nodes', 'centroids', )
+        present = self.database.table_exists(*tables)
+        if len(present) < len(tables):
+            missing = ', '.join(set(tables) - set(present))
+            log.info(f'Could not find tables {missing} in database.')
+            ready = False
+        if not exists(planspath):
+            log.info(f'Could not find file {planspath} in run files.')
+            ready = False
+        if not exists(eventspath):
+            log.info(f'Could not find file {eventspath} in run files.')
+            ready = False
+        return ready
 
     
     def complete(self):
         tables = ('output_agents', 'output_activities', 'output_legs')
-        return len(self.database.table_exists(*tables)) == len(tables)
+        exists = self.database.table_exists(*tables)
+        if len(exists):
+            present = ', '.join(exists)
+            log.info(f'Found tables {present} already in database.')
+        return len(exists) > 0
 
 
     def parse(self, planspath, eventspath):

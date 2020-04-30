@@ -28,8 +28,8 @@ path = lambda x: os.path.join(args.folder, x)
 config = ConfigUtil.load_config(path('config.json'))
 database = SqliteUtil(path('database.db'))
 
-# charts = Charts(database, args.folder)
-# charts.chart(config['visualization']['charts'], error=True)
+charts = OutputPlans(database, args.folder)
+charts.chart(config['visualization']['charts'], error=True)
 
-trips = Trips(database)
-trips.minimum_speed()
+# trips = Trips(database)
+# trips.minimum_speed()

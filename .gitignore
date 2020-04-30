@@ -6,7 +6,10 @@
 *.egg-info
 build
 dist
-temp
 
 # script cache
 __pycache__
+
+# temporary directories
+temp
+src/icarus/hacks/

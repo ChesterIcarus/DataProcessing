@@ -1,17 +1,22 @@
 
+# from __future__ import annotations
+
 import logging as log
+from typing import List
 from xml.etree.ElementTree import iterparse, tostring
-from rtree import index
+
 from icarus.parse.events.types import LegMode
 from icarus.parse.events.agent import Agent
-from icarus.util.general import defaultdict
+
+from icarus.util.general import defaultdict, counter
 from icarus.util.file import multiopen
 
 
 class Route:
     __slots__= ('start_link', 'end_link', 'path', 'distance', 'mode')
 
-    def __init__(self, start_link, end_link, path, distance, mode):
+    def __init__(self, start_link, end_link, path, 
+            distance: float, mode: LegMode):
         self.start_link = start_link
         self.end_link = end_link
         self.path = path
@@ -35,13 +40,14 @@ class Route:
 class Link:
     __slots__ = ('id', 'x', 'y', 'length', 'freespeed', 'centroid')
 
-    def __init__(self, uuid, x, y, length, freespeed):
+    def __init__(self, uuid: str, x: float, y:float, length: float, 
+            freespeed: float, centroid):
         self.id = uuid
         self.x = x
         self.y = y
         self.length = length
         self.freespeed = freespeed
-        self.centroid = None
+        self.centroid = centroid
     
 
     def get_temperature(self, time):
@@ -91,10 +97,6 @@ class Centroid:
         return exposure
 
 
-    def entry(self):
-        return (self.id, (self.x, self.y, self.x, self.y), None)
-
-
 
 class Network:
     def __init__(self, database):
@@ -125,7 +127,8 @@ class Network:
                 links.length,
                 links.freespeed,
                 links.modes,
-                nodes.point
+                nodes.point,
+                nodes.centroid_id
             FROM links
             INNER JOIN nodes
             ON links.source_node = nodes.node_id; ''')
@@ -152,8 +155,7 @@ class Network:
         return agent
 
     
-    def fetch_routes(self, planspath):
-        routes = []
+    def load_routes(self, planspath):
         plansfile = multiopen(planspath, mode='rb')
         plans = iter(iterparse(plansfile, events=('start', 'end')))
         evt, root = next(plans)
@@ -180,65 +182,52 @@ class Network:
                         start = elem.get('start_link')
                         end = elem.get('end_link')
                         distance = float(elem.get('distance'))
-                        path = tuple(self.links[link] for link in elem.text.split(' '))
+                        path = (self.links[link] for link in elem.text.split(' '))
                         uuid = f'{mode}-{start}-{end}'
                         route = Route(self.links[start], self.links[end], 
-                            path, distance, LegMode(mode))
+                            tuple(path), distance, LegMode(mode))
                         self.get_agent(agent).routes[uuid] = route
                 elif elem.tag == 'person':
                     count += 1
                     if count % 10000 == 0:
                         root.clear()
                     if count == n:
-                        log.info(f'Processed plan {count}.')
+                        log.info(f'Processing plan {count}.')
                         n <<= 1
 
         if count != (n >> 1):
-            log.info(f'Processed plan {count}.')
+            log.info(f'Processing plan {count}.')
         plansfile.close()
-
-        return routes
 
     
     def load_network(self, planspath):
-        log.info('Loading network temperatures from database.')
-        temperatures = self.fetch_temperatures()
-        for temperature in temperatures:
-            self.temperatures[temperature[0]].append(temperature[2])
+        log.info('Fetching network temperatures from database.')
+        temperatures = counter(self.fetch_temperatures(), 'Loading temperature %s.')
+
+        log.info('Loading network temperatures.')
+        for uuid, _, temperature in temperatures:
+            self.temperatures[uuid].append(temperature)
         self.temperatures.lock()
         
-        log.info('Loading network centroids from database.')
-        centroids = self.fetch_centroids()
-        for centroid in centroids:
-            uuid = centroid[0]
-            x, y = map(float, centroid[2][7:-1].split(' '))
-            self.centroids[uuid] = Centroid(uuid, x, y, self.temperatures[centroid[1]])
+        log.info('Fetching network centroids from database.')
+        centroids = counter(self.fetch_centroids(), 'Loading centroid %s.')
 
-        log.info('Loading network links from database.')
-        links = self.fetch_links()
-        for link in links:
-            uuid = link[0]
-            x, y = map(float, link[4][7:-1].split(' '))
-            self.links[uuid] = Link(uuid, x, y, link[1], link[2])
+        log.info('Loading network centroids.')
+        for uuid, tempid, centroid in centroids:
+            x, y = map(float, centroid[7:-1].split(' '))
+            self.centroids[uuid] = Centroid(uuid, x, y, self.temperatures[tempid])
+
+        log.info('Fetching network links from database.')
+        links = counter(self.fetch_links(), 'Loading link %s.')
+
+        log.info('Loading netowrk links.')
+        for uuid, length, speed, _, point, centid in links:
+            x, y = map(float, point[7:-1].split(' '))
+            centroid = self.centroids[centid]
+            self.links[uuid] = Link(uuid, x, y, length, speed, centroid)
 
         log.info('Loading network routes from output plans file.')
-        self.routes = self.fetch_routes(planspath)
-
-        log.info('Building spatial index on centroids.')
-        idx = index.Index(centroid.entry() for centroid in self.centroids.values())
-
-        log.info('Connecting links to nearest centroid.')
-        count = 0
-        n = 1
-        for link in self.links.values():
-            uuid = next(idx.nearest(link.entry(), 1))
-            link.centroid = self.centroids[uuid]
-            count += 1
-            if count == n:
-                log.info(f'Connected link {count}.')
-                n <<= 1
-        if count != n >> 1:
-            log.info(f'Connected link {count}.')
+        self.load_routes(planspath)
 
 
     def get_temperature(self, link, time):

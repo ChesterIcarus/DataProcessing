@@ -82,7 +82,7 @@ class Population:
         return self.database.cursor.fetchall()
 
 
-    def create_index(self):
+    def create_indexes(self):
         query = 'CREATE INDEX agents_agent ON agents(agent_id);'
         self.database.connection.execute(query)
         query = 'CREATE INDEX agents_household ON agents(household_id, household_idx);'
@@ -97,7 +97,6 @@ class Population:
         self.database.connection.execute(query)
         query = 'CREATE INDEX activities_parcel ON activities(apn);'
         self.database.connection.execute(query)
-        self.database.connection.commit()
 
 
     def fetch_count(self, table):
@@ -120,7 +119,7 @@ class Population:
         if len(exists):
             present = ', '.join(exists)
             log.info(f'Found tables {present} already in database.')
-        return len(exists) == len(tables)
+        return len(exists) > 0
     
 
     def generate(self, modes=None, activity_types=None, seed=None):
@@ -194,4 +193,7 @@ class Population:
             legs = subpopulation.export_legs()
             self.database.insert_values('legs', legs, 8)
             self.database.connection.commit()
+
+        self.create_indexes()
+        self.database.connection.commit()
         

@@ -6,7 +6,6 @@ from icarus.parse.events.agent import Agent
 from icarus.parse.events.vehicle import Vehicle
 from icarus.parse.events.network import Network
 from icarus.parse.events.types import VehicleMode, ActivityType, LegMode
-from dataclasses import dataclass
 
 
 class Population:

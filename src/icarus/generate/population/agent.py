@@ -1,6 +1,6 @@
 
 from __future__ import annotations
-from typing import Set, Iterator, Tuple
+from typing import Set, List, Iterator, Tuple
 
 from icarus.generate.population.party import Party
 from icarus.generate.population.trip import Trip
@@ -66,15 +66,15 @@ class Agent:
             'mazs', 'parties', 'groups', 'id')
 
     def __init__(self, agent_id: str):
-        self.agent_id = agent_id
-        self.activities = []
-        self.legs = []
-        self.modes = set()
-        self.activity_types = set()
-        self.mazs = set()
-        self.parties = set()
-        self.groups = set()
-        self.id = None
+        self.agent_id: str = agent_id
+        self.activities: List[Activity] = []
+        self.legs: List[Leg] = []
+        self.modes: Set[Mode] = set()
+        self.activity_types: Set[ActivityType] = set()
+        self.mazs: Set[int] = set()
+        self.parties: Set[Party] = set()
+        self.groups: Set[Group] = set()
+        self.id: int = None
 
     def request_id(self):
         if self.id is None:

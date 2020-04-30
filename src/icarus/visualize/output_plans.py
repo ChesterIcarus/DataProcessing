@@ -95,8 +95,12 @@ class OutputPlans:
     def plot_leg_dist(self, parameter, bounds, sample, modes, axes, title):
         values = self.get_leg_differentials(parameter, bounds, sample, modes)
         data = pd.DataFrame(list(values), columns=axes)
-        high = max(*data[axes[0]], *data[axes[1]])
-        low = min(*data[axes[0]], *data[axes[1]])
+        if bounds is None:
+            high = max(*data[axes[0]], *data[axes[1]])
+            low = min(*data[axes[0]], *data[axes[1]])
+        else:
+            low = min(bounds[0], bounds[1])
+            high = max(bounds[2], bounds[3])
         plot = sns.jointplot(
             x=data[axes[0]], 
             y=data[axes[1]], kind='hex').fig

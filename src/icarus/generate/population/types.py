@@ -8,7 +8,7 @@ class RouteMode(Enum):
     CAR = 'car'
     PT = 'pt'
 
-    def max_speed(self):
+    def max_speed(self) -> float:
         speed = None
         if self == self.WALK:
             speed = 3.0
@@ -47,7 +47,7 @@ class ActivityType(IntEnum):
     WORK_RELATED = 15
     ASU = 16
 
-    def escort(self):
+    def escort(self) -> bool:
         return self in (
             self.ESCORT,
             self.SCHOOL_ESCORT,
@@ -72,7 +72,7 @@ class Mode(IntEnum):
     TAXI = 13
     SCHOOL_BUS = 14
 
-    def transit(self):
+    def transit(self) -> bool:
         return self in (
             self.CONV_TRANS_WALK,
             self.CONV_TRANS_KNR,
@@ -81,7 +81,7 @@ class Mode(IntEnum):
             self.PREM_TRANS_KNR,
             self.PREM_TRANS_PNR )
 
-    def vehicle(self):
+    def vehicle(self) -> bool:
         return self in (
             self.SOV,
             self.HOV2,
@@ -90,7 +90,7 @@ class Mode(IntEnum):
             self.TAXI,
             self.SCHOOL_BUS )
 
-    def route_mode(self):
+    def route_mode(self) -> RouteMode:
         route_mode = None
         if self.transit():
             route_mode = RouteMode.PT

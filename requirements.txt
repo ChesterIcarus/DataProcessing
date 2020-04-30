@@ -3,3 +3,5 @@ pandas
 scipy
 shapely
 geopandas
+stickytape
+ray

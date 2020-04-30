@@ -71,7 +71,7 @@ class ActivityType(Enum):
     OTHER_ESCORT = 42
     SHOPPING = 5
     OTHER_MAINTENANCE = 6
-    EATING = 7
+    EATING_OUT = 7
     BREAKFAST = 71
     LUNCH = 72
     DINNER = 73

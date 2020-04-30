@@ -14,15 +14,15 @@ def bins(iterable, binsize):
         yield iterable[idx : idx + binsize]
 
 
-def counter(iterable, message):
+def counter(iterable, message, start=1, end=True):
     n = 1
     count = 0
-    for count, item in enumerate(iterable, 1):
+    for count, item in enumerate(iterable, start):
         if count == n:
             log.info(message % count)
             n <<= 1
         yield item
-    if count != n >> 1:
+    if count != n >> 1 and end:
         log.info(message % count)
 
 

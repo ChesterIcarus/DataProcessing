@@ -12,7 +12,7 @@ This project is organized as a python package. Clone this repository and then in
     pip install DataProcessing
 ```
 
-Note that there exists more dependencies beyond those in python installed by pip. All source data and helper programs will need to obtained and linked to in the configuration folder. 
+Note that there exists more dependencies beyond those in python installed by pip. All source data and helper programs will need to obtained and linked to in the configuration folder.
 
 ## Project Structure
 
@@ -24,214 +24,124 @@ Here is a run down of the internal structure of a simulation run folder.
 
 #### config.json
 
-This is the master configuration file which describes how the simulation ought to be constructed and executed. Every module will reference the config file to locate external source data and executeables as well as information regarding how it should run.
+This is the master configuration file which describes how the simulation ought to be constructed and executed. Every module will reference the config file to locate external source data and executeables as well as information regarding how it should run. While some attributes of the simulation are hardcoded into the scripts and some other externl configuration files are still needed, these are temporary hacks done to keep the project moving forward; the eventual goal is to have this file and this file alone contain every attribute that we may possibly want to tweak.
 
 #### database.db
 
-
+This is the master data file which contains all the project data stored in a sqlite database. Previously we had used an SQL database for hosting our data, but technical issues with getting users access to the database lead to this more modular solution. Everything that the project uses, including intermediary data, is saved in this database, which can lead to it being quite large (typically between five and seven gigabytes). Of course, particular data of interest can be export as CSV or its own database at on request. Descriptions of al tables in this database are given below.
 
 #### config/
 
+This folder includes additional configuration files used in some process (such as the network generation). This is partly a consequence of the fact that not all steps of data preparation are done entirely in house, so some external software needs to be run with special configuration files. Eventually these files will be generated temporarily form the information in the master configuration file, but only when time permits.
+
 #### input/
+
+This folder includes all the files needed to run a MATSim simulation. After the files have been generated, this file can be zipped an sent else where to handle the simulation. The only other thing needed to run the simulation is an installation of Java and the matsim JAR.
 
 #### output/
 
+This folder includes all the files that the MATSim simulation spits out. The only important files to the data processing in the this project are the events, plans, vehicles, network, and logfile files. The iterations folder can be deleted in its entirity (and doing so save you enormous amounts of time and storage).
+
 #### result/
+
+This folder includes all visuals and summaries drawn from the project data. The actual contents of this folder may vary.
+
+#### temp/
+
+Location where processes may save temporary files. Generally files are deleted after the process completes, so this folder will usually remain empty, but do not put any files in this directory since processes may overwrite them with no warning.
 
 ### Tables
 
+#### trips
+
+This table cooresponds exactly, without alteration, to the trip data delivered in the ABM trips csv file. See the ABM documentation for more details regarding fields in this table.
+
+#### households
+
+This table cooresponds exactly, without alteration, to the household data delivered in the ABM households csv file. See the ABM documentation for more details regarding fields in this table.
+
+#### persons
+
+This table cooresponds exactly, without alteration, to the person data delivered in the ABM trips csv file. See the ABM documentation for more details regarding fields in this table.
+
+#### agents
+
+This table links the input data of the simulation to the ABM data. All agents that are deemed valid under the conditions set by the population generation will be populated here. The new unique `agent_id` field can be used to connect agents to their activities and legs while the original `household_id` and `household_idx` fields can be used to link these agents back to the original persons in the ABM data.
+
+| field         | schema             | description                                                                   |
+|---------------|--------------------|-------------------------------------------------------------------------------|
+| agent_id      | mediumint unsigned | uniquely identifying field                                                    |
+| household_id  | mediumint unisnged | household identifier, linked to `hhid` in ABM tables                          |
+| household_idx | smallint unsigned  | uniquely identifying field within a household, linked to `pnum` in ABM tables |
+| plan_size     | tinyint unsigned   | total number of activities and legs                                           |
+| uses_vehicle  | tinyint unsigned   | 1 if agent has a personal vehicle leg, 0 otherwise                            |
+| uses_walk     | tinyint unsinged   | 1 if agent has a walking leg, 0 otherwise                                     |
+| uses_bike     | tinyint unsinged   | 1 if agent has a biking leg, 0 otherwise                                      |
+| uses_transit  | tinyint unsigned   | 1 if agent has a transit leg, 0 otherwise                                     |
+| uses_party    | tinyint unsigned   | 1 if agent has a leg part of a party, 0 otherwise                             |
+
+#### activities
+
+Originally activities were described in the ABM trips table along with legs. After being parsed, assigned groups, filtered, cleaned and prepared, activities are extracted from trips and given a table of their own. Each activity has its own unique `activity_id`, but more useful are the `agent_id` and `agent_idx` fields, which link the activities to their respective agents in `agents`. The `group` field is a unique id that links together activities that needed to be assigned APNs together due to party restrictions; a group of zero means the activity was assigned an APN independent of all other activities.
+
+Every agent will have a `plan_size` of `2n+1`, which will mean the agent has `n+1` activities in the `activities` table and `n` legs in the `legs` table. For a leg with `leg_idx` of `n`, the activity preceding the leg has an `activity_idx` of `n` and that proceding the leg has one of `n+1`.
+
+| field       | schema             | description                                                      |
+|-------------|--------------------|------------------------------------------------------------------|
+| activtiy_id | mediumint unsigned | uniquely identifying field                                       |
+| agent_id    | mediumint unisnged | agent identifier, linked to `agent_id` on `agents`               |
+| agent_idx   | smallint unsigned  | uniquely identifying field within an agent, sequenced temporally |
+| type        | varchar            | type of activity                                                 |
+| apn         | varchar            | parcel identifier, linked to `apn` on `parcels`                  |
+| group       | mediumint unsigned | APN spawning group identifier; 0 for no group                    |
+| start       | mediumint unsigned | start time of activity in seconds from midnight                  |
+| end         | mediumint unsigned | end time of activity in seconds from midnight                    |
+| duration    | mediumint unsigned | duration of activity in seconds                                  |
+
+#### legs
+
+Originally legs were described in the ABM trips table along with activities. After being parsed, assigned parties, filtered, cleaned and prepared, legs are extracted from trips and given a table of their own. Each leg has its own unique `leg_id`, but more useful are the `leg_id` and `leg_idx` fields, which link the legs to their respective `agents`. The `party` field is a unique id that links together legs that are travelling together; a party of zero means a leg is travelled alone. See the activities cetion for more details regarding sequencing activities and legs.
+
+| field     | schema             | description                                                      |
+|-----------|--------------------|------------------------------------------------------------------|
+| leg_id    | mediumint unsigned | uniquely identifying field                                       |
+| agent_id  | mediumint unisnged | agent identifier, linked to `agent_id` on `agents`               |
+| agent_idx | smallint unsigned  | uniquely identifying field within an agent, sequenced temporally |
+| mode      | varchar            | leg mode type                                                    |
+| party     | mediumint unsigned | APN spawning party identifier; 0 for no group                    |
+| start     | mediumint unsigned | start time of leg in seconds from midnight                       |
+| stop      | mediumint unsigned | stop time of leg in seconds from midnight                        |
+| duration  | mediumint unsigned | duration of leg in seconds                                       |
+
+#### regions
+
+#### centroids
+
+#### temperatures
+
+#### links
+
+#### nodes
+
 ## Running
 
+Once the repository has been installed using pip, various processes can be run using the following command structure:
 
-<!-- # Icarus Simulation Data Processing
-
-This repository is dedicated to the data processing of simulation input and output data for the MATSim traffic simulation portion of the Icarus project. This processing includes parsing source data into SQL, generating input files for simulation from SQL data, and validating data integrity in all steps of processing.
-
-## Data Sources
-
-The primary source of data for the Icarus simulation is the 2018 ABM data as provided by MAG for this project. The simulation also utilizes other important but more easily accessible data sources, including osm networks from openstreetmap, spacio-temporal termperature data from [FIX ME], and parcel description data from the county of Maricopa.
-
-The follwoing nomenclature will be used throughout documentation and code when referring to data sources:
-
-- **abm** - activity based model of Maricopa as provided by MAG
-- **daymet** - spacio-temporal temperature of Arizona as provided by [FIX ME]
-- **network** - road network data of Arizona as provided by openstreetmap
-- **residences/commerces** - parcel data (residential and commercial respectively)
-    as provided by the county of Maricopa
-
-## Building
-
-First, download the repository using `curl` or `git clone`. Then, to build the project, activate the python environment of your choice (if using anaconda) and
+```bash
+    python -m icarus.[action].[item] [--folder /path/to/folder] [--replace]
 ```
-    pip install /path/to/repository
-```
-The package will be installed under the package name `icarus-simulation` and the root module will be named `icarus`. Dependencies should be automatically downloaded and resolved.
 
-## Running
-
-With exception to the util module, every module contains a set of submodules, which are each executable. Each submodule contains a primary class, a database util file, a configuration file, and runner file. To execute a submodule runner file
-``` 
-    python -m icarus.module.submodule
-```
-The process being run can be configured by modifying the default configuration or by adding `--config` followed by the path to your own custom config file. Note, however, in most cases, all the attributes of the default config are required and their absence in  will your own configurations will cause script failure. Also note that if you make changes to the naming scheme or structure of the database, you will have make these  changes in all configurations and database files referencing the smae database that you intend to use.  
-
-Every runnable also comes with a `--log` option, where you may specify a path to save the ouput of the console fro the script being run. This is a feature, but do note there is not extensive error handling or descriptive debugging, so it is not extremely useful.
-
-There may also exist other options unique to each runnable script that make small changes in configuration convinient. See the documentation for each module for more deatils or simply use the `--help` option to get a description of all the available options.
-
-## Modules
-
-### `icarus.abm.parser`
-
-This module parses the ABM data from the source CSV file into a SQL database.
-
-Requirements:
-
-- CSV file of ABM data
-- database at `database.db` in config created
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - |
-| sourcepath | file path of ABM CSV source data  | str | /home/Shared/source/abm/2018/trips.csv |
-| resume | specify whether to resume parsing; assumes that tables already exist and are partially completed | bool | false |
-| silent | specify whether to print process progress/steps to console; true means the console be blank | bool | false |
-| bin_size | amount of trips to parse at a time | int | 500000 |
-| create_idxs | specifies whether or not to create indexes described in config schema | bool | true |
-| database.db | name of the database to push the parsed data to | str | abm2018 |
-
-### `icarus.abm.validation`
-
-Requirements:
-
--
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - |
-
-
-### `icarus.input.parser`
-
-This module parses the ABM SQL database into MATSim plans; this includes APN assignment.
-
-Requirements:
-
-- database at `database.db` in config created
-- abm database, trips tables created and populated (see `icarus.abm.parser`)
-- network database, residences and commerces tables created and populated (see `icarus.network.parser.road`)
-- network database, maz table created and populated (see `icarus.network.parser.maz`)
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - |
-| resume | specify whether to resume parsing; assumes that tables already exist and are partially completed | bool | false |
-| silent | specify whether to print process progress/steps to console; true means the console be blank | bool | false |
-| bin_size | amount of households to parse at a time | int | 100000 |
-| create_idxs | specifies whether or not to create indexes described in config schema | bool | true |
-| seed | specify a seed for the random APN assignment process; used to make APN assignment replicable | int | null |
-| modes | list of valid modes; plans using modes not in list will be dropped | [int] | [1] |
-| acts | list of valid activities; plans using activities not in list will be dropped | [int] | [] |
-| database.abm_db | name of the database with the abm data | str | abm2018 |
-| database.db | name of the database to push the parsed data to | str | input |
-
-### `icarus.input.generator`
-
-This module builds a XML plans file from an input plans database.
-
-Requirements:
-
-- input database, agents, routes and activites tables created and populated (see `icarus.input.parser`)
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - |
-| savepath | file path in which to save the XML plans | str | /home/Shared/matsim/run2/input/plans.xml |
-| silent | specify whether to print process progress/steps to console; true means the console be blank | bool | false |
-| bin_size | amount of plans to generate at a time | int | 100000 |
-| region | series of coordinates defining the region to generate plans; leav empty for full network generation | [[int,int]] | [] |
-| database.db | name of the database to parse plans from | str | input |
-
-### `icarus.input.validation`
-
-Requirements:
-
--
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - |
-
-
-### `icarus.output.plans_parser`
-
-Requirements:
-
--
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - |
-
-
-### `icarus.output.events_parser`
-
-Requirements:
-
--
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - |
-
-
-### `icarus.network.road_parser`
-
-Requirements:
-
--
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - |
-
-### `icarus.network.maz_parser`
-
-Requirements:
-
--
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - |
-
-### `icarus.network.daymet_parser`
-
-Requirements:
-
--
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - |
-
-### `icarus.network.parcel_parser`
-
-Requirements:
-
--
-
-Configuration:
-
-| name | purpose | type | deafult |
-| - | - | - | - | -->
+The `--folder` argument is used to specify the location of the folder that the run data is in; without it it is assumed that the working directory is the location of the data. If the folder in question is missing important data, the process will most likely fail. The `--replace` argment is used to force data replacement. If this argument is present, the user will not be prompted before deleting previous data.
+
+Most commands do not take additional arguements to control the nature of the process's execution. The master configuration file (see above in files) should have all the settings that can be set for each process.
+
+| action | item | description | dependencies |
+|----------| - | - | - |
+| parse    | abm | parses the ABM data into the trips, households and persons tables | - |
+| parse    | regions | parses MAZ region data into the regions table | - |
+| parse    | network | parse the network file into the links and nodes tables | network generation |
+| parse    | events | parse
+| generate | plans | | - |
+| generate | config | | - |
+| generate | network | | - |
+| generate | population | generate simulation population from ABM data and save the result as the agents, activitities and legs tables | ABM, regions and parcel parsing |
