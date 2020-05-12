@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.parse.events.events import Events
+from icarus.parse.exposure.exposure import Exposure
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil
 
@@ -27,30 +27,30 @@ path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
 config = ConfigUtil.load_config(path('config.json'))
 
-eventspath = path('output/output_events.xml.gz')
-planspath = path('output/output_plans.xml.gz')
-
-log.info('Running events parsing tool.')
+log.info('Running daymet exposure parsing tool.')
 log.info(f'Loading run data from {home}.')
 
 database = SqliteUtil(path('database.db'))
-events = Events(database)
+exposure = Exposure(database)
 
-if not events.ready(eventspath, planspath):
+tmin_files = config['network']['exposure']['tmin_files']
+tmax_files = config['network']['exposure']['tmax_files']
+day = config['network']['exposure']['day']
+steps = config['network']['exposure']['steps']
+
+if not exposure.ready(tmin_files, tmax_files):
     log.warning('Dependent data not parsed or generated.')
-    log.warning('Population generation dependencies include simulation output, '
-        'exposure parsing, and network parsing.')
     exit(1)
-elif events.complete():
-    log.warning('Events already parsed. Would you like to replace it? [Y/n]')
+elif exposure.complete():
+    log.warning('Exposure data already parsed. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
-        log.info('User chose to keep existing events; exiting parsing tool.')
+        log.info('User chose to keep existing exposure data; exiting parsing tool.')
         exit()
 
 try:
-    log.info('Starting events parsing.')
-    events.parse(planspath, eventspath)
+    log.info('Starting exposure parsing.')
+    exposure.parse(tmin_files, tmax_files, steps, day)
 except:
-    log.exception('Critical error while parsing events; '
+    log.exception('Critical error while parsing exposure; '
         'terminating process and exiting.')
     exit(1)

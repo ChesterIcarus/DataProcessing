@@ -2,9 +2,119 @@
 import csv
 import logging as log
 
-class Parsing:
-    def __init__(self, database):
+from icarus.util.sqlite import SqliteUtil
+
+class Population:
+    def __init__(self, database: SqliteUtil):
         self.database = database
+
+
+    def create_tables(self):
+        self.database.drop_table('trips', 'households', 'persons')
+        query = '''
+            CREATE TABLE trips(
+                hhid_uniqueid INT UNSIGNED,
+                uniqueid SMALLINT UNSIGNED,
+                hhid MEDIUMINT UNSIGNED,
+                pnum TINYINT UNSIGNED,
+                personTripNum TINYINT UNISGNED,
+                jointTripRole TINYINT UNSIGNED,
+                party VARCHAR(255),
+                origTaz SMALLINT UNSIGNED,
+                origMaz SMALLINT UNSIGNED,
+                destTaz SMALLINT UNSIGNED,
+                destMaz SMALLINT UNSIGNED,
+                origPurp SMALLINT UNSIGNED,
+                destPurp SMALLINT UNSIGNED,
+                mode TINYINT UNSIGNED,
+                vehId TINYINT,
+                isamAdjDepMin FLOAT,
+                isamAdjArrMin FLOAT,
+                isamAdjDurMin FLOAT
+            );  '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE TABLE households(
+                hhid MEDIUMINT UNSIGNED,
+                hhidAcrossSample MEDIUMINT UNSIGNED,
+                pumsSerialNo FLOAT,
+                homeTaz SMALLLINT UNSIGNED,
+                homeMaz SMALLINT UNSIGNED,
+                hhsize TINYINT UNSINGED,
+                numFtWorkers TINYINT UNSIGNED,
+                numPtWorkers TINYINT UNSIGNED,
+                numUnivStuds TINYINT UNSIGNED,
+                numNonWorkers TINYINT UNSIGNED
+                numRetired TINYINT UNSIGNED,
+                numDrivAgeStuds TINYINT UNSIGNED,
+                numPreDrivStuds TINYINT UNSIGNED,
+                numPreschool TINYINT UNSIGNED,
+                hhIncomeDollar MEDIUMINT UNSIGNED,
+                hhNumAutos TINYINT UNSIGNED,
+                dwellingType TINYINT UNSIGNED,
+                ifAvHousehold TINYINT UNSIGED
+            );  '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE TABLE persons(
+                hhid MEDIUMINT UNSIGNED,
+                pnum MEDIUMINT UNSIGNED,
+                pumsSerialNo FLOAT,
+                persType TINYINT UNSIGNED,
+                personTypeDetailed TINYINT UNSIGNED,
+                age TINYINT UNSIGNED,
+                gender TINYINT UNSIGNED,
+                industry TINYINT UNSIGNED,
+                schlGrade TINYINT UNSIGNED,
+                educLevel TINYINT UNSIGNED,
+                workPlaceType TINYINT UNSIGNED,
+                workPlaceTaz SMALLINT UNISNGED,
+                workPlaceMaz SMALLINT UNISNGED,
+                schoolType TINYINT UNSIGNED,
+                schoolTaz SMALLINT UNSIGNED,
+                schoolMaz SMALLINT UNISGNED,
+                campusBusinessTaz SMALLINT UNSIGNED,
+                campusBusinessMaz SMALLINT UNSIGNED,
+                usualCarID TINYINT UNSIGNED,
+                dailyActivityPattern TINYINT UNSIGNED,
+                specEvtParticipant TINYINT UNSIGNED,
+                jointTour1Role TINYINT UNSIGNED,
+                jointTour2Role TINYINT UNSIGNED,
+                obPeChauffBund1 TINYINT UNSIGNED,
+                obPeChauffBund2 TINYINT UNSIGNED,
+                obPeChauffBund3 TINYINT UNSIGNED,
+                obRsChauffBund TINYINT UNSIGNED,
+                obPePassBund TINYINT UNSIGNED,
+                obRsPassBund TINYINT UNSIGNED,
+                ibPeChauffBund1 TINYINT UNSIGNED,
+                ibPeChauffBund2 TINYINT UNSIGNED,
+                ibPeChauffBund3 TINYINT UNSIGNED,
+                ibRsChauffBund TINYINT UNSIGNED,
+                ibPePassBund TINYINT UNSIGNED,
+                ibRsPassBund TINYINT UNSIGNED,
+                studentDorm TINYINT UNSIGNED,
+                studentRent TINYINT UNSIGNED,
+                activityString VARCHAR(255),
+                transitPass TINYINT UNSIGNED
+            );  '''
+        self.database.cursor.execute(query)
+        self.database.connection.commit()
+
+
+    def create_indexes(self):
+        query = '''
+            CREATE  INDEX trips_trip ON 
+            trips(hhid, pnum, personTripNum); '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX household_households 
+            ON households(hhid); '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX persons_person 
+            ON persons(hhid, pnum); '''
+        self.database.cursor.execute(query)
+        self.database.connection.commit()
     
 
     def load_trips(self, trips_file):
@@ -67,121 +177,9 @@ class Parsing:
             log.info(f'Parsed person {count}.')
         open_file.close()
 
-
-
-    def parse_trips(self, trips_file):
-        trips = self.load_trips(trips_file)
-        self.database.drop_table('trips')
-        self.database.cursor.execute('''
-            CREATE TABLE trips(
-                hhid_uniqueid INT UNSIGNED,
-                uniqueid SMALLINT UNSIGNED,
-                hhid MEDIUMINT UNSIGNED,
-                pnum TINYINT UNSIGNED,
-                personTripNum TINYINT UNISGNED,
-                jointTripRole TINYINT UNSIGNED,
-                party VARCHAR(255),
-                origTaz SMALLINT UNSIGNED,
-                origMaz SMALLINT UNSIGNED,
-                destTaz SMALLINT UNSIGNED,
-                destMaz SMALLINT UNSIGNED,
-                origPurp SMALLINT UNSIGNED,
-                destPurp SMALLINT UNSIGNED,
-                mode TINYINT UNSIGNED,
-                vehId TINYINT,
-                isamAdjDepMin FLOAT,
-                isamAdjArrMin FLOAT,
-                isamAdjDurMin FLOAT
-            );  ''')
-        self.database.cursor.executemany(
-            f'INSERT INTO trips VALUES({", ".join("?"*18)});', trips)
-        self.database.cursor.execute(
-            'CREATE UNIQUE INDEX trips_trip ON trips'
-            '(hhid, pnum, personTripNum)')
-        self.database.connection.commit()
-
-
-    def parse_households(self, households_file):
-        households = self.load_households(households_file)
-        self.database.drop_table('households')
-        self.database.cursor.execute('''
-            CREATE TABLE households(
-                hhid MEDIUMINT UNSIGNED,
-                hhidAcrossSample MEDIUMINT UNSIGNED,
-                pumsSerialNo FLOAT,
-                homeTaz SMALLLINT UNSIGNED,
-                homeMaz SMALLINT UNSIGNED,
-                hhsize TINYINT UNSINGED,
-                numFtWorkers TINYINT UNSIGNED,
-                numPtWorkers TINYINT UNSIGNED,
-                numUnivStuds TINYINT UNSIGNED,
-                numNonWorkers TINYINT UNSIGNED
-                numRetired TINYINT UNSIGNED,
-                numDrivAgeStuds TINYINT UNSIGNED,
-                numPreDrivStuds TINYINT UNSIGNED,
-                numPreschool TINYINT UNSIGNED,
-                hhIncomeDollar MEDIUMINT UNSIGNED,
-                hhNumAutos TINYINT UNSIGNED,
-                dwellingType TINYINT UNSIGNED,
-                ifAvHousehold TINYINT UNSIGED
-            );  ''')
-        self.database.cursor.executemany(
-            f'INSERT INTO households VALUES({", ".join("?"*17)});', households)
-        self.database.cursor.execute(
-            'CREATE UNIQUE INDEX household_households ON households(hhid)')
-        self.database.connection.commit()
-
-
-    def parse_persons(self, persons_file):
-        persons = self.load_persons(persons_file)
-        self.database.drop_table('persons')
-        self.database.cursor.execute('''
-            CREATE TABLE persons(
-                hhid MEDIUMINT UNSIGNED,
-                pnum MEDIUMINT UNSIGNED,
-                pumsSerialNo FLOAT,
-                persType TINYINT UNSIGNED,
-                personTypeDetailed TINYINT UNSIGNED,
-                age TINYINT UNSIGNED,
-                gender TINYINT UNSIGNED,
-                industry TINYINT UNSIGNED,
-                schlGrade TINYINT UNSIGNED,
-                educLevel TINYINT UNSIGNED,
-                workPlaceType TINYINT UNSIGNED,
-                workPlaceTaz SMALLINT UNISNGED,
-                workPlaceMaz SMALLINT UNISNGED,
-                schoolType TINYINT UNSIGNED,
-                schoolTaz SMALLINT UNSIGNED,
-                schoolMaz SMALLINT UNISGNED,
-                campusBusinessTaz SMALLINT UNSIGNED,
-                campusBusinessMaz SMALLINT UNSIGNED,
-                usualCarID TINYINT UNSIGNED,
-                dailyActivityPattern TINYINT UNSIGNED,
-                specEvtParticipant TINYINT UNSIGNED,
-                jointTour1Role TINYINT UNSIGNED,
-                jointTour2Role TINYINT UNSIGNED,
-                obPeChauffBund1 TINYINT UNSIGNED,
-                obPeChauffBund2 TINYINT UNSIGNED,
-                obPeChauffBund3 TINYINT UNSIGNED,
-                obRsChauffBund TINYINT UNSIGNED,
-                obPePassBund TINYINT UNSIGNED,
-                obRsPassBund TINYINT UNSIGNED,
-                ibPeChauffBund1 TINYINT UNSIGNED,
-                ibPeChauffBund2 TINYINT UNSIGNED,
-                ibPeChauffBund3 TINYINT UNSIGNED,
-                ibRsChauffBund TINYINT UNSIGNED,
-                ibPePassBund TINYINT UNSIGNED,
-                ibRsPassBund TINYINT UNSIGNED,
-                studentDorm TINYINT UNSIGNED,
-                studentRent TINYINT UNSIGNED,
-                activityString VARCHAR(255),
-                transitPass TINYINT UNSIGNED
-            );  ''')
-        self.database.cursor.executemany(
-            f'INSERT INTO persons VALUES({", ".join("?"*39)});', persons)
-        self.database.cursor.execute(
-            'CREATE UNIQUE INDEX persons_person ON persons(hhid, pnum)')
-        self.database.connection.commit()
+    
+    def ready(self):
+        return True
 
     
     def complete(self):
@@ -190,9 +188,26 @@ class Parsing:
 
 
     def parse(self, trips_file, households_file, persons_file):
+        log.info('Reallocating tables for abm population data.')
+        self.create_tables()
+
         log.info('Parsing households.')
-        self.parse_households(households_file)
+        households = self.load_households(households_file)
+        self.database.insert_values('households', households, 39)
+        self.database.connection.commit()
+        del households
+
         log.info('Parsing persons.')
-        self.parse_persons(persons_file)
+        persons = self.load_persons(persons_file)
+        self.database.insert_values('persons', persons, 17)
+        self.database.connection.commit()
+        del persons
+
         log.info('Parsing trips.')
-        self.parse_trips(trips_file)
+        trips = self.load_trips(trips_file)
+        self.database.insert_values('trips', trips, 18)
+        self.database.connection.commit()
+        del trips
+
+        log.info('Creating indexes on new tables.')
+        self.create_indexes()

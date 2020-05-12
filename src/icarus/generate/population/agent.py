@@ -108,7 +108,7 @@ class Agent:
             if party.driver == self:
                 for agent in party.agents:
                     if agent not in agents:
-                        agents = agent.dependents(agents)
+                        agent.dependents(agents)
         return agents
 
 

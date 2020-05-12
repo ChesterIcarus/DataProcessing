@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.parse.events.events import Events
+from icarus.parse.population.population import Population
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil
 
@@ -27,30 +27,29 @@ path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
 config = ConfigUtil.load_config(path('config.json'))
 
-eventspath = path('output/output_events.xml.gz')
-planspath = path('output/output_plans.xml.gz')
-
-log.info('Running events parsing tool.')
+log.info('Running maricopa parcel parsing tool.')
 log.info(f'Loading run data from {home}.')
 
 database = SqliteUtil(path('database.db'))
-events = Events(database)
+population = Population(database)
 
-if not events.ready(eventspath, planspath):
+trips_file = config['population']['trips_file']
+persons_file = config['population']['persons_file']
+households_file = config['population']['households_file']
+
+if not population.ready():
     log.warning('Dependent data not parsed or generated.')
-    log.warning('Population generation dependencies include simulation output, '
-        'exposure parsing, and network parsing.')
     exit(1)
-elif events.complete():
-    log.warning('Events already parsed. Would you like to replace it? [Y/n]')
+elif population.complete():
+    log.warning('Parcel data already parsed. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
-        log.info('User chose to keep existing events; exiting parsing tool.')
+        log.info('User chose to keep existing parcel data; exiting parsing tool.')
         exit()
 
 try:
-    log.info('Starting events parsing.')
-    events.parse(planspath, eventspath)
+    log.info('Starting parcel parsing.')
+    population.parse(trips_file, households_file, persons_file)
 except:
-    log.exception('Critical error while parsing events; '
+    log.exception('Critical error while parsing parcels; '
         'terminating process and exiting.')
     exit(1)
