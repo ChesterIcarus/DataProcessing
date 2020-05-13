@@ -79,8 +79,8 @@
     "simulation": {
         "iterations": 10,
         "sample": {
-            "sample_size": 4800000,
-            "sample_percent": 1.0,
+            "sample_size": 10000,
+            "sample_percent": 0.01,
             "transit": null,
             "vehicle": null,
             "bike": null,
@@ -111,8 +111,8 @@
                 "type": "leg_distribution",
                 "parameter": "duration",
                 "axes": [
-                    "ABM leg duration (sec)",
-                    "MATSim leg duration (sec)"
+                    "ABM leg duration",
+                    "MATSim leg duration"
                 ],
                 "bounds": null,
                 "sample": null,
@@ -123,10 +123,10 @@
                 "type": "leg_distribution",
                 "parameter": "duration",
                 "axes": [
-                    "ABM leg duration (sec)",
-                    "MATSim leg duration (sec)"
+                    "ABM leg duration",
+                    "MATSim leg duration"
                 ],
-                "bounds": [ 0, 0, 2000, 2000 ],
+                "bounds": [ 0, 0, 2500, 25000 ],
                 "sample": null,
                 "modes": [ "walk" ]
             },
@@ -135,7 +135,7 @@
                 "type": "leg_differential",
                 "parameter": "duration",
                 "axes": [
-                    "Difference in Simulated and ABM Leg Duration (sec)",
+                    "Difference in Simulated and ABM Leg Duration",
                     "Frequency"
                 ],
                 "bounds": null,
@@ -147,10 +147,10 @@
                 "type": "leg_differential",
                 "parameter": "duration",
                 "axes": [
-                    "Difference in Simulated and ABM Leg Duration (sec)",
+                    "Difference in Simulated and ABM Leg Duration",
                     "Frequency"
                 ],
-                "bounds": [ -2000, 2000 ],
+                "bounds": [ -2000, 20000 ],
                 "sample": null,
                 "modes": [ "walk" ]
             },
@@ -159,8 +159,8 @@
                 "type": "leg_distribution",
                 "parameter": "duration",
                 "axes": [
-                    "ABM leg duration (sec)",
-                    "MATSim leg duration (sec)"
+                    "ABM leg duration",
+                    "MATSim leg duration"
                 ],
                 "bounds": null,
                 "sample": null,
@@ -171,10 +171,10 @@
                 "type": "leg_distribution",
                 "parameter": "duration",
                 "axes": [
-                    "ABM leg duration (sec)",
-                    "MATSim leg duration (sec)"
+                    "ABM leg duration",
+                    "MATSim leg duration"
                 ],
-                "bounds": [ 0, 0, 1000, 1000 ],
+                "bounds": [ 0, 0, 2000, 35000 ],
                 "sample": null,
                 "modes": [ "bike" ]
             },
@@ -183,7 +183,7 @@
                 "type": "leg_differential",
                 "parameter": "duration",
                 "axes": [
-                    "Difference in Simulated and ABM Leg Duration (sec)",
+                    "Difference in Simulated and ABM Leg Duration",
                     "Frequency"
                 ],
                 "bounds": null,
@@ -195,10 +195,10 @@
                 "type": "leg_differential",
                 "parameter": "duration",
                 "axes": [
-                    "Difference in Simulated and ABM Leg Duration (sec)",
+                    "Difference in Simulated and ABM Leg Duration",
                     "Frequency"
                 ],
-                "bounds": [ -2000, 4000 ],
+                "bounds": [ -5000, 35000 ],
                 "sample": null,
                 "modes": [ "bike" ]
             }

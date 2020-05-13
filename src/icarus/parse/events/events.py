@@ -42,6 +42,7 @@ class Events:
                 agent_id MEDIUMINT UNSIGNED,
                 agent_idx TINYINT UNSINGED,
                 type VARCHAR(255),
+                link_id VARCHAR(255),
                 start MEDIUMINT UNISGNED,
                 end MEDIUMINT UNSIGNED,
                 duration MEDIUMINT UNSIGNED,
@@ -131,10 +132,10 @@ class Events:
     def ready(self, eventspath, planspath):
         ready = True
         if not exists(planspath):
-            log.info(f'Could not find file {planspath} in run files.')
+            log.warn(f'Could not find file {planspath} in run files.')
             ready = False
         if not exists(eventspath):
-            log.info(f'Could not find file {eventspath} in run files.')
+            log.warn(f'Could not find file {eventspath} in run files.')
             ready = False
         return ready
 
@@ -145,7 +146,7 @@ class Events:
         exists = self.database.table_exists(*tables)
         if len(exists):
             present = ', '.join(exists)
-            log.info(f'Found tables {present} already in database.')
+            log.warn(f'Found tables {present} already in database.')
         return len(exists) > 0
 
     
@@ -184,7 +185,7 @@ class Events:
                 log.info(f'Simulation events parsing at {hhmmss(time)} '
                     f'with {count} events processed.')
                 n += 3600
-            if count % 10000000 == 0:
+            if count % 1000000 == 0:
                 root.clear()
                 
                 log.debug('Exporting finished activities, legs and events.')
@@ -193,7 +194,7 @@ class Events:
                 legs = population.export_legs()
                 
                 log.debug('Pushing parsed event data to database.')
-                self.database.insert_values('output_activities', activities, 8)
+                self.database.insert_values('output_activities', activities, 9)
                 self.database.insert_values('output_events', events, 8)
                 self.database.insert_values('output_legs', legs, 8)
                 self.database.connection.commit()
@@ -213,7 +214,7 @@ class Events:
 
         log.debug('Pushing parsed event data to database.')
         self.database.insert_values('output_agents', agents, 3)
-        self.database.insert_values('output_activities', activities, 8)
+        self.database.insert_values('output_activities', activities, 9)
         self.database.insert_values('output_events', events, 8)
         self.database.insert_values('output_legs', legs, 8)
 

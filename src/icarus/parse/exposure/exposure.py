@@ -130,13 +130,25 @@ class Exposure:
         if centroid_id != n >> 1:
             log.info(f'Parsed daymet centroid {centroid_id}.')
 
-        log.info('Calcuating Voronoi polygons from centroids.')
+        minx = min(pt[0] for pt in points)
+        maxx = max(pt[0] for pt in points)
+        miny = min(pt[1] for pt in points)
+        maxy = max(pt[1] for pt in points)
+
+        log.info('Calcuating voronoi polygons from centroids.')
         centers = []
         vor = Voronoi(points)
         for centroid, point, region in zip(centroids, vor.points, vor.point_region):
             if -1 not in vor.regions[region]:
-                reg = Polygon((vor.vertices[i] for i in vor.regions[region]))
-                centers.append(centroid + (dumps(reg.centroid), dumps(reg)))
+                vertices = tuple(vor.vertices[i] for i in vor.regions[region])
+                valid = (
+                    min(pt[0] for pt in vertices) > minx and
+                    max(pt[0] for pt in vertices) < maxx and
+                    min(pt[1] for pt in vertices) > miny and
+                    max(pt[1] for pt in vertices) < maxy )
+                if valid:
+                    reg = Polygon(vertices)
+                    centers.append(centroid + (dumps(reg.centroid), dumps(reg)))
 
         log.info('Writing parsed centroids and temperatures to database.')
         self.database.insert_values('centroids', centers, 4)

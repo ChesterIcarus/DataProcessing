@@ -1,5 +1,6 @@
 
 import sqlite3
+import re
 
 
 class SqliteUtil:
@@ -13,7 +14,7 @@ class SqliteUtil:
     def open(self):
         if self.connection is not None:
             self.close()
-        self.connection = sqlite3.connect(self.name)
+        self.connection = sqlite3.connect(self.name, timeout=30)
         self.cursor = self.connection.cursor()
 
 
@@ -31,7 +32,13 @@ class SqliteUtil:
     def fetch_tables(self):
         self.cursor.execute('SELECT name FROM sqlite_master WHERE type="table";')
         tables = self.cursor.fetchall()
-        return [table[0] for table in tables] 
+        return [table[0] for table in tables]
+
+    
+    def drop_temporaries(self):
+        tables = self.fetch_tables()
+        drop = [table for table in tables if re.match(r'^temp_[0-9]+$', table)]
+        self.drop_table(*drop)
 
 
     def table_exists(self, *tables):

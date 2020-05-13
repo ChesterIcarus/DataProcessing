@@ -33,22 +33,19 @@ class Agent:
 
     
     def export_activities(self):
-        try:
-            activities = tuple((
-                Activity.activities[self.id][idx + self.act_count],
-                self.id,
-                idx,
-                activity.activity_type.name.lower(),
-                activity.start_time,
-                activity.end_time,
-                activity.end_time - activity.start_time,
-                None
-            ) for idx, activity in enumerate(self.activities))
-            self.act_count += len(self.activities)
-            self.activities = []
-        except:
-            log.info(self.id)
-            breakpoint()
+        activities = tuple((
+            Activity.activities[self.id][idx + self.act_count],
+            self.id,
+            idx,
+            activity.activity_type.name.lower(),
+            activity.link.id,
+            activity.start_time,
+            activity.end_time,
+            activity.end_time - activity.start_time,
+            None
+        ) for idx, activity in enumerate(self.activities))
+        self.act_count += len(self.activities)
+        self.activities = []
         return activities
 
     
@@ -86,14 +83,16 @@ class Agent:
         #     self.legs.append(self.active_transit)
         #     self.active_transit = None
         
-        self.active_activity = Activity(activity_type)
+        self.active_activity = Activity(activity_type, link)
         self.active_activity.start_time = time
 
     
     def end_activity(self, time: int, link: Link = None, 
             activity_type: ActivityType = None):
-        if len(self.activities) == 0:
-            self.active_activity = Activity(ActivityType.HOME)
+        if self.act_count == 0 and len(self.activities) == 0:
+            if link is None:
+                breakpoint()
+            self.active_activity = Activity(ActivityType.HOME, link)
             self.active_activity.start_time = 14400
             
         if self.active_activity is None:

@@ -17,6 +17,10 @@ class Network:
         self.path = lambda x: os.path.join(folder, x)
 
     
+    def ready(self):
+        return True
+
+    
     def complete(self):
         files = ('input/transitVehicles.xml', 'input/transitSchedule.xml', 'input/network.xml')
         check = lambda x: os.path.exists(self.path(x))
@@ -87,5 +91,3 @@ class Network:
 
         log.info('Cleaning up.')
         self.cleanup()
-        
-
