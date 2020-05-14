@@ -1,10 +1,9 @@
 
-import subprocess
 import logging as log
 
 from xml.etree.ElementTree import iterparse
 from shapely.strtree import STRtree
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, LineString
 from shapely.wkt import dumps, loads
 from rtree import index
 
@@ -80,8 +79,29 @@ class Roads:
                 capacity FLOAT,
                 permlanes FLOAT,
                 oneway TINYINT UNSIGNED,
-                modes VARHCAR(255)
+                modes VARHCAR(255),
+                line VARHCAR(255)
             );  ''')
+        self.database.connection.commit()
+
+    
+    def create_indexes(self):
+        query = f'''
+            CREATE INDEX nodes_node
+            ON nodes(node_id); '''
+        self.database.cursor.execute(query)
+        query = f'''
+            CREATE INDEX links_link
+            ON links(link_id); '''
+        self.database.cursor.execute(query)
+        query = f'''
+            CREATE INDEX links_node1
+            ON links(source_node); '''
+        self.database.cursor.execute(query)
+        query = f'''
+            CREATE INDEX links_node2
+            ON links(terminal_node); '''
+        self.database.cursor.execute(query)
         self.database.connection.commit()
 
     
@@ -149,6 +169,7 @@ class Roads:
 
         links = []
         nodes = []
+        points = {}
         count = 0
         n = 1
 
@@ -166,31 +187,37 @@ class Roads:
                     n = 1
             elif evt == 'end':
                 if elem.tag == 'node':
+                    node_id = str(elem.get('id'))
                     x = float(elem.get('x'))
                     y = float(elem.get('y'))
                     point = Point(x, y)
                     region = get_region(point)
                     centroid = get_centroid((x, y, x, y))
                     nodes.append((
-                        str(elem.get('id')),
+                        node_id,
                         region,
                         centroid,
                         dumps(point)))
+                    points[node_id] = point
                     count += 1
                     if count == n:
                         log.info(f'Parsed node {count}.')
                         n <<= 1
                 elif elem.tag == 'link':
+                    source_node = str(elem.get('from'))
+                    terminal_node = str(elem.get('to'))
+                    line = LineString((points[source_node], points[terminal_node]))
                     links.append((
                         str(elem.get('id')),
-                        str(elem.get('from')),
-                        str(elem.get('to')),
+                        source_node,
+                        terminal_node,
                         float(elem.get('length')),
                         float(elem.get('freespeed')),
                         float(elem.get('capacity')),
                         float(elem.get('permlanes')),
                         int(elem.get('oneway')),
-                        str(elem.get('modes'))))
+                        str(elem.get('modes')),
+                        dumps(line) ))
                     count += 1
                     if count == n:
                         log.info(f'Parsed link {count}.')
@@ -205,7 +232,6 @@ class Roads:
         log.info('Writing parsed links and nodes to database.')
         self.create_tables()
         self.database.insert_values('nodes', nodes, 4)
-        self.database.insert_values('links', links, 9)
+        self.database.insert_values('links', links, 10)
         self.database.connection.commit()
         
-
