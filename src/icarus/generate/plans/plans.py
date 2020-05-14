@@ -166,10 +166,10 @@ class Plans:
         complete = False
         if exists(planspath):
             complete = True
-            log.info(f'Found file {planspath} already in run files.')
+            log.info(f'Found file {planspath} already generated.')
         if exists(vehiclespath):
             complete = True
-            log.info(f'Found file {vehiclespath} already in run files.')
+            log.info(f'Found file {vehiclespath} already generated.')
         return complete
         
 

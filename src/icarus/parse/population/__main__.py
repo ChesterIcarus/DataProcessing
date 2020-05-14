@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.parse.parcels.parcels import Parcels
+from icarus.parse.population.population import Population
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil
 
@@ -31,16 +31,16 @@ log.info('Running maricopa parcel parsing tool.')
 log.info(f'Loading run data from {home}.')
 
 database = SqliteUtil(path('database.db'))
-parcels = Parcels(database)
+population = Population(database)
 
-residence_file = config['network']['parcels']['residence_file']
-commerce_file = config['network']['parcels']['commerce_file']
-parcel_file = config['network']['parcels']['parcel_file']
+trips_file = config['population']['trips_file']
+persons_file = config['population']['persons_file']
+households_file = config['population']['households_file']
 
-if not parcels.ready():
+if not population.ready():
     log.warning('Dependent data not parsed or generated.')
     exit(1)
-elif parcels.complete():
+elif population.complete():
     log.warning('Parcel data already parsed. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
         log.info('User chose to keep existing parcel data; exiting parsing tool.')
@@ -48,7 +48,7 @@ elif parcels.complete():
 
 try:
     log.info('Starting parcel parsing.')
-    parcels.parse(residence_file, commerce_file, parcel_file)
+    population.parse(trips_file, households_file, persons_file)
 except:
     log.exception('Critical error while parsing parcels; '
         'terminating process and exiting.')

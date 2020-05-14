@@ -57,7 +57,7 @@ class Household:
         for agent in self.agents.values():
             if agent not in remove:
                 if not valid(agent):
-                    remove = remove.union(agent.dependents())
+                    remove.update(agent.dependents())
         for agent in remove:
             agent.safe_delete()
             del self.agents[agent.agent_id]

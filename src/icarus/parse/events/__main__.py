@@ -4,8 +4,8 @@ import logging as log
 from argparse import ArgumentParser
 
 from icarus.parse.events.events import Events
-from icarus.util.config import ConfigUtil
 from icarus.util.sqlite import SqliteUtil
+from icarus.util.config import ConfigUtil
 
 parser = ArgumentParser()
 parser.add_argument('--folder', type=str, dest='folder', default='.')
@@ -37,9 +37,7 @@ database = SqliteUtil(path('database.db'))
 events = Events(database)
 
 if not events.ready(eventspath, planspath):
-    log.warning('Dependent data not parsed or generated.')
-    log.warning('Population generation dependencies include simulation output, '
-        'exposure parsing, and network parsing.')
+    log.error('Event parsing dependencies not met; see warnings.')
     exit(1)
 elif events.complete():
     log.warning('Events already parsed. Would you like to replace it? [Y/n]')
@@ -54,5 +52,3 @@ except:
     log.exception('Critical error while parsing events; '
         'terminating process and exiting.')
     exit(1)
-
-

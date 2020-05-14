@@ -17,14 +17,26 @@ class Network:
         self.path = lambda x: os.path.join(folder, x)
 
     
+    def ready(self):
+        return True
+
+    
     def complete(self):
-        files = ('input/transitVehicles.xml', 'input/transitSchedule.xml', 'input/network.xml')
-        check = lambda x: os.path.exists(self.path(x))
-        return all(map(check, files))
+        files = ('input/transitVehicles.xml.gz', 'input/transitSchedule.xml.gz', 
+            'input/network.xml.gz')
+        complete = False
+        for f in files:
+            if os.path.exists(self.path(f)):
+                log.warn(f'Found file {f} already generated.')
+                complete = True
+        return complete
 
 
     def cleanup(self):
-        pass
+        subprocess.run(('gzip', self.path('input/network.xml')), check=True)
+        subprocess.run(('gzip', self.path('input/transitSchedule.xml')), check=True)
+        subprocess.run(('gzip', self.path('input/transitVehicles.xml')), check=True)
+        subprocess.run(('rm', '-r', self.path('tmp/')), check=True)
 
 
     def configure(self, region):
@@ -36,21 +48,21 @@ class Network:
 
     def map(self, pt2matsim):
         subprocess.run((
-            'java', '-Xms4G', '-Xmx8G', 
+            'java', '-Xms4G', '-Xmx6G', 
             '-cp', pt2matsim, 'org.matsim.pt2matsim.run.PublicTransitMapper',
             self.path('config/map.xml')), check=True)
 
 
     def transit(self, pt2matsim):
         subprocess.run((
-            'java', '-Xms4G', '-Xmx8G', 
+            'java', '-Xms4G', '-Xmx6G', 
             '-cp', pt2matsim, 'org.matsim.pt2matsim.run.Osm2MultimodalNetwork',
             self.path('config/transit.xml')), check=True)
 
 
     def schedule(self, pt2matsim, epsg, schedule):
         subprocess.run((
-            'java', '-Xms4G', '-Xmx8G', 
+            'java', '-Xms4G', '-Xmx6G', 
             '-cp', pt2matsim, 'org.matsim.pt2matsim.run.Gtfs2TransitSchedule',
             schedule, 'dayWithMostServices', f'EPSG:{epsg}', 
             self.path('tmp/schedule.xml'), 
@@ -70,6 +82,10 @@ class Network:
 
 
     def generate(self, osm, schedule, region, epsg, pt2matsim, osmosis):
+        os.makedirs(self.path('tmp'), exist_ok=True)
+        os.makedirs(self.path('input'), exist_ok=True)
+        os.makedirs(self.path('config'), exist_ok=True)
+
         log.info('Generating network configuration files.')
         self.configure(region)
 
@@ -87,5 +103,3 @@ class Network:
 
         log.info('Cleaning up.')
         self.cleanup()
-        
-

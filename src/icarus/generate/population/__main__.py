@@ -36,8 +36,6 @@ population = Population(database)
 
 if not population.ready():
     log.warning('Dependent data not parsed or generated.')
-    log.warning('Population generation dependencies include ABM, parcel and '
-        'region parsing; check that these are already run.')
     exit(1)
 elif population.complete():
     log.warning('Population already generated. Would you like to replace it? [Y/n]')

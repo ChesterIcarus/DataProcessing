@@ -1,43 +1,24 @@
 
+from icarus.parse.events.link import Link
+from icarus.parse.events.event import Event
 
 class Vehicle:
-    __slots__ = ('id', 'mode', 'agents', 'exposure', 'temperature', 'link', 'time')
+    __slots__ = ('id', 'link', 'time', 'events')
 
-    def __init__(self, uuid, mode, time, link, temperature=None):
+    def __init__(self, uuid):
         self.id = uuid
-        self.mode = mode
-        self.agents = set()
-        self.exposure = 0
-        self.temperature = temperature
-        self.link = link
-        self.time = time
+        self.link = None
+        self.time = None
+        self.events = []
+    
 
-
-    def enter_link(self, time, link):
+    def enter_link(self, time: int, link: Link):
         self.link = link
         self.time = time
 
     
-    def leave_link(self, time, link):
-        if self.time is not None:
-            if self.temperature is None:
-                self.exposure += self.link.get_exposure(self.time, time)
-            else:
-                self.exposure += self.temperature * (time - self.time)
-        self.time = time
+    def leave_link(self, time: int, link: Link):
+        event = Event(link, self.time, time)
+        self.events.append(event)
         self.link = link
-
-
-    def add_agent(self, time, agent):
-        self.leave_link(time, self.link)
-        agent.expose(-self.exposure)
-        self.agents.add(agent)
-    
-
-    def remove_agent(self, time, agent):
-        self.leave_link(time, self.link)
-        agent.active_leg.active_link = self.link
-        agent.active_leg.active_time = self.time
-        agent.expose(self.exposure)
-        self.agents.remove(agent)
-        
+        self.time = time

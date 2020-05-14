@@ -9,10 +9,45 @@ from shapely.wkt import dumps
 class Regions:                
     def __init__(self, database):
         self.database = database
+
+
+    def create_tables(self):
+        query = '''
+            CREATE TABLE regions(
+                maz SMALLINT UNSIGNED,
+                taz SMALLINT UNSIGNED,
+                area FLAOT,
+                center VARCHAR(255),
+                region TEXT
+            );  '''
+        self.database.cursor.execute(query)
+        self.database.connection.commit()
+
+    
+    def create_indexes(self):
+        query = '''
+            CREATE INDEX regions_maz
+            ON regions(maz); '''
+        self.database.cursor.execute(query)
+        self.database.connection.commit()
+
+    
+    def ready(self):
+        return True
+
+    
+    def complete(self):
+        tables = ('regions',)
+        exists = self.database.table_exists(*tables)
+        if len(exists):
+            present = ', '.join(exists)
+            log.info(f'Found tables {present} already in database.')
+        return len(exists) > 0
     
 
     def parse(self, filepath):
-        'parse maricopa maz/taz regions from source file'
+        log.info('Reallocating tables for regions.')
+        self.create_tables()
 
         log.info('Loading Maricopa MAZ and TAZ region data.')
         parser = shapefile.Reader(filepath)
@@ -34,23 +69,13 @@ class Regions:
             if count == n:
                 log.info(f'Parsed region {count}.')
                 n <<= 1
+
         if count != n >> 1:
                 log.info(f'Parsed region {count}.')
         
         log.info('Writing parsed regions to database.')
-        self.database.drop_table('regions')
-        self.database.cursor.execute(f'''
-            CREATE TABLE regions(
-                maz SMALLINT UNSIGNED,
-                taz SMALLINT UNSIGNED,
-                area FLAOT,
-                center VARCHAR(255),
-                region TEXT
-            );  ''')
-        self.database.cursor.executemany('INSERT INTO regions VALUES '
-            '(?, ?, ?, ?, ?)', regions)
+        self.database.insert_values('regions', regions, 5)
         self.database.connection.commit()
 
-
-    def validate(self):
-        pass
+        log.info('Creating indexes on new tables.')
+        self.create_indexes()

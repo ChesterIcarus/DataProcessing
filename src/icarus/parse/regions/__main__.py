@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.parse.parcels.parcels import Parcels
+from icarus.parse.regions.regions import Regions
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil
 
@@ -27,29 +27,27 @@ path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
 config = ConfigUtil.load_config(path('config.json'))
 
-log.info('Running maricopa parcel parsing tool.')
+log.info('Running MAZ/TAZ region parsing tool.')
 log.info(f'Loading run data from {home}.')
 
 database = SqliteUtil(path('database.db'))
-parcels = Parcels(database)
+regions = Regions(database)
 
-residence_file = config['network']['parcels']['residence_file']
-commerce_file = config['network']['parcels']['commerce_file']
-parcel_file = config['network']['parcels']['parcel_file']
+filepath = config['network']['regions']['region_file']
 
-if not parcels.ready():
+if not regions.ready():
     log.warning('Dependent data not parsed or generated.')
     exit(1)
-elif parcels.complete():
-    log.warning('Parcel data already parsed. Would you like to replace it? [Y/n]')
+elif regions.complete():
+    log.warning('Region data already parsed. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
-        log.info('User chose to keep existing parcel data; exiting parsing tool.')
+        log.info('User chose to keep existing region data; exiting parsing tool.')
         exit()
 
 try:
-    log.info('Starting parcel parsing.')
-    parcels.parse(residence_file, commerce_file, parcel_file)
+    log.info('Starting region parsing.')
+    regions.parse(filepath)
 except:
-    log.exception('Critical error while parsing parcels; '
+    log.exception('Critical error while parsing region; '
         'terminating process and exiting.')
     exit(1)

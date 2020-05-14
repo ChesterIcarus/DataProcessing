@@ -1,6 +1,5 @@
 
 import logging as log
-
 from netCDF4 import Dataset             # pylint: disable=no-name-in-module
 from scipy.spatial import Voronoi       # pylint: disable=no-name-in-module
 from pyproj import Transformer
@@ -8,10 +7,12 @@ from math import cos, pi
 from shapely.geometry import Polygon, Point
 from shapely.wkt import dumps
 
+from icarus.util.sqlite import SqliteUtil
+
 
 class Exposure:
     @staticmethod
-    def iterpolation(tmin, tmax, tdawn, tpeak):
+    def iterpolation(tmin: float, tmax: float, tdawn: float, tpeak: float):
         return lambda t: (
             (tmax+tmin)/2-(tmax-tmin)/2*cos(pi*(tdawn-t)/(24+tdawn-tpeak)) 
                 if t < tdawn else 
@@ -20,7 +21,7 @@ class Exposure:
             (tmax+tmin)/2-(tmax-tmin)/2*cos(pi*(24+tdawn-t)/(24+tdawn-tpeak)))
 
     
-    def __init__(self, database):
+    def __init__(self, database: SqliteUtil):
         self.database = database
 
     
@@ -41,11 +42,39 @@ class Exposure:
                 time MEDIUMINT UNSIGNED UNSIGNED,
                 temperature FLOAT
             );  ''')
+        self.database.connection.commit()
+
+    
+    def create_indexes(self):
+        query = '''
+            CREATE INDEX temperatures_temperature
+            ON temperatures(temperature_id, temperature_idx); '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX centroids_centroid
+            ON centroids(centroid_id); '''
+        self.database.cursor.execute(query)
+        self.database.connection.commit()
+
+
+    def ready(self, tmin_files, tmax_files):
+        return True
+
+
+    def complete(self):
+        tables = ('centroids', 'temperatures')
+        exists = self.database.table_exists(*tables)
+        if len(exists):
+            present = ', '.join(exists)
+            log.info(f'Found tables {present} already in database.')
+        return len(exists) > 0
 
     
     def parse(self, tmin_files, tmax_files, steps, day):
-        'parse centroids and temperatures from daymet data'
+        log.info('Reallocating tables for centroids and temperatures.')
+        self.create_tables()
 
+        log.info('Iterating through daymet centroid data.')
         files = zip(tmax_files, tmin_files)
         temperatures = []
         centroids = []
@@ -101,16 +130,30 @@ class Exposure:
         if centroid_id != n >> 1:
             log.info(f'Parsed daymet centroid {centroid_id}.')
 
-        log.info('Calcuating Voronoi polygons from centroids.')
+        minx = min(pt[0] for pt in points)
+        maxx = max(pt[0] for pt in points)
+        miny = min(pt[1] for pt in points)
+        maxy = max(pt[1] for pt in points)
+
+        log.info('Calcuating voronoi polygons from centroids.')
         centers = []
         vor = Voronoi(points)
         for centroid, point, region in zip(centroids, vor.points, vor.point_region):
             if -1 not in vor.regions[region]:
-                reg = Polygon((vor.vertices[i] for i in vor.regions[region]))
-                centers.append(centroid + (dumps(reg.centroid), dumps(reg)))
+                vertices = tuple(vor.vertices[i] for i in vor.regions[region])
+                valid = (
+                    min(pt[0] for pt in vertices) > minx and
+                    max(pt[0] for pt in vertices) < maxx and
+                    min(pt[1] for pt in vertices) > miny and
+                    max(pt[1] for pt in vertices) < maxy )
+                if valid:
+                    reg = Polygon(vertices)
+                    centers.append(centroid + (dumps(reg.centroid), dumps(reg)))
 
         log.info('Writing parsed centroids and temperatures to database.')
-        self.create_tables()
         self.database.insert_values('centroids', centers, 4)
         self.database.insert_values('temperatures', temperatures, 4)
         self.database.connection.commit()
+
+        log.info('Creating indexes on new tables.')
+        self.create_indexes()

@@ -1,15 +1,15 @@
 
 import logging as log
-from xml.etree.ElementTree import tostring
+
 from icarus.util.general import defaultdict
 from icarus.parse.events.agent import Agent
 from icarus.parse.events.vehicle import Vehicle
 from icarus.parse.events.network import Network
-from icarus.parse.events.types import VehicleMode, ActivityType, LegMode
+from icarus.parse.events.types import NetworkMode, LegMode, ActivityType
 
 
 class Population:
-    def __init__(self, network):
+    def __init__(self, network: Network):
         self.network = network
         self.agents = network.agents
         self.vehicles = {}
@@ -25,14 +25,12 @@ class Population:
         return agent
 
 
-    def get_vehicle(self, vehicle_id, time, link):
+    def get_vehicle(self, vehicle_id):
         vehicle = None
         if vehicle_id in self.vehicles:
             vehicle = self.vehicles[vehicle_id]
         else:
-            mode = VehicleMode.parse(vehicle_id)
-            temperature = 25.5 if not mode.outdoors() else None
-            vehicle = Vehicle(vehicle_id, mode, time, link, temperature)
+            vehicle = Vehicle(vehicle_id)
             self.vehicles[vehicle_id] = vehicle
         return vehicle
 
@@ -46,48 +44,44 @@ class Population:
             agent = self.get_agent(event.get('driverId'))
 
         elif action == 'left link':
-            link = self.network.links[event.get('link')]
-            vehicle = self.get_vehicle(event.get('vehicle'), time, link)
-            vehicle.leave_link(time, link)
+            pass
             
         elif action == 'entered link':
-            link = self.network.links[event.get('link')]
-            vehicle = self.get_vehicle(event.get('vehicle'),time, link)
-            vehicle.enter_link(time, link)
+            pass
 
         elif action == 'PersonEntersVehicle':
-            agent = self.get_agent(event.get('person'))
-            link = agent.active_leg.active_link
-            vehicle = self.get_vehicle(event.get('vehicle'), time, link)
-            vehicle.add_agent(time, agent)
+            pass
 
         elif action == 'PersonLeavesVehicle':
-            agent = self.get_agent(event.get('person'))
-            link = agent.active_leg.active_link
-            vehicle = self.get_vehicle(event.get('vehicle'), time, link)
-            vehicle.remove_agent(time, agent)
+            pass
 
         elif action == 'actstart':
             link = self.network.links[event.get('link')]
             agent = self.get_agent(event.get('person'))
-            activity_type = ActivityType.parse(event.get('actType'))
-            agent.start_activity(time, activity_type, link)
+            activity_type = ActivityType(event.get('actType'))
+            agent.start_activity(time, link, activity_type)
 
         elif action == 'actend':
             link = self.network.links[event.get('link')]
             agent = self.get_agent(event.get('person'))
-            agent.end_activity(time, link)
+            activity_type = ActivityType(event.get('actType'))
+            agent.end_activity(time, link, activity_type)
 
         elif action == 'departure':
             link = self.network.links[event.get('link')]
             agent = self.get_agent(event.get('person'))
-            mode = LegMode(event.get('legMode'))
-            agent.depart(time, mode, link)
+            leg_mode = LegMode(event.get('legMode'))
+            agent.start_leg(time, link, leg_mode)
 
         elif action == 'arrival':
             link = self.network.links[event.get('link')]
             agent = self.get_agent(event.get('person'))
-            agent.arrive(time, link)
+            leg_mode = LegMode(event.get('legMode'))
+            agent.end_leg(time, link, leg_mode)
+
+        elif action == 'travelled':
+            agent = self.get_agent(event.get('person'))
+            agent.travel(time)
 
         elif action == 'stuckAndAbort':
             pass
@@ -96,26 +90,36 @@ class Population:
             pass
 
     
-    def export_agents(self):
+    def export_agents(self, condition=None):
         for agent in self.agents.values():
-            yield (
-                agent.id,
-                agent.size(),
-                agent.exposure())
+            if str(agent.id).isdigit():
+                yield (
+                    agent.id,
+                    agent.size(),
+                    None )
     
 
     def export_activities(self):
         for agent in self.agents.values():
-            for activity in agent.export_activities():
-                yield activity
+            if str(agent.id).isdigit():
+                for activity in agent.export_activities():
+                    yield activity
 
     
     def export_legs(self):
         for agent in self.agents.values():
-            for leg in agent.export_legs():
-                yield leg
+            if str(agent.id).isdigit():
+                for leg in agent.export_legs():
+                    yield leg
 
     
+    def export_events(self):
+        for agent in self.agents.values():
+            if str(agent.id).isdigit():
+                for event in agent.export_events():
+                    yield event
+
+
     def filter_agents(self, condition):
         remove = set()
         for agent in self.agents.values():
@@ -129,5 +133,6 @@ class Population:
         for agent in self.agents.values():
             if agent.active_activity is not None:
                 if agent.active_activity.activity_type == ActivityType.HOME:
-                    agent.end_activity(time)
+                    agent.end_activity(time, link = None, 
+                        activity_type = ActivityType.HOME)
 

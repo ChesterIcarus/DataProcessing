@@ -1,9 +1,6 @@
 
-import multiprocessing
 import shapefile
 import logging as log
-
-from rtree import index
 from shapely.geometry import Point, Polygon
 from shapely.strtree import STRtree
 from shapely.wkt import loads, dumps
@@ -12,6 +9,50 @@ from shapely.wkt import loads, dumps
 class Parcels:
     def __init__(self, database):
         self.database = database
+
+    
+    def create_tables(self):
+        self.database.drop_table('parcels')
+        query = '''
+            CREATE TABLE parcels(
+                apn VARCHAR(255),
+                maz SMALLINT UNSIGNED,
+                type VARCHAR(255),
+                centroid VARCHAR(255),
+                region TEXT
+            );  '''
+        self.database.cursor.execute(query)
+        self.database.connection.commit()
+
+    
+    def create_indexes(self):
+        query = '''
+            CREATE INDEX parcels_apn
+            ON parcels(apn); '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX parcels_maz
+            ON parcels(maz); '''
+        self.database.cursor.execute(query)
+        self.database.connection.commit()
+
+    
+    def ready(self):
+        tables = ('regions',)
+        exists = self.database.table_exists(*tables)
+        if len(exists) < len(tables):
+            missing = ', '.join(set(tables) - set(exists))
+            log.info(f'Could not find tables {missing} in database.')
+        return len(exists) == len(tables)
+
+
+    def complete(self):
+        tables = ('parcels',)
+        exists = self.database.table_exists(*tables)
+        if len(exists):
+            present = ', '.join(exists)
+            log.info(f'Found tables {present} already in database.')
+        return len(exists) > 0
     
     
     def parse(self, residence_file, commerce_file, parcel_file):
@@ -19,6 +60,9 @@ class Parcels:
         parcel_polygons = {}
         maz_polygons = []
         parcels = []
+
+        log.info('Reallocating tables for parcels.')
+        self.create_tables()
 
         log.info('Loading region code data.')
         self.database.cursor.execute('SELECT maz, region FROM regions;')
@@ -112,16 +156,6 @@ class Parcels:
                 dumps(polygon)))
         
         log.info('Writing parsed parcels to database.')
-        self.database.drop_table('parcels')
-        self.database.cursor.execute('''
-            CREATE TABLE parcels(
-                apn VARCHAR(255),
-                maz SMALLINT UNSIGNED,
-                type VARCHAR(255),
-                centroid VARCHAR(255),
-                region TEXT
-            );  ''')
-        self.database.cursor.executemany('INSERT INTO parcels VALUES'
-            ' (?, ?, ?, ?, ?)', parcels)
+        self.database.insert_values('parcels', parcels, 5)
         self.database.connection.commit()
 

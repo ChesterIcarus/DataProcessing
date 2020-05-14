@@ -7,7 +7,7 @@
 
 This project is organized as a python package. Clone this repository and then install it using pip. Also see the requirements file for additional dependencies that may be needed to run certain modules.
 
-```bash
+```
     git clone https://github.com/ChesterIcarus/DataProcessing.git
     pip install DataProcessing
 ```
@@ -17,6 +17,8 @@ Note that there exists more dependencies beyond those in python installed by pip
 ## Project Structure
 
 This package has a collection of scripts which can prepare simulation input data and analyze output data. A given simulation run has a folder dedicated to it where all modules need to be executed from; these modules will read and write from files inside this folder, as well as read other files and execute other programs specified in the config file.
+
+A visual summary of the database structure can be found here on [dbdiagrams.io](https://dbdiagram.io/d/5e9e7ded39d18f5553fdef7e), but this link may not be regularly undated or maintained.
 
 Here is a run down of the internal structure of a simulation run folder.
 
@@ -46,9 +48,9 @@ This folder includes all the files that the MATSim simulation spits out. The onl
 
 This folder includes all visuals and summaries drawn from the project data. The actual contents of this folder may vary.
 
-#### temp/
+#### tmp/
 
-Location where processes may save temporary files. Generally files are deleted after the process completes, so this folder will usually remain empty, but do not put any files in this directory since processes may overwrite them with no warning.
+Thi folder is where processes may save temporary files. Generally files are deleted after the process completes, so this folder will usually remain empty, but do not put any files in this directory since processes may overwrite them with no warning.
 
 ### Tables
 
@@ -127,21 +129,35 @@ Originally legs were described in the ABM trips table along with activities. Aft
 
 Once the repository has been installed using pip, various processes can be run using the following command structure:
 
-```bash
-    python -m icarus.[action].[item] [--folder /path/to/folder] [--replace]
+```
+    python -m icarus.[action].[item] [--folder /path/to/folder] [--log /path/to/logfile]
 ```
 
-The `--folder` argument is used to specify the location of the folder that the run data is in; without it it is assumed that the working directory is the location of the data. If the folder in question is missing important data, the process will most likely fail. The `--replace` argment is used to force data replacement. If this argument is present, the user will not be prompted before deleting previous data.
+The `--folder` argument is used to specify the location of the folder that the run data is in; without it it is assumed that the working directory is the location of the data. If the folder in question is missing important data, the process will most likely fail. The `--log` argument will save the log printed to the terminal to the filepath specified. The log will still be printed, but it will also be copied to the specified file.
+<!-- The `--replace` argment is used to force data replacement. If this argument is present, the user will not be prompted before deleting previous data. -->
 
 Most commands do not take additional arguements to control the nature of the process's execution. The master configuration file (see above in files) should have all the settings that can be set for each process.
 
-| action | item | description | dependencies |
-|----------| - | - | - |
-| parse    | abm | parses the ABM data into the trips, households and persons tables | - |
-| parse    | regions | parses MAZ region data into the regions table | - |
-| parse    | network | parse the network file into the links and nodes tables | network generation |
-| parse    | events | parse
-| generate | plans | | - |
-| generate | config | | - |
-| generate | network | | - |
-| generate | population | generate simulation population from ABM data and save the result as the agents, activitities and legs tables | ABM, regions and parcel parsing |
+### Dependency Diagram
+
+![dependency diagram](https://github.com/ChesterIcarus/DataProcessing/blob/dev/docs/dependencies.png)
+
+### Description Chart
+
+| action   | item       | description                                                                                                  | dependencies                                    |
+|----------|------------|--------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
+| parse    | population | parses the ABM data from CSV into the trips, households and persons tables                                   | -                                               |
+| parse    | regions    | parses MAZ region data from shapefiles into the regions table                                                | -                                               |
+| parse    | roads      | parses the network file from XML into the links and nodes tables                                             | generate network, parse exposure, parse regions |
+| parse    | events     | parses the simulation output XML files into output population tables                                         | parse roads, generate plans, simulation         |
+| parse    | parcels    | parses the Maricopa parcel data from shapefiles into the parcels table                                       | parse regions                                   |
+| parse    | exposure   | parses the daymet data from nc4 files into temperatures and centroids tables                                 | -                                               |
+| generate | plans      | generates simulation input XML files from population tables                                                  | -                                               |
+| generate | config     | generate an XML config file for simulation from JSON config                                                  | -                                               |
+| generate | network    | generate an XML network file from OSM map file                                                               | -                                               |
+| generate | population | generate simulation population from ABM data and save the result as the agents, activitities and legs tables | parse population, parse parcels                 |
+| analyze  | exposure   | calculate exposure from output population and save back to output population tables                          | parse roads, parse exposure, parse events       |
+
+## Some Other Notes
+
+Some process will use temporary tables in the database file as intermediaries in the process of creating the final files and/or tables. These tables are named `temp_XXXXXXXXXXXXXX` where the X's are a large integer, which is generated by hashing a particular value to avoid possible collisions. If you name tables in such a manner, their is a chance (though very unlikely) that they may be deleted. Also, while all temporary tables are deleted after being used, if a process fails, there is a chance that the table remains; these tables can be deleted with no consequence.
