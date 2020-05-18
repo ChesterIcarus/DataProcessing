@@ -1,13 +1,14 @@
 
 import shapefile
 import logging as log
-
 from shapely.geometry import Polygon
 from shapely.wkt import dumps
 
+from icarus.util.sqlite import SqliteUtil
+
 
 class Regions:                
-    def __init__(self, database):
+    def __init__(self, database: SqliteUtil):
         self.database = database
 
 

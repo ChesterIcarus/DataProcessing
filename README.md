@@ -389,3 +389,19 @@ The exposure analysis tool uses the daymet temperature data and the results of t
 Results are saved back to the original output tables. Since updates in SQL are slow, it is actually much faster to create new temporary tables, drop the old ones and rename the new ones. The only side affect of this is that sqlite may change the schema slightly to reflect the simplified sqlite typing; this will have no fucntional affect on the database, and it can be readily changed if it is an issue.
 
 ## Some Other Notes
+
+### Running in Restrictive Environments
+
+If you need to run some of the python processes in a shared, restricted environment (such as the Agave servers), there is a good chance that you are not allowed to install software, which includes python packages. Since this project is run as a package itself, this can be problematic. The [stickytape](https://github.com/mwilliamson/stickytape) utility can be useful here to generate standalone scripts of modules that can be run as a single file instead of a set of interacting packages.
+
+Also, note that the current project is running as python 3.7, which is a relatively new version of python that may not be available in other environments. The project can be made compatible with python 3.6 by removing all usages of `__futures__` imports and all typing of classes to themselves (which will only occur in files with mentioned import). I have chosen to use this feature despite its compatibility issues with older python versions since I think typing provides clarity to code.
+
+Let me know if you need any help with the items described above or if you need help trying to get the scripts to work under other restrictions.
+
+### Temporary Tables
+
+Some modules create temporary tables in the process of manipulating data. These tables will have names prefixed with `temp_`. It would be best to avoid naming your own tables in the database with names of this format as these tables will be created and dropped without propting the user. Also, while processes usually cleanup their temporary tables, there is a chance that some remain if a process is cancelled or fails. Since all temporary tables are only relevant within a single process, these tables can deleted with no consequence.
+
+### Minimizing Storage
+
+A fullscale simulation processed from start to finish can be upwards of 7GB, not including the source data. If you have deleted large tables, you can benefit greatly by running the `vacuum` command on the database file, which will copy the database back into itself, removing unused space. Note that when it comes to compression, only the database can be significantly compressed (by a factor of a third); the remaining files are either already stored in a compressed format or too small to be considered significant in terms of storage.
