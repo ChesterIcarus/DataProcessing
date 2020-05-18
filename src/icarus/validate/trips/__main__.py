@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.validate.trips import Trips
+from icarus.validate.trips.trips import Trips
 from icarus.util.config import ConfigUtil
 from icarus.util.sqlite import SqliteUtil
 

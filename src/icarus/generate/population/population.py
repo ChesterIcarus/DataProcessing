@@ -7,7 +7,7 @@ from icarus.generate.population.subpopulation import Subpopulation
 from icarus.generate.population.trip import Trip
 from icarus.generate.population.party import Party
 from icarus.generate.population.agent import Agent, Leg
-from icarus.generate.population.types import Mode, ActivityType
+from icarus.generate.population.types import Mode, ActivityType, RouteMode
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.general import chunk
 
@@ -51,7 +51,7 @@ class Population:
                 mode VARCHAR(255),
                 party MEDIUMINT UNSIGNED,
                 start MEDIUMINT UNSIGNED,
-                stop MEDIUMINT UNSIGNED,
+                end MEDIUMINT UNSIGNED,
                 duration MEDIUMINT UNSIGNED
             );  ''')
         self.database.connection.commit()
@@ -99,8 +99,8 @@ class Population:
         self.database.connection.execute(query)
 
 
-    def fetch_count(self, table):
-        self.database.cursor.execute(f'SELECT COUNT(*) FROM {table};')
+    def fetch_max(self, table, column):
+        self.database.cursor.execute(f'SELECT MAX({column}) FROM {table};')
         return self.database.cursor.fetchall()[0][0]
 
     
@@ -124,7 +124,7 @@ class Population:
 
     def generate(self, modes=None, activity_types=None, seed=None):
         log.info('Loading process metadata.')
-        size = self.fetch_count('households')
+        size = self.fetch_max('households', 'hhid')
 
         if modes is None:
             modes = set(Mode)
@@ -145,12 +145,12 @@ class Population:
         log.info('Iterating over trips for each household.')
 
         def valid_party(party: Party) -> bool:
-            return party.driver is not None
+            return party.driver is not None or party.mode != RouteMode.CAR
 
         def valid_leg(leg: Leg) -> bool:
             distance = network.minimum_distance(leg.party.origin_group.maz, 
                 leg.party.dest_group.maz)
-            duration  = leg.end - leg.start
+            duration = leg.end - leg.start
             valid = False
             if duration > 0:
                 valid = distance / duration < leg.mode.route_mode().max_speed()
@@ -196,4 +196,3 @@ class Population:
 
         self.create_indexes()
         self.database.connection.commit()
-        

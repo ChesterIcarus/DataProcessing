@@ -18,7 +18,7 @@ class Parcels:
                 apn VARCHAR(255),
                 maz SMALLINT UNSIGNED,
                 type VARCHAR(255),
-                centroid VARCHAR(255),
+                center VARCHAR(255),
                 region TEXT
             );  '''
         self.database.cursor.execute(query)
@@ -90,10 +90,10 @@ class Parcels:
                     parcel_polygons[apn] = (maz, polygon)
                     count += 1
                     if count == n:
-                        log.info(f'Parsed boundary {count}.')
+                        log.info(f'Parsing boundary {count}.')
                         n <<= 1
         if count != n >> 1:
-            log.info(f'Parsed boundary {count}.')
+            log.info(f'Parsing boundary {count}.')
         
         log.info('Parsing residential parcels from database file.')
         count = 0
@@ -110,11 +110,11 @@ class Parcels:
                     dumps(parcel_polygons[apn][1])))
                 count += 1
                 if count == n:
-                    log.info(f'Parsed residential parcel {count}.')
+                    log.info(f'Parsing residential parcel {count}.')
                     n <<= 1
                 del parcel_polygons[apn]
         if count != n >> 1:
-            log.info(f'Parsed residential parcel {count}.')
+            log.info(f'Parsing residential parcel {count}.')
 
         log.info('Parsing commercial parcels from database file.')
         count = 0
@@ -131,11 +131,11 @@ class Parcels:
                     dumps(parcel_polygons[apn][1])))
                 count += 1
                 if count == n:
-                    log.info(f'Parsed commercial parcel {count}.')
+                    log.info(f'Parsing commercial parcel {count}.')
                     n <<=1
                 del parcel_polygons[apn]
         if count != n >> 1:
-            log.info(f'Parsed commercial parcel {count}.')
+            log.info(f'Parsing commercial parcel {count}.')
 
         log.info('Adding extraneous and default parcels.')
         for apn, polygon in parcel_polygons.items():

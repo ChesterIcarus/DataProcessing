@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.parse.exposure.exposure import Exposure
+from icarus.parse.abm.abm import Abm
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil
 
@@ -27,30 +27,29 @@ path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
 config = ConfigUtil.load_config(path('config.json'))
 
-log.info('Running daymet exposure parsing tool.')
+log.info('Running MAG ABM parsing tool.')
 log.info(f'Loading run data from {home}.')
 
 database = SqliteUtil(path('database.db'))
-exposure = Exposure(database)
+abm = Abm(database)
 
-tmin_files = config['network']['exposure']['tmin_files']
-tmax_files = config['network']['exposure']['tmax_files']
-day = config['network']['exposure']['day']
-steps = config['network']['exposure']['steps']
+trips_file = config['population']['trips_file']
+persons_file = config['population']['persons_file']
+households_file = config['population']['households_file']
 
-if not exposure.ready(tmin_files, tmax_files):
+if not abm.ready():
     log.warning('Dependent data not parsed or generated.')
     exit(1)
-elif exposure.complete():
-    log.warning('Exposure data already parsed. Would you like to replace it? [Y/n]')
+elif abm.complete():
+    log.warning('Population data already parsed. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
-        log.info('User chose to keep existing exposure data; exiting parsing tool.')
+        log.info('User chose to keep existing population data; exiting parsing tool.')
         exit()
 
 try:
-    log.info('Starting exposure parsing.')
-    exposure.parse(tmin_files, tmax_files, steps, day)
+    log.info('Starting population parsing.')
+    abm.parse(trips_file, households_file, persons_file)
 except:
-    log.exception('Critical error while parsing exposure; '
+    log.exception('Critical error while parsing population; '
         'terminating process and exiting.')
     exit(1)

@@ -201,7 +201,7 @@ class Roads:
                     points[node_id] = point
                     count += 1
                     if count == n:
-                        log.info(f'Parsed node {count}.')
+                        log.info(f'Parsing node {count}.')
                         n <<= 1
                 elif elem.tag == 'link':
                     source_node = str(elem.get('from'))
@@ -220,13 +220,13 @@ class Roads:
                         dumps(line) ))
                     count += 1
                     if count == n:
-                        log.info(f'Parsed link {count}.')
+                        log.info(f'Parsing link {count}.')
                         n <<= 1
                     if count % 100000:
                         root.clear()
 
         if count != n << 1:
-            log.info(f'Parsed link {count}.')
+            log.info(f'Parsing link {count}.')
         network.close() 
 
         log.info('Writing parsed links and nodes to database.')
