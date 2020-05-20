@@ -3,8 +3,10 @@ import csv
 import logging as log
 
 from icarus.util.sqlite import SqliteUtil
+from icarus.util.file import multiopen
 
-class Population:
+
+class Abm:
     def __init__(self, database: SqliteUtil):
         self.database = database
 
@@ -118,7 +120,7 @@ class Population:
     
 
     def load_trips(self, trips_file):
-        open_file = open(trips_file, 'r')
+        open_file = multiopen(trips_file, 'rt')
         trips = csv.reader(open_file, delimiter=',', quotechar='"')
         next(trips)
 
@@ -130,15 +132,15 @@ class Population:
                 [int(t) for t in trip[7:15]] + [float(t) for t in trip[15:18]]
             count += 1
             if count == n:
-                log.info(f'Parsed trip {count}.')
+                log.info(f'Parsing trip {count}.')
                 n <<= 1
         if count != n << 1:
-            log.info(f'Parsed trip {count}.')
+            log.info(f'Parsing trip {count}.')
         open_file.close()
 
 
     def load_households(self, households_file):
-        open_file = open(households_file, 'r')
+        open_file = multiopen(households_file, 'rt')
         households = csv.reader(open_file, delimiter=',', quotechar='"')
         next(households)
 
@@ -150,15 +152,15 @@ class Population:
                 [int(h) for h in household[3:17]]
             count += 1
             if count == n:
-                log.info(f'Parsed household {count}.')
+                log.info(f'Parsing household {count}.')
                 n <<= 1
         if count != n << 1:
-            log.info(f'Parsed household {count}.')
+            log.info(f'Parsing household {count}.')
         open_file.close()
 
 
     def load_persons(self, persons_file):
-        open_file = open(persons_file, 'r')
+        open_file = multiopen(persons_file, 'rt')
         persons = csv.reader(open_file, delimiter=',', quotechar='"')
         next(persons)
 
@@ -171,10 +173,10 @@ class Population:
                 [int(p) for p in person[19:37]] + [person[37]] + [int(person[38])]
             count += 1
             if count == n:
-                log.info(f'Parsed person {count}.')
+                log.info(f'Parsing person {count}.')
                 n <<= 1
         if count != n << 1:
-            log.info(f'Parsed person {count}.')
+            log.info(f'Parsing person {count}.')
         open_file.close()
 
     
@@ -193,13 +195,13 @@ class Population:
 
         log.info('Parsing households.')
         households = self.load_households(households_file)
-        self.database.insert_values('households', households, 39)
+        self.database.insert_values('households', households, 17)
         self.database.connection.commit()
         del households
 
         log.info('Parsing persons.')
         persons = self.load_persons(persons_file)
-        self.database.insert_values('persons', persons, 17)
+        self.database.insert_values('persons', persons, 39)
         self.database.connection.commit()
         del persons
 

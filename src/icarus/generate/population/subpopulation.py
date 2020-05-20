@@ -1,10 +1,12 @@
 
 from typing import Dict, Callable, Iterator
+
 from icarus.generate.population.network import Network
 from icarus.generate.population.household import Household
 from icarus.generate.population.trip import Trip
 from icarus.generate.population.agent import Agent, Activity, Leg
 from icarus.util.general import defaultdict
+
 
 class Subpopulation:
     def __init__(self):
@@ -37,13 +39,16 @@ class Subpopulation:
             removed += household.filter(valid)
         return removed
 
+
     def clean(self):
         for household in self.households.values():
             household.clean()
 
+
     def identify(self):
         for household in self.households.values():
             household.identify()
+
 
     def export_agents(self) -> Iterator[Agent]:
         for household in self.households.values():
@@ -51,17 +56,20 @@ class Subpopulation:
             for agent in agents:
                 yield agent
 
+
     def export_activities(self) -> Iterator[Activity]:
         for household in self.households.values():
             activities = household.export_activities()
             for activity in activities:
                 yield activity
 
+
     def export_legs(self) -> Iterator[Leg]:
         for household in self.households.values():
             legs = household.export_legs()
             for leg in legs:
                 yield leg
+
 
     def assign_parcels(self, network: Network):
         for household in self.households.values():

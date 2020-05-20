@@ -42,9 +42,9 @@
         }
     },
     "population": {
-        "trips_file": "/home/benjamin/Documents/Icarus/data/source/abm/trips.csv",
-        "households_file": "/home/benjamin/Documents/Icarus/data/source/abm/households.csv",
-        "persons_file": "/home/benjamin/Documents/Icarus/data/source/abm/persons.csv",
+        "trips_file": "/home/benjamin/Documents/Icarus/data/source/abm/trips.csv.gz",
+        "households_file": "/home/benjamin/Documents/Icarus/data/source/abm/households.csv.gz",
+        "persons_file": "/home/benjamin/Documents/Icarus/data/source/abm/persons.csv.gz",
         "modes": [
             "bike",
             "car",

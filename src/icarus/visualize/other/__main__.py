@@ -3,8 +3,8 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.visualize.output_plans import OutputPlans
-from icarus.visualize.trips import Trips
+from icarus.visualize.other.output_plans import OutputPlans
+from icarus.visualize.other.trips import Trips
 from icarus.util.config import ConfigUtil
 from icarus.util.sqlite import SqliteUtil
 
@@ -27,6 +27,8 @@ log.basicConfig(
 path = lambda x: os.path.join(args.folder, x)
 config = ConfigUtil.load_config(path('config.json'))
 database = SqliteUtil(path('database.db'))
+
+os.makedirs(path('result'), exist_ok=True)
 
 charts = OutputPlans(database, args.folder)
 charts.chart(config['visualization']['charts'], error=True)

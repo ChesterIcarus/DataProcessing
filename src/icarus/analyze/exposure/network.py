@@ -78,31 +78,26 @@ class Network:
     def load_temperatures(self):
         log.info('Loading network daymet temperature data.')
         temperatures = counter(self.fetch_temperatures(), 'Loading temperature %s.')
-        for temperature in temperatures:
-            temperature_id = temperature[0]
-            value = temperature[1]
-            self.temperatures[temperature_id].append(value)
+        for temperature_id, _, temperature in temperatures:
+            self.temperatures[temperature_id].append(temperature)
         self.temperatures.lock()
 
 
     def load_centroids(self):
         log.info('Loading network daymet centroid data.')
         centroids = counter(self.fetch_centroids(), 'Loading centroid %s.')
-        for centroid in centroids:
-            centroid_id = centroid[0]
-            temperatures = self.temperatures[centroid[1]]
-            x, y = xy(centroid[2])
+        for centroid_id, temperature_id, center in centroids:
+            temperatures = self.temperatures[temperature_id]
+            x, y = xy(center)
             self.centroids[centroid_id] = Centroid(centroid_id, temperatures, x, y)
 
 
     def load_nodes(self):
         log.info('Loading network road node data.')
         nodes = counter(self.fetch_nodes(), 'Loading node %s.')
-        for node in nodes:
-            node_id = node[0]
-            maz = node[1]
-            centroid = self.centroids[node[2]]
-            x, y = xy(node[3])
+        for node_id, maz, centroid_id, point in nodes:
+            centroid = self.centroids[centroid_id]
+            x, y = xy(point)
             self.nodes[node_id] = Node(node_id, maz, centroid, x, y)
 
 

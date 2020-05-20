@@ -22,7 +22,7 @@ class Party:
         self.agents = set()
         self.driver = None
         self.vehicle = None
-        self.mode = None
+        self.mode: RouteMode = None
         self.id = None
 
 

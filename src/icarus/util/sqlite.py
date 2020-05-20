@@ -1,11 +1,13 @@
 
 import sqlite3
 import re
+import os
 
 
 class SqliteUtil:
-    def __init__(self, database):
+    def __init__(self, database, readonly=False):
         self.name = database
+        self.readonly = readonly
         self.connection = None
         self.cursor = None
         self.open()
@@ -14,7 +16,12 @@ class SqliteUtil:
     def open(self):
         if self.connection is not None:
             self.close()
-        self.connection = sqlite3.connect(self.name, timeout=30)
+        if self.readonly:
+            path = os.path.abspath(self.name)
+            uri = f'file:{path}?mode=ro'
+            self.connection = sqlite3.connect(uri, uri=True, timeout=30)
+        else: 
+            self.connection = sqlite3.connect(self.name, timeout=30)
         self.cursor = self.connection.cursor()
 
 

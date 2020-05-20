@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.parse.population.population import Population
+from icarus.parse.daymet.daymet import Daymet
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil
 
@@ -27,29 +27,30 @@ path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
 config = ConfigUtil.load_config(path('config.json'))
 
-log.info('Running maricopa parcel parsing tool.')
+log.info('Running daymet exposure parsing tool.')
 log.info(f'Loading run data from {home}.')
 
 database = SqliteUtil(path('database.db'))
-population = Population(database)
+daymet = Daymet(database)
 
-trips_file = config['population']['trips_file']
-persons_file = config['population']['persons_file']
-households_file = config['population']['households_file']
+tmin_files = config['network']['exposure']['tmin_files']
+tmax_files = config['network']['exposure']['tmax_files']
+day = config['network']['exposure']['day']
+steps = config['network']['exposure']['steps']
 
-if not population.ready():
+if not daymet.ready(tmin_files, tmax_files):
     log.warning('Dependent data not parsed or generated.')
     exit(1)
-elif population.complete():
-    log.warning('Parcel data already parsed. Would you like to replace it? [Y/n]')
+elif daymet.complete():
+    log.warning('Daymet data already parsed. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
-        log.info('User chose to keep existing parcel data; exiting parsing tool.')
+        log.info('User chose to keep existing daymet data; exiting parsing tool.')
         exit()
 
 try:
-    log.info('Starting parcel parsing.')
-    population.parse(trips_file, households_file, persons_file)
+    log.info('Starting daymet data parsing.')
+    daymet.parse(tmin_files, tmax_files, steps, day)
 except:
-    log.exception('Critical error while parsing parcels; '
+    log.exception('Critical error while parsing daymet data; '
         'terminating process and exiting.')
     exit(1)

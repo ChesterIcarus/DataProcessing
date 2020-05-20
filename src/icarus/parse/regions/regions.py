@@ -1,13 +1,14 @@
 
 import shapefile
 import logging as log
-
 from shapely.geometry import Polygon
 from shapely.wkt import dumps
 
+from icarus.util.sqlite import SqliteUtil
+
 
 class Regions:                
-    def __init__(self, database):
+    def __init__(self, database: SqliteUtil):
         self.database = database
 
 
@@ -16,7 +17,7 @@ class Regions:
             CREATE TABLE regions(
                 maz SMALLINT UNSIGNED,
                 taz SMALLINT UNSIGNED,
-                area FLAOT,
+                area FLOAT,
                 center VARCHAR(255),
                 region TEXT
             );  '''
@@ -67,11 +68,11 @@ class Regions:
 
             count += 1
             if count == n:
-                log.info(f'Parsed region {count}.')
+                log.info(f'Parsing region {count}.')
                 n <<= 1
 
         if count != n >> 1:
-                log.info(f'Parsed region {count}.')
+                log.info(f'Parsing region {count}.')
         
         log.info('Writing parsed regions to database.')
         self.database.insert_values('regions', regions, 5)

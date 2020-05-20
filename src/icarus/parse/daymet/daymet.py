@@ -10,7 +10,7 @@ from shapely.wkt import dumps
 from icarus.util.sqlite import SqliteUtil
 
 
-class Exposure:
+class Daymet:
     @staticmethod
     def iterpolation(tmin: float, tmax: float, tdawn: float, tpeak: float):
         return lambda t: (
@@ -121,14 +121,14 @@ class Exposure:
                         centroid_id += 1
 
                         if centroid_id == n:
-                            log.info(f'Parsed daymet centroid {centroid_id}.')
+                            log.info(f'Parsing daymet centroid {centroid_id}.')
                             n <<= 1
 
             tmaxnc.close()
             tminnc.close()
         
         if centroid_id != n >> 1:
-            log.info(f'Parsed daymet centroid {centroid_id}.')
+            log.info(f'Parsing daymet centroid {centroid_id}.')
 
         minx = min(pt[0] for pt in points)
         maxx = max(pt[0] for pt in points)

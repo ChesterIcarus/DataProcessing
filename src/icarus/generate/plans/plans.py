@@ -67,7 +67,6 @@ class Activity:
     
 
 
-
 class Plans:
     def __init__(self, database: SqliteUtil):
         self.database = database
@@ -126,7 +125,7 @@ class Plans:
                 activities.start,
                 activities.end,
                 activities.type,
-                parcels.centroid
+                parcels.center
             FROM activities
             INNER JOIN parcels
             USING(apn)
@@ -318,9 +317,4 @@ class Plans:
 
         log.info('Cleaning up.')
         self.delete_sample()
-
-
-        
-
-
 
