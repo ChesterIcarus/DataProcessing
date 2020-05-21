@@ -1,7 +1,7 @@
 
 import logging as log
 from itertools import chain
-from typing import Tuple
+from typing import Tuple, List
 
 from icarus.parse.events.activity import Activity
 from icarus.parse.events.leg import Leg
@@ -16,8 +16,8 @@ class Agent:
     
     def __init__(self, uuid):
         self.id = uuid
-        self.activities = []
-        self.legs = []
+        self.activities: List[Activity] = []
+        self.legs: List[Leg] = []
         self.routes = {}
         self.leg_count = 0
         self.act_count = 0
@@ -34,7 +34,7 @@ class Agent:
     
     def export_activities(self):
         activities = tuple((
-            Activity.activities[self.id][idx + self.act_count],
+            Activity.activities[self.id][idx],
             self.id,
             idx,
             activity.activity_type.name.lower(),
@@ -43,7 +43,7 @@ class Agent:
             activity.end_time,
             activity.end_time - activity.start_time,
             None
-        ) for idx, activity in enumerate(self.activities))
+        ) for idx, activity in enumerate(self.activities, start=self.act_count))
         self.act_count += len(self.activities)
         self.activities = []
         return activities
@@ -51,7 +51,7 @@ class Agent:
     
     def export_legs(self):
         legs =  tuple((
-            Leg.legs[self.id][idx + self.leg_count],
+            Leg.legs[self.id][idx],
             self.id,
             idx,
             leg.mode.string(),
@@ -59,7 +59,7 @@ class Agent:
             leg.end_time,
             leg.end_time - leg.start_time,
             None
-        ) for idx, leg in enumerate(self.legs))
+        ) for idx, leg in enumerate(self.legs, start=self.leg_count))
         self.leg_count += len(self.legs)
         self.legs = []
         return legs
@@ -67,7 +67,7 @@ class Agent:
 
     def export_events(self):
         events = chain(*(leg.export_events(self.id, idx) 
-            for idx, leg in enumerate(self.legs)))
+            for idx, leg in enumerate(self.legs, start=self.leg_count)))
         return events
 
 

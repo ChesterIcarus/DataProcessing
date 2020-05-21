@@ -4,6 +4,9 @@ scipy
 shapely
 geopandas
 stickytape
-ray
-osmx
 networkx
+rtree
+pyshp
+netCDF4
+pyproj
+seaborn

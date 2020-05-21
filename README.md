@@ -3,16 +3,41 @@
 
 ## About
 
-## Building
+This repository is a collection of python scripts designed to prepare the MAG ABM dataset to be simulated in MATSim and analyze the results of said simulation with exposure data.
 
-This project is organized as a python package. Clone this repository and then install it using pip. Also see the requirements file for additional dependencies that may be needed to run certain modules.
+- [Installation](#Installation)
+- [Project Structure](#Project\ Structure)
+  - [Files](#Files)
+  - [Tables](#Tables)
+- [Running](#Running)
+  - [Dependencies](#Dependencies)
+  - [Descriptions](#Descriptions)
+- [Notes](#Notes)
+
+## Installation
+
+This project is a python package and will require several other packages to function. I highly recommend using Anaconda to manage you python environments, and my instructions for installation will assume are doing so. First create an python 3.7 conda environment for the project and activate it:
 
 ```bash
-    git clone https://github.com/ChesterIcarus/DataProcessing.git
-    pip install DataProcessing
+    conda create --name icarus python=3.7
+    conda activate icarus
 ```
 
-Note that there exists more dependencies beyond those in python installed by pip. All source data and helper programs will need to obtained and linked to in the configuration folder.
+Then you will need to install this project manually as a python package. Clone this repository using git and then install it using pip:
+
+```bash
+    git clone https://github.com/ChesterIcarus/DataProcessing.git /path/to/save/repository
+    pip install /path/to/save/repository
+```
+
+Lastly you will need to install all the dependent python packages. The pip dependencies are listed in `requirements.txt` and the conda dependencies need to be specified manually:
+
+```bash
+    pip install -r /path/to/save/repository/requirements.txt
+    conda install -c conda-forge libspatialindex=1.9.3
+```
+
+You will also need to obtain the JARs for MATSim, pt2matsim and osmosis as well as all the source data that will be used in the project. Where these are downloaded is not relevant as long as the configuration file (see below) accurately describes where to find them.
 
 ## Project Structure
 
@@ -231,29 +256,14 @@ The `--folder` argument is used to specify the location of the folder that the r
 
 Most commands do not take additional arguements to control the nature of the process's execution. The master configuration file (see above in files) should have all the settings that can be set for each process.
 
-### Dependency Diagram
+### Dependencies
+
+The rounded boxes represent processes, which have input (arrows pointing towards) and output (arrows pointing away) data. The squared boxes represent data, which can be an input to (arrows pointing away) and ouput of (arrows pointing towards) processes. Green and purple boxes represent python and java process respectively while red and blue boxes represent xml files and sql tables respectively.
 
 ![dependency diagram](https://github.com/ChesterIcarus/DataProcessing/blob/dev/docs/dependencies.png)
 
-### Description Chart
 
-Chart rework in progress.
-
-<!-- | action   | item       | description                                                                                                  | dependencies                                    |
-|----------|------------|--------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
-| parse    | population | parses the ABM data from CSV into the trips, households and persons tables                                   | -                                               |
-| parse    | regions    | parses MAZ region data from shapefiles into the regions table                                                | -                                               |
-| parse    | roads      | parses the network file from XML into the links and nodes tables                                             | generate network, parse exposure, parse regions |
-| parse    | events     | parses the simulation output XML files into output population tables                                         | parse roads, generate plans, simulation         |
-| parse    | parcels    | parses the Maricopa parcel data from shapefiles into the parcels table                                       | parse regions                                   |
-| parse    | exposure   | parses the daymet data from nc4 files into temperatures and centroids tables                                 | -                                               |
-| generate | plans      | generates simulation input XML files from population tables                                                  | -                                               |
-| generate | config     | generate an XML config file for simulation from JSON config                                                  | -                                               |
-| generate | network    | generate an XML network file from OSM map file                                                               | -                                               |
-| generate | population | generate simulation population from ABM data and save the result as the agents, activitities and legs tables | parse population, parse parcels                 |
-| analyze  | exposure   | calculate exposure from output population and save back to output population tables                          | parse roads, parse exposure, parse events       | -->
-
-### Detailed Explanataions
+### Descriptions
 
 #### parse daymet
 
@@ -308,8 +318,7 @@ def valid_party(party: Party) -> bool:
     return party.driver is not None or party.mode != RouteMode.CAR
 
 def valid_leg(leg: Leg) -> bool:
-    distance = network.minimum_distance(leg.party.origin_group.maz,
-        leg.party.dest_group.maz)
+    distance = network.minimum_distance(leg.party.origin_group.maz, leg.party.dest_group.maz)
     duration = leg.end - leg.start
     valid = False
     if duration > 0:
@@ -368,7 +377,7 @@ run_xx_xx_xx/
 
 where the output directory will be where the simulation outputs the simulation (assuming that the simulation is started from this working directory). You will notice that this reflects the project structure well, so the simulation can be run from the project directory with ease. If the simulation is run elsewhere, just zip the input folder and bring it along with the MATSim JAR. If you change the file structure, you may need to modify the paths in the XML config file.
 
-Note that unless you are debuggin the simulation with it, `output/ITERS/` can be deleted. This folder can be very large, especially if the simulatin was run for many iterations, so deleting it can save a lot of space and transfer time.
+Note that unless you are debuging the simulation with it, `output/ITERS/` can be deleted. This folder can be very large, especially if the simulatin was run for many iterations, so deleting it can save a lot of space and transfer time.
 
 #### parse events
 
@@ -388,7 +397,7 @@ The exposure analysis tool uses the daymet temperature data and the results of t
 
 Results are saved back to the original output tables. Since updates in SQL are slow, it is actually much faster to create new temporary tables, drop the old ones and rename the new ones. The only side affect of this is that sqlite may change the schema slightly to reflect the simplified sqlite typing; this will have no fucntional affect on the database, and it can be readily changed if it is an issue.
 
-## Some Other Notes
+## Notes
 
 ### Running in Restrictive Environments
 
