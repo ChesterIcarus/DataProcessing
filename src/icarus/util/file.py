@@ -14,7 +14,7 @@ def multiopen(filepath, mode='rt', **kwargs):
     return data
 
 
-def touch(filepath, recurse=False):
+def touch(filepath):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, 'w'):
         pass
@@ -28,7 +28,7 @@ def readable(filepath):
     return os.access(filepath, os.R_OK)
 
 
-def writable(self, filepath):
+def writable(filepath):
     write = False
     if exists(filepath):
         if os.path.isfile(filepath):
@@ -46,17 +46,19 @@ def format_xml(source, target=None):
         targetfile = tempfile.NamedTemporaryFile(suffix='xml', delete=False)
         target = targetfile.name
         targetfile.close()
-        subprocess.run(f'xmllint --format {source} > {target}', shell=True)
-        subprocess.run(('mv', target, source), shell=False)
+        subprocess.run(f'xmllint --format {source} > {target}',
+            shell=True, check=True)
+        subprocess.run(('mv', target, source), shell=False, check=True)
     else:
-        subprocess.run(f'xmllint --format {source} > {target}', shell=True)
+        subprocess.run(f'xmllint --format {source} > {target}', 
+            shell=True, check=True)
 
 
 def resource(self, package, resource, error=False):
     res = None
     try:
         module = os.path.dirname(sys.modules[package].__file__)
-        return os.path.join(module, resource)
+        res = os.path.join(module, resource)
     except Exception:
         if error:
             raise FileNotFoundError

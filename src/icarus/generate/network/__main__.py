@@ -30,22 +30,12 @@ config = ConfigUtil.load_config(path('config.json'))
 log.info('Running network generation tool.')
 log.info(f'Loading run data from {home}.')
 
-database = SqliteUtil(path('database.db'))
-population = Network(home)
-
-
-osm = config['network']['roads']['osm_file']
-schedule = config['network']['roads']['schedule_dir']
-osmosis = config['network']['roads']['osmosis']
-pt2matsim = config['network']['roads']['pt2matsim']
-region = config['network']['roads']['region']
-epsg = config['network']['epsg']
-
+population = Network()
 
 if not population.ready():
     log.warning('Dependent data not parsed or generated; see warnings for details.')
     exit(1)
-elif population.complete():
+elif population.complete(home):
     log.warning('Network already generated. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
         log.info('User chose to keep existing network; exiting generation tool.')
@@ -53,10 +43,8 @@ elif population.complete():
 
 try:
     log.info('Starting network generation.')
-    population.generate(osm, schedule, region, epsg, pt2matsim, osmosis)
+    population.generate(args.folder, config['network'], config['resources'])
 except:
     log.exception('Critical error while generating network; '
         'terminating process and exiting.')
     exit(1)
-
-database.close()

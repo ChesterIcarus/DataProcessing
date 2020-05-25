@@ -39,10 +39,10 @@ day = config['network']['exposure']['day']
 steps = config['network']['exposure']['steps']
 
 if not daymet.ready(tmin_files, tmax_files):
-    log.warning('Dependent data not parsed or generated.')
+    log.error('Dependent data not parsed or generated; see warnings.')
     exit(1)
 elif daymet.complete():
-    log.warning('Daymet data already parsed. Would you like to replace it? [Y/n]')
+    log.warn('Daymet data already parsed. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
         log.info('User chose to keep existing daymet data; exiting parsing tool.')
         exit()

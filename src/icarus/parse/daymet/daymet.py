@@ -8,6 +8,7 @@ from shapely.geometry import Polygon, Point
 from shapely.wkt import dumps
 
 from icarus.util.sqlite import SqliteUtil
+from icarus.util.file import exists
 
 
 class Daymet:
@@ -39,7 +40,7 @@ class Daymet:
             CREATE TABLE temperatures(
                 temperature_id MEDIUMINT UNSIGNED,
                 temperature_idx TINYINT UNSIGNED,
-                time MEDIUMINT UNSIGNED UNSIGNED,
+                time MEDIUMINT UNSIGNED,
                 temperature FLOAT
             );  ''')
         self.database.connection.commit()
@@ -58,7 +59,12 @@ class Daymet:
 
 
     def ready(self, tmin_files, tmax_files):
-        return True
+        ready = True
+        for netcdf_file in tmin_files + tmax_files:
+            if not exists(netcdf_file):
+                log.warn(f'Could not find file {netcdf_file}.')
+                ready = False
+        return ready
 
 
     def complete(self):

@@ -3,7 +3,7 @@ import csv
 import logging as log
 
 from icarus.util.sqlite import SqliteUtil
-from icarus.util.file import multiopen
+from icarus.util.file import multiopen, exists
 
 
 class Abm:
@@ -180,8 +180,14 @@ class Abm:
         open_file.close()
 
     
-    def ready(self):
-        return True
+    def ready(self, trips_file, households_file, persons_file):
+        ready = True
+        abm_files = (trips_file, households_file, persons_file)
+        for abm_file in abm_files:
+            if not exists(trips_file):
+                log.warn(f'Could not find file {abm_file}.')
+                ready = False
+        return ready
 
     
     def complete(self):

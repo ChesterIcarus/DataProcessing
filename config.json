@@ -1,6 +1,7 @@
 {
     "network": {
         "epsg": 2223,
+        "units": "feet",
         "exposure": {
             "tmax_files": [
                 "/home/benjamin/Documents/Icarus/data/source/daymet/tmax_11014.nc",
@@ -29,7 +30,40 @@
                 [ -0.110917969E+03, 0.33993473E+02 ],
                 [ -0.110917969E+03, 0.32623183E+02 ],
                 [ -0.113054810E+03, 0.32623183E+02 ]
-            ]
+            ],
+            "highways": {
+                "motorway":         [ "car" ],
+                "motorway_link":    [ "car" ],
+                "trunk":            [ "car", "bike" ],
+                "trunk_link":       [ "car", "bike" ],
+                "primary":          [ "car", "bike", "walk" ],
+                "primary_link":     [ "car", "bike", "walk" ],
+                "secondary":        [ "car", "bike", "walk" ],
+                "secondary_link":   [ "car", "bike", "walk" ],
+                "tertiary":         [ "car", "bike", "walk" ],
+                "tertiary_link":    [ "car", "bike", "walk" ],
+                "unclassified":     [ "car", "bike", "walk" ],
+                "residential":      [ "car", "bike", "walk" ],
+                "living_street":    [ "car", "bike", "walk" ],
+                "pedestrian":       [ "bike", "walk" ],
+                "footway":          [ "bike", "walk" ],
+                "path":             [ "bike", "walk" ],
+                "steps":            [ "walk" ]
+            },
+            "railways": {
+                "rail":             [ "rail" ],
+                "tram":             [ "rail" ],
+                "light_rail":       [ "rail" ]
+            },
+            "subnetworks": {
+                "car":      [ "car" ],
+                "bus":      [ "car", "bus" ],
+                "bike":     [ "bike" ],
+                "walk":     [ "walk", "netwalk", "ptwalk" ],
+                "netwalk":  [ "walk", "netwalk", "ptwalk" ],
+                "ptwalk":   [ "walk", "netwalk", "ptwalk" ],
+                "rail":     [ "rail" ]
+            }
         },
         "regions": {
             "region_file": "/home/benjamin/Documents/Icarus/data/source/maz_taz/maz_taz.shp"
@@ -73,8 +107,8 @@
         "seed": null
     },
     "resources": {
-        "memory": 16,
-        "cores": 8
+        "memory": "6000M",
+        "cores": 4
     },
     "simulation": {
         "iterations": 10,
