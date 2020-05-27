@@ -8,7 +8,7 @@ from shapely.geometry import Point
 from shapely.wkt import dumps
 
 from icarus.generate.network.config import Config
-from icarus.util.file import multiopen
+from icarus.util.file import multiopen, exists
 from icarus.util.sqlite import SqliteUtil
 
 
@@ -17,8 +17,24 @@ class Network:
         pass
 
     
-    def ready(self):
-        return True
+    def ready(self, network):
+        ready = True
+        schedule_files = ('agency.txt', 'calendar_dates.txt', 'calendar.txt',
+            'frequencies.txt', 'routes.txt', 'shapes.txt', 'stops.txt',
+            'stop_times.txt', 'transfers.txt', 'trips.txt')
+        pathjoin = lambda x: os.path.join(network['roads']['schedule_dir'], x)
+        schedule_files = tuple(map(pathjoin, schedule_files))
+        network_files = (
+            network['roads']['osm_file'],
+            network['roads']['osmosis'],
+            network['roads']['pt2matsim'],
+            *schedule_files
+        )
+        for network_file in network_files:
+            if not exists(network_file):
+                log.warn(f'Could not find files {network_file}.')
+                ready = False
+        return ready
 
     
     def complete(self, folder):

@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.generate.network.network import Network
+from icarus.generate.config.config import Config
 from icarus.util.config import ConfigUtil
 from icarus.util.sqlite import SqliteUtil
 
@@ -27,24 +27,24 @@ path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
 config = ConfigUtil.load_config(path('config.json'))
 
-log.info('Running network generation tool.')
+log.info('Running config generation tool.')
 log.info(f'Loading run data from {home}.')
 
-population = Network()
+configurator = Config()
 
-if not population.ready(config['network']):
+if not configurator.ready():
     log.error('Dependent data not parsed or generated; see warnings for details.')
     exit(1)
-elif population.complete(home):
-    log.warning('Network already generated. Would you like to replace it? [Y/n]')
+elif configurator.complete(args.folder):
+    log.warning('Config already generated. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
-        log.info('User chose to keep existing network; exiting generation tool.')
+        log.info('User chose to keep existing config; exiting generation tool.')
         exit()
 
 try:
-    log.info('Starting network generation.')
-    population.generate(args.folder, config['network'], config['resources'])
+    log.info('Starting config generation.')
+    configurator.generate(args.folder, config)
 except:
-    log.exception('Critical error while generating network; '
+    log.exception('Critical error while generating config; '
         'terminating process and exiting.')
     exit(1)

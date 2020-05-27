@@ -258,7 +258,7 @@ The `nodes` table expresses most the information that can be understood from the
 Once the repository has been installed using pip, various processes can be run using the following command structure:
 
 ```bash
-    python -m icarus.[action].[item] [--folder /path/to/folder] [--log /path/to/logfile]
+python -m icarus.[action].[item] [--folder /path/to/folder] [--log /path/to/logfile]
 ```
 
 The `--folder` argument is used to specify the location of the folder that the run data is in; without it it is assumed that the working directory is the location of the data. If the folder in question is missing important data, the process will most likely fail. The `--log` argument will save the log printed to the terminal to the filepath specified. The log will still be printed, but it will also be copied to the specified file.
@@ -347,11 +347,13 @@ def valid_leg(leg: Leg) -> bool:
     return valid
 
 def valid_agent(agent: Agent) -> bool:
-    return (agent.modes.issubset(modes)
+    return (
+        agent.modes.issubset(modes)
         and agent.activity_types.issubset(activity_types)
         and agent.mazs.issubset(network.mazs)
         and all(valid_party(party) for party in agent.parties)
-        and all(valid_leg(leg) for leg in agent.legs))
+        and all(valid_leg(leg) for leg in agent.legs)
+    )
 ```
 
 When an agent is invalid, all agents that are recursively dependent on the agnet need to be removed also. Dependednts are the agents who are part of parties in which the agent is the driver for. Theoretically, an agent being removed could set off a massive chain of dependent removals, but for the most part dependents tend to be young family members. The effect of recursively removing agents is only significant when modes are constricted considerably.
@@ -366,7 +368,9 @@ The chosen plans are formatted to the MATSim [plans file specifications (v4)](ht
 
 #### generate config
 
-This is not implemented yet. For now you will need to copy a provided MATSim configuration file and modify it accordingly when the JSON configuration file used by all the other modules.
+The MATSim simulation takes a fairly long and complex XML config file to describe and control the nature of the simulation. This process will read the project configuration file and produce a MATSim configuration file and save it at `input/config.xml`.
+
+While I have made a process that reproduces my given config using variables from the project config file, there are many other variables in the MATSim configuration that could be tweaksed that aren't accessible through this tool. Also, since simulations are rather complicated and many types exist, I was not able to thoroughly test the reliability of this tool under different simulation configurations. If you struggle to get you config to work correctly or need to change something not explicitly clear in the project confi, please contact me (it's not worth stressing over the MATSim doucmentation).
 
 #### simulation
 
@@ -414,7 +418,7 @@ The fourth step is expensive as the events file is enormous and a lot of data is
 
 The exposure analysis tool uses the daymet temperature data and the results of the simulation to calculate agent exposure at an event level, when possible. If event level data is not available for a particular route, the temperature at the link of the starting activity is used. Some travel is air conditioned, so indoor temperatures are used for exposure. The exposure analysis tool will load the network data from database and then iteratively calculate the exposure for each agent in batches of 100k agents. Since the events and exposure parsing tools have already done most of the heavy lifting in parsing, the exposure tool is actually quite quick.
 
-Results are saved back to the original output tables. Since updates in SQL are slow, it is actually much faster to create new temporary tables, drop the old ones and rename the new ones. The only side affect of this is that sqlite may change the schema slightly to reflect the simplified sqlite typing; this will have no fucntional affect on the database, and it can be readily changed if it is an issue.
+Results are saved back to the original output tables. Since updates in SQL are slow, it is actually much faster to create new temporary tables, drop the old ones and rename the new ones. The only side affect of this is that sqlite may change the schema slightly to reflect the simplified sqlite typing; this will have no functional affect on the database, and it can be readily changed if it is an issue. Since large tables are being created and dropped (and can be done so repeatedly if running multiple exposure analysis runs), it may be worth seeing the [storage remark](#minimizing-storage) in the notes section.
 
 ## Notes
 
@@ -432,4 +436,4 @@ Some modules create temporary tables in the process of manipulating data. These 
 
 ### Minimizing Storage
 
-A fullscale simulation processed from start to finish can be upwards of 7GB, not including the source data. If you have deleted large tables, you can benefit greatly by running the `vacuum` command on the database file, which will copy the database back into itself, removing unused space. Note that when it comes to compression, only the database can be significantly compressed (by a factor of a third); the remaining files are either already stored in a compressed format or too small to be considered significant in terms of storage.
+A fullscale simulation processed from start to finish can be upwards of 7GB, not including the source data. If you have deleted large tables, you can benefit greatly by running the `vacuum` command on the database file, which will copy the database back into itself, removing unused space. Note that when it comes to compression, only the database can be significantly compressed (by about a factor of a third); the remaining files are either already stored in a compressed format or too small to be considered significant in the greater scope.

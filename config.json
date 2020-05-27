@@ -121,6 +121,7 @@
             "walk": null,
             "party": null
         },
+        "transit": false,
         "modes": {
             "networked": [],
             "routed": [
