@@ -1,8 +1,13 @@
 from setuptools import setup
 from setuptools import find_packages
 
-with open('README.md', 'r') as fh:
-    long_description = fh.read()
+with open('README.md', 'r') as readme:
+    long_description = readme.read()
+
+with open('requirements.txt', 'r') as requirements:
+    packages = requirements.readlines()
+    packages = [pkg.strip() for pkg in packages]
+     
 
 setup(
     name='icarus-simulation',
@@ -12,8 +17,9 @@ setup(
     description='simulation data processing for the Icarus project',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='',
+    url='https://github.com/ChesterIcarus/DataProcessing',
     packages=find_packages(where='src'),
+    install_requires=packages,
     package_dir={'': 'src'},
     include_package_data=True,
     classifiers=[

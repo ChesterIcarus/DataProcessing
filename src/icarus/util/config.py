@@ -5,7 +5,7 @@ import os
 
 import logging as log
 
-from icarus.util.filesys import FilesysUtil
+from icarus.util.file import exists, readable, writable
 
 
 class ConfigUtil:
@@ -206,15 +206,15 @@ class ConfigUtil:
             raise ValueError
 
         if 'file' in spec:
-            if spec['file'] == 'exists' and not FilesysUtil.file_exists(param):
+            if spec['file'] == 'exists' and not exists(param):
                 log.error(f'Parameter "{name}" expected to be an existing file '
                     'but file could not be found.')
                 raise ValueError
-            elif spec['file'] == 'readable' and not FilesysUtil.file_readable(param):
+            elif spec['file'] == 'readable' and not readable(param):
                 log.error(f'Parameter "{name}" expected to be an readable file '
                     'but file could not be read.')
                 raise ValueError
-            elif spec['file'] == 'writable' and not FilesysUtil.file_writable(param):
+            elif spec['file'] == 'writable' and not writable(param):
                 log.error(f'Parameter "{name}" expected to be an writable file '
                     'but file could not be written to.')
                 raise ValueError

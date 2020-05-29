@@ -3,9 +3,9 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.parse.daymet.daymet import Daymet
-from icarus.util.sqlite import SqliteUtil
+from icarus.generate.config.config import Config
 from icarus.util.config import ConfigUtil
+from icarus.util.sqlite import SqliteUtil
 
 parser = ArgumentParser()
 parser.add_argument('--folder', type=str, dest='folder', default='.')
@@ -27,30 +27,24 @@ path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
 config = ConfigUtil.load_config(path('config.json'))
 
-log.info('Running daymet exposure parsing tool.')
+log.info('Running config generation tool.')
 log.info(f'Loading run data from {home}.')
 
-database = SqliteUtil(path('database.db'))
-daymet = Daymet(database)
+configurator = Config()
 
-tmin_files = config['network']['exposure']['tmin_files']
-tmax_files = config['network']['exposure']['tmax_files']
-day = config['network']['exposure']['day']
-steps = config['network']['exposure']['steps']
-
-if not daymet.ready(tmin_files, tmax_files):
-    log.error('Dependent data not parsed or generated; see warnings.')
+if not configurator.ready():
+    log.error('Dependent data not parsed or generated; see warnings for details.')
     exit(1)
-elif daymet.complete():
-    log.warn('Daymet data already parsed. Would you like to replace it? [Y/n]')
+elif configurator.complete(args.folder):
+    log.warning('Config already generated. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
-        log.info('User chose to keep existing daymet data; exiting parsing tool.')
+        log.info('User chose to keep existing config; exiting generation tool.')
         exit()
 
 try:
-    log.info('Starting daymet data parsing.')
-    daymet.parse(tmin_files, tmax_files, steps, day)
+    log.info('Starting config generation.')
+    configurator.generate(args.folder, config)
 except:
-    log.exception('Critical error while parsing daymet data; '
+    log.exception('Critical error while generating config; '
         'terminating process and exiting.')
     exit(1)

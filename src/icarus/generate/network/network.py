@@ -7,99 +7,140 @@ from xml.etree.ElementTree import iterparse
 from shapely.geometry import Point
 from shapely.wkt import dumps
 
-from icarus.util.file import multiopen
+from icarus.generate.network.config import Config
+from icarus.util.file import multiopen, exists
 from icarus.util.sqlite import SqliteUtil
 
 
 class Network:
-    def __init__(self, folder: str):
-        self.folder = folder
-        self.path = lambda x: os.path.join(folder, x)
+    def __init__(self):
+        pass
 
     
-    def ready(self):
-        return True
+    def ready(self, network):
+        ready = True
+        schedule_files = ('agency.txt', 'calendar_dates.txt', 'calendar.txt',
+            'frequencies.txt', 'routes.txt', 'shapes.txt', 'stops.txt',
+            'stop_times.txt', 'transfers.txt', 'trips.txt')
+        pathjoin = lambda x: os.path.join(network['roads']['schedule_dir'], x)
+        schedule_files = tuple(map(pathjoin, schedule_files))
+        network_files = (
+            network['roads']['osm_file'],
+            network['roads']['osmosis'],
+            network['roads']['pt2matsim'],
+            *schedule_files
+        )
+        for network_file in network_files:
+            if not exists(network_file):
+                log.warn(f'Could not find files {network_file}.')
+                ready = False
+        return ready
 
     
-    def complete(self):
+    def complete(self, folder):
+        path = lambda x: os.path.join(folder, x)
         files = ('input/transitVehicles.xml.gz', 'input/transitSchedule.xml.gz', 
             'input/network.xml.gz')
         complete = False
         for f in files:
-            if os.path.exists(self.path(f)):
+            if os.path.exists(path(f)):
                 log.warn(f'Found file {f} already generated.')
                 complete = True
         return complete
 
 
-    def cleanup(self):
-        subprocess.run(('gzip', self.path('input/network.xml')), check=True)
-        subprocess.run(('gzip', self.path('input/transitSchedule.xml')), check=True)
-        subprocess.run(('gzip', self.path('input/transitVehicles.xml')), check=True)
-        subprocess.run(('rm', '-r', self.path('tmp/')), check=True)
+    def cleanup(self, folder):
+        path = lambda x: os.path.join(folder, x)
+        subprocess.run(('gzip', '-q', path('input/network.xml')), check=True)
+        subprocess.run(('gzip', '-q', path('input/transitSchedule.xml')), check=True)
+        subprocess.run(('gzip', '-q', path('input/transitVehicles.xml')), check=True)
+        subprocess.run(('rm', '-r', path('tmp/')), check=True)
 
 
-    def configure(self, region):
-        with open(self.path('config/trim.poly'), 'w') as f:
-            f.writelines(('network\n', 'first_area\n'))
-            f.writelines((f'{pt[0]}\t{pt[1]}\n' for pt in region))
-            f.writelines(('END\n', 'END\n'))
-
-
-    def map(self, pt2matsim):
+    def map(self, folder, pt2matsim, memory):
+        path = lambda x: os.path.join(folder, x)
         subprocess.run((
-            'java', '-Xms4G', '-Xmx6G', 
+            'java', f'-Xmx{memory}', 
             '-cp', pt2matsim, 'org.matsim.pt2matsim.run.PublicTransitMapper',
-            self.path('config/map.xml')), check=True)
+            path('config/map.xml')), check=True)
 
 
-    def transit(self, pt2matsim):
+    def transit(self, folder, pt2matsim, memory):
+        path = lambda x: os.path.join(folder, x)
+        config = path('config/transit.xml')
         subprocess.run((
-            'java', '-Xms4G', '-Xmx6G', 
+            'java', f'-Xmx{memory}', 
             '-cp', pt2matsim, 'org.matsim.pt2matsim.run.Osm2MultimodalNetwork',
-            self.path('config/transit.xml')), check=True)
+            config), check=True)
 
 
-    def schedule(self, pt2matsim, epsg, schedule):
+    def schedule(self, folder, pt2matsim, epsg, schedule, memory):
+        path = lambda x: os.path.join(folder, x)
         subprocess.run((
-            'java', '-Xms4G', '-Xmx6G', 
+            'java', f'-Xmx{memory}', 
             '-cp', pt2matsim, 'org.matsim.pt2matsim.run.Gtfs2TransitSchedule',
             schedule, 'dayWithMostServices', f'EPSG:{epsg}', 
-            self.path('tmp/schedule.xml'), 
-            self.path('input/transitVehicles.xml')), 
-            check=True)
+            path('tmp/schedule.xml'), 
+            path('input/transitVehicles.xml')), check=True)
     
 
-    def trim(self, osmosis, osm):
+    def trim(self, folder, osmosis, pbf, threads):
+        path = lambda x: os.path.join(folder, x)
+        config = path('config/trim.poly')
+        osm = path('tmp/network.osm')
         subprocess.run((
             osmosis, 
-            '--read-pbf-fast', 'workers=4', f'file={osm}', 
-            '--bounding-polygon', 'file=' + self.path('config/trim.poly'), 
+            '--read-pbf-fast', f'workers={threads}', f'file={pbf}', 
+            '--bounding-polygon', f'file={config}', 
             '--tag-filter', 'accept-ways', 'highway=*', 'railway=*', 
             '--tag-filter', 'reject-relations',
             '--used-node', 
-            '--write-xml', self.path('tmp/network.osm')), check=True)
+            '--write-xml', osm), check=True)
 
 
-    def generate(self, osm, schedule, region, epsg, pt2matsim, osmosis):
-        os.makedirs(self.path('tmp'), exist_ok=True)
-        os.makedirs(self.path('input'), exist_ok=True)
-        os.makedirs(self.path('config'), exist_ok=True)
+    def generate(self, folder, network, resources):
+        path = lambda x: os.path.join(folder, x)
+        os.makedirs(path('tmp'), exist_ok=True)
+        os.makedirs(path('input'), exist_ok=True)
+        os.makedirs(path('config'), exist_ok=True)
 
         log.info('Generating network configuration files.')
-        self.configure(region)
+        Config.configure_trim(folder, network['roads']['region'])
+        Config.config_map(folder, network['roads']['subnetworks'])
+        Config.configure_transit(
+            folder,
+            network['epsg'],
+            network['units'],
+            network['roads']['highways'],
+            network['roads']['railways'],
+            network['roads']['subnetworks'])
 
         log.info('Trimming pbf to selected region.')
-        self.trim(osmosis, osm)
+        self.trim(
+            folder,
+            network['roads']['osmosis'],
+            network['roads']['osm_file'],
+            resources['cores'])
         
         log.info('Extracting transit schedule from Valley Metro data.')
-        self.schedule(pt2matsim, epsg, schedule)
+        self.schedule(
+            folder,
+            network['roads']['pt2matsim'], 
+            network['epsg'], 
+            network['roads']['schedule_dir'],
+            resources['memory'])
 
         log.info('Generating multimodial network .')
-        self.transit(pt2matsim)
+        self.transit(
+            folder,
+            network['roads']['pt2matsim'],
+            resources['memory'])
 
         log.info('Mapping transit routes/schedules onto network.')
-        self.map(pt2matsim)
+        self.map(
+            folder,
+            network['roads']['pt2matsim'],
+            resources['memory'])
 
         log.info('Cleaning up.')
-        self.cleanup()
+        self.cleanup(folder)

@@ -37,8 +37,8 @@ residence_file = config['network']['parcels']['residence_file']
 commerce_file = config['network']['parcels']['commerce_file']
 parcel_file = config['network']['parcels']['parcel_file']
 
-if not parcels.ready():
-    log.warning('Dependent data not parsed or generated.')
+if not parcels.ready(residence_file, commerce_file, parcel_file):
+    log.error('Dependent data not parsed or generated; see warnings.')
     exit(1)
 elif parcels.complete():
     log.warning('Parcel data already parsed. Would you like to replace it? [Y/n]')

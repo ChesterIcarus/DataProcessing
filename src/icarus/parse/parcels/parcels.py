@@ -5,6 +5,8 @@ from shapely.geometry import Point, Polygon
 from shapely.strtree import STRtree
 from shapely.wkt import loads, dumps
 
+from icarus.util.file import exists
+
 
 class Parcels:
     def __init__(self, database):
@@ -37,13 +39,20 @@ class Parcels:
         self.database.connection.commit()
 
     
-    def ready(self):
+    def ready(self, residence_file, commerce_file, parcel_file):
+        ready = True
         tables = ('regions',)
-        exists = self.database.table_exists(*tables)
+        present = self.database.table_exists(*tables)
         if len(exists) < len(tables):
-            missing = ', '.join(set(tables) - set(exists))
+            missing = ', '.join(set(tables) - set(present))
             log.info(f'Could not find tables {missing} in database.')
-        return len(exists) == len(tables)
+            ready = False
+        parcel_files = (residence_file, commerce_file, parcel_file)
+        for parcel_file in parcel_files:
+            if not exists(parcel_file):
+                log.warn(f'Could not find file {parcel_file}.')
+                ready = False
+        return ready
 
 
     def complete(self):

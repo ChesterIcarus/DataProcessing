@@ -3,20 +3,52 @@
 
 ## About
 
-## Building
+This repository is a collection of python scripts designed to prepare the MAG ABM dataset to be simulated in MATSim and analyze the results of said simulation with exposure data.
 
-This project is organized as a python package. Clone this repository and then install it using pip. Also see the requirements file for additional dependencies that may be needed to run certain modules.
+- [Installation](#installation)
+- [Project Structure](#project-structure)
+  - [Files](#files)
+  - [Tables](#tables)
+- [Running](#running)
+  - [Dependencies](#dependencies)
+  - [Processes](#processes)
+- [Notes](#notes)
+
+## Installation
+
+This project is a python package and will require several other packages to function. I highly recommend using Anaconda to manage you python environments, and my instructions for installation will assume are doing so. First create an python 3.7 conda environment for the project and activate it:
 
 ```bash
-    git clone https://github.com/ChesterIcarus/DataProcessing.git
-    pip install DataProcessing
+conda create --name icarus python=3.7
+conda activate icarus
 ```
 
-Note that there exists more dependencies beyond those in python installed by pip. All source data and helper programs will need to obtained and linked to in the configuration folder.
+Then you will need to install this project manually as a python package. Clone this repository using git and then install it using pip:
+
+```bash
+git clone https://github.com/ChesterIcarus/DataProcessing.git /path/to/save/repository
+pip install /path/to/save/repository
+```
+
+If you intend to use the developmental build, you will want to download and checkout the `dev` branch of the repository before installing with pip. This branch will have the new updates, but not everything here is guarenteed to be stable.
+
+```bash
+git fetch
+git checkout -t origin/dev
+```
+
+Lastly you will need to install all the dependent python packages. The pip dependencies are listed in `requirements.txt` and the conda dependencies need to be specified manually:
+
+```bash
+pip install -r /path/to/save/repository/requirements.txt
+conda install -c conda-forge libspatialindex=1.9.3
+```
+
+You will also need to download [osmosis](https://github.com/openstreetmap/osmosis/releases/tag/0.48.0) and [pt2matsim](https://bintray.com/polettif/matsim/pt2matsim/) from their respective sources as well as the source data (daymet, MAG ABM, etc.) and the custom built 12-SNAPSHOT JAR of MATSim from the Dropbox.
 
 ## Project Structure
 
-This package has a collection of scripts which can prepare simulation input data and analyze output data. A given simulation run has a folder dedicated to it where all modules need to be executed from; these modules will read and write from files inside this folder, as well as read other files and execute other programs specified in the config file.
+This package has a collection of scripts which can prepare simulation input data and analyze the output data. A given simulation run has a folder dedicated to it where the scripts to prepare and analyze the simulation data are executed from. All data relevant to the simulation will be saved in this directory according to structure of files and tables described below. This will make the project a bit more modular, but it will still need to access external source data and programs, which have to be specified in the project configuration file (more on that later).
 
 A visual summary of the database structure can be found here on [dbdiagrams.io](https://dbdiagram.io/d/5e9e7ded39d18f5553fdef7e), but this link may not be regularly undated or maintained.
 
@@ -26,15 +58,17 @@ Here is a run down of the internal structure of a simulation run folder.
 
 #### config.json
 
-This is the master configuration file which describes how the simulation ought to be constructed and executed. Every module will reference the config file to locate external source data and executeables as well as information regarding how it should run. While some attributes of the simulation are hardcoded into the scripts and some other externl configuration files are still needed, these are temporary hacks done to keep the project moving forward; the eventual goal is to have this file and this file alone contain every attribute that we may possibly want to tweak.
+This is the project configuration file which describes how this simulation run is going to be prepared, executed and analyzed. All scripts will reference this config file to locate external source data and executeables as well as settings that tweak how it is run. A default configuration file has been provided in the root directory of this repository; all possible fields are already present in the default config, and with exception to file paths, no values should need to change to run a simulation under default settings.
+
+THere is no section going over each setting in the project config file. instead, see each executeable script in the [process descriptions](#processes) for more details regarding relevant attributes of the config to the script.
 
 #### database.db
 
-This is the master data file which contains all the project data stored in a sqlite database. Previously we had used an SQL database for hosting our data, but technical issues with getting users access to the database lead to this more modular solution. Everything that the project uses, including intermediary data, is saved in this database, which can lead to it being quite large (typically between five and seven gigabytes). Of course, particular data of interest can be export as CSV or its own database at on request. Descriptions of al tables in this database are given below.
+This is the project database file which contains all the project data stored in a sqlite database. Previously we had used an SQL database for hosting our data, but technical issues with getting users access to the database lead to this more modular solution. Everything that the project uses, including intermediary data, is saved in this database, which can lead to it being quite large (typically between five and seven gigabytes). Of course, particular data of interest can be export as CSV or its own database at on request. Descriptions of all tables in this database are given below in the [tables](#tables) section.
 
 #### config/
 
-This folder includes additional configuration files used in some process (such as the network generation). This is partly a consequence of the fact that not all steps of data preparation are done entirely in house, so some external software needs to be run with special configuration files. Eventually these files will be generated temporarily form the information in the master configuration file, but only when time permits.
+This folder includes additional configuration files used in some process (such as the network generation). This is partly a consequence of the fact that not all steps of data preparation are done entirely in house, so some external software needs to be run with special configuration files. Eventually these files will be generated temporarily form the information in the project configuration file, but only when time permits.
 
 #### input/
 
@@ -224,46 +258,30 @@ The `nodes` table expresses most the information that can be understood from the
 Once the repository has been installed using pip, various processes can be run using the following command structure:
 
 ```bash
-    python -m icarus.[action].[item] [--folder /path/to/folder] [--log /path/to/logfile]
+python -m icarus.[action].[item] [--folder /path/to/folder] [--log /path/to/logfile]
 ```
 
 The `--folder` argument is used to specify the location of the folder that the run data is in; without it it is assumed that the working directory is the location of the data. If the folder in question is missing important data, the process will most likely fail. The `--log` argument will save the log printed to the terminal to the filepath specified. The log will still be printed, but it will also be copied to the specified file.
 
-Most commands do not take additional arguements to control the nature of the process's execution. The master configuration file (see above in files) should have all the settings that can be set for each process.
+Most commands do not take additional arguements to control the nature of the process's execution. The project configuration file (see above in files) should have all the settings that can be set for each process.
 
-### Dependency Diagram
+### Dependencies
+
+The rounded boxes represent processes, which have input (arrows pointing towards) and output (arrows pointing away) data. The squared boxes represent data, which can be an input to (arrows pointing away) and ouput of (arrows pointing towards) processes. Green and purple boxes represent python and java process respectively while red and blue boxes represent xml files and sql tables respectively.
 
 ![dependency diagram](https://github.com/ChesterIcarus/DataProcessing/blob/dev/docs/dependencies.png)
 
-### Description Chart
-
-Chart rework in progress.
-
-<!-- | action   | item       | description                                                                                                  | dependencies                                    |
-|----------|------------|--------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
-| parse    | population | parses the ABM data from CSV into the trips, households and persons tables                                   | -                                               |
-| parse    | regions    | parses MAZ region data from shapefiles into the regions table                                                | -                                               |
-| parse    | roads      | parses the network file from XML into the links and nodes tables                                             | generate network, parse exposure, parse regions |
-| parse    | events     | parses the simulation output XML files into output population tables                                         | parse roads, generate plans, simulation         |
-| parse    | parcels    | parses the Maricopa parcel data from shapefiles into the parcels table                                       | parse regions                                   |
-| parse    | exposure   | parses the daymet data from nc4 files into temperatures and centroids tables                                 | -                                               |
-| generate | plans      | generates simulation input XML files from population tables                                                  | -                                               |
-| generate | config     | generate an XML config file for simulation from JSON config                                                  | -                                               |
-| generate | network    | generate an XML network file from OSM map file                                                               | -                                               |
-| generate | population | generate simulation population from ABM data and save the result as the agents, activitities and legs tables | parse population, parse parcels                 |
-| analyze  | exposure   | calculate exposure from output population and save back to output population tables                          | parse roads, parse exposure, parse events       | -->
-
-### Detailed Explanataions
+### Processes
 
 #### parse daymet
 
-The daymet data comes in pairs netCDF files, one containing the minimum temperatures for each day and the other containing the maximum values. While netCDF files are quite good at densely storing high dimensional data, they are not particularly efficient to iterate over or manipulate, so as usual, we parse the data into SQL tables. In this case, the we form two tables, `centroids` and `temperatures`, where the centroids are the locations of the measured temperatures and the temperatures are the temperature profiles at the centroids; see the table information for more details. Temperature profiles are generated by interpolating between the minimum and maximum temperatures for a single day under the assumption that the minimum temperature occurs around dawn (5:00) and the max temperature in early afternoon (15:00). The day to parse and the resolution of the interpolation can be chosen using the `day` and `step` options in the configuration file. Note that since the daymet data is not particularly percise (only to the nearest half a degree celcius to my observation) and the regions are not particularly small, so many centroids have the same temperature profiles, which saves storage. The configuration file also has the options `tmax_files` and `tmin_files`, which should point to the netCDF files you wish to parse; these lists need to coorespond to each other respectively to be parsed correctly. Do not use any daymet tile other than the smallest tiles as large tiles become exponentially slower to iterate over and will contain much unneeded data. In my case, I was able to generously cover all of the greater Maricopa region with four small daymet tiles.
+The daymet data comes in pairs netCDF files, one containing the minimum temperatures for each day and the other containing the maximum values. While netCDF files are quite good at densely storing high dimensional data, they are not particularly efficient to iterate over or manipulate, so as usual, we parse the data into SQL tables. In this case, the we form two tables, `centroids` and `temperatures`, where the centroids are the locations of the measured temperatures and the temperatures are the temperature profiles at the centroids; see the table information for more details. Temperature profiles are generated by interpolating between the minimum and maximum temperatures for a single day under the assumption that the minimum temperature occurs around dawn (5:00) and the max temperature in early afternoon (15:00). The day to parse and the resolution of the interpolation can be chosen using the `day` and `step` options in the configuration file. Note that the daymet data is not particularly percise (only to the nearest half a degree celcius to my observation) and the regions are not particularly small, so many centroids have the same temperature profiles, which saves storage. The configuration file also has the options `tmax_files` and `tmin_files`, which should point to the netCDF files you wish to parse; these lists need to coorespond to each other respectively to be parsed correctly. Do not use any daymet tile other than the smallest tiles as large tiles become exponentially slower to iterate over and will contain much unneeded data. In my case, I was able to generously cover all of the greater Maricopa region with four small daymet tiles.
 
-You may have also noticed that a region is generated for each centroid despite the fact the netCDF data only specifies a single point for the temperatures. These regions are calculated using voronoi tesselations, filtering out polygons that exist outside the centroid limits. These regions encompass all the area to which each respective centroid is closest to; all points in this area will be considered the temperature of the centroid.
+All geometries are transformed from the source CRS (epsg:4326) to this project's CRS (epsg:2223); the `epsg` setting in the project config file is ignored. You may have also noticed that a region is generated for each centroid despite the fact the netCDF data only specifies a single point for the temperatures. These regions are calculated using voronoi tesselations, filtering out polygons that exist outside the centroid limits. These regions encompass all the area to which each respective centroid is closest to; all points in this area will be considered the temperature of the centroid.
 
 #### parse regions
 
-Regions is an alias for the microanalysis zones (MAZs). MAZ and TAZ data comes packaged together in a shape/database file pair, which is parsed into an SQL table called `regions`; see table information for more details. For the most part, this data is just read directly from the provided files, with the only calculated value being the `center`, which is the centroid (not to be confused with the daymet centroids) of the region.
+Regions is an alias for the microanalysis zones (MAZs). MAZ and TAZ data comes packaged together in a shape/database file pair, which is parsed into an SQL table called `regions`; see table information for more details. The Maricopa MAZ an TAZ data is projected in epsg:2223, and the parser currently does not have any support for reprojection. This is one amoung many reasons that a different projection -- despite having an option in the project config -- for this project is not recommended.
 
 #### parse abm
 
@@ -271,7 +289,18 @@ The MAG ABM data is delivered in a CSV format in three files: households, trips 
 
 #### generate network
 
-In order to simulate agents, we need some sort of network to simulate them on. The best source for road data is OpenStreetMap, were a compressed PBF of the entire Arizona street network can be found. However, there is a lot of things that need to happen before this can be a useable MATSim network file. The network needs to decompressed, trimmed, converted, remapped/refactored, merged with transit data, and exported as a MATSim XML nework file. While this process is intialized as a python process, all the script really does is generate several configuration files and pass them to other java processes to handle. In the end we come out with a final network file at `input/network.xml.gz`. Several other intermediary files will be generated and deleted, as well as the final input transit schedule files.
+The network that MATSim will simulate the population of Maricopa on is based on OpenStreeMap road data and ValleyMetro transit data. Make sure that you have both the OSM PBF for Arizona as well as the transit files from ValleyMetro downloaded and linked to in the project configuration file. However, a lot of processing has to occur before these can become valid input for the simulation. The `generate network` process will spawn `osmosis` and `pt2matsim` process to:
+
+1. Generate configuration files for the network generation from the project config file.
+2. Decompress PBF file into OSM file and trim the network to a specified region.
+3. Generate a MATSim transit schedule from the ValleyMetro transit data.
+4. Convert the OSM network into a MATSim XML mulitmodial network; configure the allowed modes on the XML network.
+5. Map the transit schedule onto the XML network, tweaking the network with artificial links if needed.
+6. Compress output file and delete itermediary/temporary files.
+
+Make sure that the `osmosis` and `pt2matsim` fields in the project config accurately reflect the location of the binaries on your machine. The `schedule_dir` should point to the location of the VallyMetro data, and the `osm_file` should point to the location of the source PBF file from OpenStreetMap. The map is trimmed using the specified region in `region`, which is a list of WGS84 lat/lon coordinates with the first and last point coinsiding. The map will then be transformed to the epsg coordinate system specified in `epsg` (also specify "meters" or "feet" in `units` for the target coordinate system); the defualt is epsg:2223, which is centered over and optimized for Arizona. The `subnetworks` dictionary is the set of routable modes in the network mapped to the modes that each mode can be routed with. The `highways` and `railways` dictionaries map all the chosen link types to the sets of valid modes for each type. With exception to the file paths, most of these settings probably do not need to be altered.
+
+The end result are the network, transit schedule and transit vehicles files in the input folder as well as three files in the config file. The latter are merely for reference and will not be used again by any other script.
 
 As a word of warning, make sure that the resources in the `resources` option in the configuration file represent the maximmum resources you want processes to take at any given time. If these numbers are too large, some process may be allocated more memory than your system can afford, which can lead to crashes. While this is true anywhere, these processes are particularly resource intensive.
 
@@ -283,17 +312,17 @@ As a sidenote, I had this process running much faster using the spatial indexes 
 
 #### parse parcels
 
-The county has information available regarding all the parcels in Maricopa county. These locations can be used in the simulation as locations that agents can travel between. Parcels can be either residential, commercial or other (which is really actually unknown), and a defualt fake parcel is generated for each region as failsafe for some operations. These are saved in the `parcels` table. Like the network, this data is stored in a pair of database/shape files, and the parcels parsed with the region data inorder to assign each parcel a region. Consequently, parcel parsing is also extremely slow for the same reasons, taking about two hours on my machines.
+The county has information available regarding all the parcels in Maricopa county. These locations can be used in the simulation as locations that agents can travel between. Parcels can be either residential, commercial or other (which is really actually unknown), and a defualt fake parcel is generated for each region as failsafe for some operations. These are saved in the `parcels` table. Like the network, this data is stored in a pair of database/shape files, and the parcels parsed with the region data inorder to assign each parcel a region. Consequently, parcel parsing is also extremely slow for the same reasons, taking about two hours on my machine. Also like the road parsing, the Maricopa parcel data is delivered already projected in epsg:2223, and this tool does not implement any reprojection.
 
 #### generate population
 
 Before a simulation can be run, the ABM data needs to transformed into a population that can be written as MATSim input files. Population generate does several things:
 
-1. Filters out trips and agents by conditions that user desires (particular modes or activity types).
-2. Filters out trips and agents if they don't make sense to us (bad timing, unknown regions, no driver, etc.).
-3. Filters out trips and agents if we deem the trip unrealistic to be made in simulation.
-4. Forms parties and groups from shared trips information.
-5. Filters out trips and agents recursively by party and group affiliation according the first three conditions.
+1. Forms parties and groups from shared trips information.
+2. Filters out trips and agents by conditions that user desires (particular modes or activity types).
+3. Filters out trips and agents if they don't make sense to us (bad timing, unknown regions, no driver, etc.).
+4. Filters out trips and agents if we deem the trip unrealistic to be made in simulation.
+5. Filters out trips and agents recursively by party and group affiliation according the previous three conditions.
 6. Assigns parcels to activities based on group affiliation.
 7. Gives all valid activities, legs and agents unique identifcation numbers.
 
@@ -308,8 +337,7 @@ def valid_party(party: Party) -> bool:
     return party.driver is not None or party.mode != RouteMode.CAR
 
 def valid_leg(leg: Leg) -> bool:
-    distance = network.minimum_distance(leg.party.origin_group.maz,
-        leg.party.dest_group.maz)
+    distance = network.minimum_distance(leg.party.origin_group.maz, leg.party.dest_group.maz)
     duration = leg.end - leg.start
     valid = False
     if duration > 0:
@@ -319,11 +347,13 @@ def valid_leg(leg: Leg) -> bool:
     return valid
 
 def valid_agent(agent: Agent) -> bool:
-    return (agent.modes.issubset(modes)
+    return (
+        agent.modes.issubset(modes)
         and agent.activity_types.issubset(activity_types)
         and agent.mazs.issubset(network.mazs)
         and all(valid_party(party) for party in agent.parties)
-        and all(valid_leg(leg) for leg in agent.legs))
+        and all(valid_leg(leg) for leg in agent.legs)
+    )
 ```
 
 When an agent is invalid, all agents that are recursively dependent on the agnet need to be removed also. Dependednts are the agents who are part of parties in which the agent is the driver for. Theoretically, an agent being removed could set off a massive chain of dependent removals, but for the most part dependents tend to be young family members. The effect of recursively removing agents is only significant when modes are constricted considerably.
@@ -338,7 +368,9 @@ The chosen plans are formatted to the MATSim [plans file specifications (v4)](ht
 
 #### generate config
 
-This is not implemented yet. For now you will need to copy a provided MATSim configuration file and modify it accordingly when the JSON configuration file used by all the other modules.
+The MATSim simulation takes a fairly long and complex XML config file to describe and control the nature of the simulation. This process will read the project configuration file and produce a MATSim configuration file and save it at `input/config.xml`.
+
+While I have made a process that reproduces my given config using variables from the project config file, there are many other variables in the MATSim configuration that could be tweaksed that aren't accessible through this tool. Also, since simulations are rather complicated and many types exist, I was not able to thoroughly test the reliability of this tool under different simulation configurations. If you struggle to get you config to work correctly or need to change something not explicitly clear in the project confi, please contact me (it's not worth stressing over the MATSim doucmentation).
 
 #### simulation
 
@@ -347,7 +379,7 @@ Assuming that all the dendencies for the simulation have been met, the simulatio
 ```bash
 java -Xms32G -Xmx64G \
     -cp /path/to/matsim/jar \
-    org.matsim.run.Controler /path/to/input/config
+    org.matsim.run.Controler /path/to/matsim/config
 ```
 
 Note the they demanded resources in the first line can vary based on the size of the simulation being run, but should never be specified higher than what the machine/instance running can provide (this can lead to crashes).
@@ -366,13 +398,13 @@ run_xx_xx_xx/
     output/
 ```
 
-where the output directory will be where the simulation outputs the simulation (assuming that the simulation is started from this working directory). You will notice that this reflects the project structure well, so the simulation can be run from the project directory with ease. If the simulation is run elsewhere, just zip the input folder and bring it along with the MATSim JAR. If you change the file structure, you may need to modify the paths in the XML config file.
+where the output directory will be where the simulation outputs the simulation results (assuming that the simulation is started from this working directory). You will notice that this reflects the project structure well, so the simulation can be run from the project directory with ease. If the simulation is run elsewhere, just zip the input folder and bring it along with the MATSim JAR. If you change the file structure, you may need to modify the paths in the XML config file so the simulation can find the input data.
 
-Note that unless you are debuggin the simulation with it, `output/ITERS/` can be deleted. This folder can be very large, especially if the simulatin was run for many iterations, so deleting it can save a lot of space and transfer time.
+Note that unless you are debuging the simulation with it, `output/ITERS/` can be deleted. This folder can be very large, especially if the simulatin was run for many iterations, so deleting it can save a lot of space and transfer time.
 
 #### parse events
 
-Once the simulation data has been obtained, it now has to be parsed and imported back into the database. The `output_plans` file contains all the legs and activities of the agents in the simulation, but none of the timing of the plans file is accurate and does not include link level timing. This is why the `output_events` file, which is a massive document of all the eventsthat occured int he entirity of the simulation needs to be iterated and parsed. Parsing events will use both these files and information from the database in the following process:
+Once the simulation data has been obtained, it now has to be parsed and imported back into the database. The `output_plans` file contains all the legs and activities of the agents in the simulation much like the input plans file, but none of the timing of the plans file is accurate and it does not include link level timing. This is why the `output_events` file, which is a massive document of all the events that occured in the entirity of the simulation needs to be iterated and parsed. Parsing events will use both these files and information from the database in the following process:
 
 1. Load the network data in from the database.
 2. Load the routing data in from the output_plans file.
@@ -386,9 +418,9 @@ The fourth step is expensive as the events file is enormous and a lot of data is
 
 The exposure analysis tool uses the daymet temperature data and the results of the simulation to calculate agent exposure at an event level, when possible. If event level data is not available for a particular route, the temperature at the link of the starting activity is used. Some travel is air conditioned, so indoor temperatures are used for exposure. The exposure analysis tool will load the network data from database and then iteratively calculate the exposure for each agent in batches of 100k agents. Since the events and exposure parsing tools have already done most of the heavy lifting in parsing, the exposure tool is actually quite quick.
 
-Results are saved back to the original output tables. Since updates in SQL are slow, it is actually much faster to create new temporary tables, drop the old ones and rename the new ones. The only side affect of this is that sqlite may change the schema slightly to reflect the simplified sqlite typing; this will have no fucntional affect on the database, and it can be readily changed if it is an issue.
+Results are saved back to the original output tables. Since updates in SQL are slow, it is actually much faster to create new temporary tables, drop the old ones and rename the new ones. The only side affect of this is that sqlite may change the schema slightly to reflect the simplified sqlite typing; this will have no functional affect on the database, and it can be readily changed if it is an issue. Since large tables are being created and dropped (and can be done so repeatedly if running multiple exposure analysis runs), it may be worth seeing the [storage remark](#minimizing-storage) in the notes section.
 
-## Some Other Notes
+## Notes
 
 ### Running in Restrictive Environments
 
@@ -404,4 +436,4 @@ Some modules create temporary tables in the process of manipulating data. These 
 
 ### Minimizing Storage
 
-A fullscale simulation processed from start to finish can be upwards of 7GB, not including the source data. If you have deleted large tables, you can benefit greatly by running the `vacuum` command on the database file, which will copy the database back into itself, removing unused space. Note that when it comes to compression, only the database can be significantly compressed (by a factor of a third); the remaining files are either already stored in a compressed format or too small to be considered significant in terms of storage.
+A fullscale simulation processed from start to finish can be upwards of 7GB, not including the source data. If you have deleted large tables, you can benefit greatly by running the `vacuum` command on the database file, which will copy the database back into itself, removing unused space. Note that when it comes to compression, only the database can be significantly compressed (by about a factor of a third); the remaining files are either already stored in a compressed format or too small to be considered significant in the greater scope.
