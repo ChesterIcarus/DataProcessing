@@ -1,20 +1,24 @@
 
 import logging as log
 
+from typing import Callable, Hashable, Iterable, TypeVar
+from inspect import signature
 
-def chunk(start, stop, chunk):
+
+def chunk(start:int, stop:int, chunk:int):
     bins = zip(range(start, stop, chunk), 
         range(start+chunk, stop+chunk, chunk))
     for low, high in bins:
         yield low, high
 
 
-def bins(iterable, binsize):
+def bins(iterable: Iterable, binsize: int):
     for idx in range(0, len(iterable), binsize):
         yield iterable[idx : idx + binsize]
 
 
-def counter(iterable, message, start=1, end=True):
+def counter(iterable: Iterable, message: str, 
+        start: int = 1, end: bool = True):
     n = 1
     count = 0
     for count, item in enumerate(iterable, start):
@@ -26,16 +30,25 @@ def counter(iterable, message, start=1, end=True):
         log.info(message % count)
 
 
+T = TypeVar('T')
+
 class defaultdict(dict):
-    def __init__(self, function):
+    def __init__(self, function: Callable[[Hashable], T]):
         self.function = function
+        try:
+            self.parameters = len(signature(function).parameters)
+        except:
+            self.parameters = 0
         self.locked = False
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Hashable) -> T:
         if item in self:
             return super().__getitem__(item)
         elif not self.locked:
-            value = self.function(item)
+            if self.parameters:
+                value = self.function(item)
+            else:
+                value = self.function()
             self[item] = value
             return value
         else:

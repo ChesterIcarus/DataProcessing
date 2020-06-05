@@ -64,7 +64,7 @@ class Network:
 
 
     def plain_map(self):
-        log.info('Loading network nodes.')
+        print('Loading network nodes and links.')
         nodes = self.fetch_nodes()
         links = self.fetch_links()
 
@@ -74,16 +74,24 @@ class Network:
 
         graph = nx.Graph()
 
+        print('Adding nodes to the graph.')
+
         for node_id, point in nodes:
             x, y = xy(point)
             graph.add_node(node_id, pos=(x,y))
+
+        print('Adding links to the graph.')
         
         for _, source_node, terminal_node in links:
             graph.add_edge(source_node, terminal_node)
         
+        print('Drawing the graph.')
+
         pos = nx.get_node_attributes(graph, 'pos')
-        nx.draw_networkx(graph, pos=pos, ax=ax)
+        nx.draw_networkx(graph, pos=pos, ax=ax, with_labels=False, node_size=0)
         
+        print('Saving the graph.')
+
         plt.tight_layout()
         plt.savefig('result/network_usage.png', dpi=600)
 

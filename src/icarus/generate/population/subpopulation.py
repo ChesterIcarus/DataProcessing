@@ -10,7 +10,7 @@ from icarus.util.general import defaultdict
 
 class Subpopulation:
     def __init__(self):
-        self.households: Dict[int, Household] = defaultdict(lambda x: Household(x))
+        self.households = defaultdict(lambda x: Household(x))
         self.last_trip: Trip = None
 
 

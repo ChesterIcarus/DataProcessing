@@ -101,7 +101,11 @@ class Network:
 
 
     def minimum_distance(self, maz1: str, maz2: str) -> float:
-        return self.regions[maz1].polygon.distance(self.regions[maz2].polygon)
+        distance = 0
+        if maz1 != maz2:
+            distance = self.regions[maz1].polygon.distance(
+                self.regions[maz2].polygon)
+        return distance
 
 
     def random_household_parcel(self, maz:str) -> Parcel:

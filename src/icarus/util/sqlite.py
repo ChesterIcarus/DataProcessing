@@ -5,23 +5,24 @@ import os
 
 
 class SqliteUtil:
-    def __init__(self, database, readonly=False):
+    def __init__(self, database, readonly=False, timeout=30):
         self.name = database
+        self.timeout = timeout
         self.readonly = readonly
         self.connection = None
         self.cursor = None
-        self.open()
+        self.open(timeout)
 
 
-    def open(self):
+    def open(self, timeout):
         if self.connection is not None:
             self.close()
         if self.readonly:
             path = os.path.abspath(self.name)
             uri = f'file:{path}?mode=ro'
-            self.connection = sqlite3.connect(uri, uri=True, timeout=30)
+            self.connection = sqlite3.connect(uri, uri=True, timeout=timeout)
         else: 
-            self.connection = sqlite3.connect(self.name, timeout=30)
+            self.connection = sqlite3.connect(self.name, timeout=timeout)
         self.cursor = self.connection.cursor()
 
 
@@ -34,6 +35,35 @@ class SqliteUtil:
     def count_rows(self, table):
         self.cursor.execute(f'SELECT COUNT(*) from {table};')
         return self.cursor.fetchall()[0][0]
+
+    
+    # def fetch_rows(self, chunk=None):
+    #     if chunk is None:
+    #         for row in self.cursor.fetchall():
+    #             yield row
+    #     else:
+    #         rows = self.cursor.fetchmany(chunk)
+    #         while len(rows):
+    #             for row in rows:
+    #                 yield row
+    #             rows = self.cursor.fetchmany(chunk)
+
+
+    def fetch_rows(self, chunk=None, block=1000000):
+
+        def chunks(lst, n):
+            for i in range(0, len(lst), n):
+                yield lst[i:i + n]
+
+        rows = self.cursor.fetchmany(block)
+        while len(rows):
+            if chunk is None:
+                for row in rows:
+                    yield row
+            else:
+                for row in chunks(rows, chunk):
+                    yield row
+            rows = self.cursor.fetchmany(block)
 
     
     def fetch_tables(self):

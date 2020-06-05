@@ -3,6 +3,7 @@
         "epsg": 2223,
         "units": "feet",
         "exposure": {
+            "mrt_dir": "/home/benjamin/Documents/Icarus/data/source/MRT/",
             "tmax_files": [
                 "/home/benjamin/Documents/Icarus/data/source/daymet/tmax_11014.nc",
                 "/home/benjamin/Documents/Icarus/data/source/daymet/tmax_11015.nc",
@@ -72,7 +73,6 @@
             "residence_file": "/home/benjamin/Documents/Icarus/data/source/parcels/residential_parcels.dbf",
             "commerce_file": "/home/benjamin/Documents/Icarus/data/source/parcels/commercial_parcels.dbf",
             "parcel_file": "/home/benjamin/Documents/Icarus/data/source/parcels/parcels.shp"
-
         }
     },
     "population": {

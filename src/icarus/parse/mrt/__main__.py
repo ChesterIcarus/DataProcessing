@@ -3,7 +3,7 @@ import os
 import logging as log
 from argparse import ArgumentParser
 
-from icarus.parse.abm.abm import Abm
+from icarus.parse.mrt.mrt import Mrt
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil
 
@@ -27,29 +27,26 @@ path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
 config = ConfigUtil.load_config(path('config.json'))
 
-log.info('Running MAG ABM parsing tool.')
+log.info('Running Maricopa MRT parsing tool.')
 log.info(f'Loading run data from {home}.')
 
 database = SqliteUtil(path('database.db'))
-abm = Abm(database)
+mrt = Mrt(database)
+mrt_dir = path(config['network']['exposure']['mrt_dir'])
 
-trips_file = config['population']['trips_file']
-persons_file = config['population']['persons_file']
-households_file = config['population']['households_file']
-
-if not abm.ready(trips_file, households_file, persons_file):
-    log.warning('Dependent data not parsed or generated.')
+if not mrt.ready():
+    log.error('Dependent data not parsed or generated; see warnings.')
     exit(1)
-elif abm.complete():
-    log.warning('Population data already parsed. Would you like to replace it? [Y/n]')
+elif mrt.complete():
+    log.warning('MRT data already parsed. Would you like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
-        log.info('User chose to keep existing population data; exiting parsing tool.')
+        log.info('User chose to keep existing MRT data; exiting parsing tool.')
         exit()
 
 try:
-    log.info('Starting population parsing.')
-    abm.parse(trips_file, households_file, persons_file)
+    log.info('Starting MRT parsing.')
+    mrt.parse(mrt_dir)
 except:
-    log.exception('Critical error while parsing population; '
+    log.exception('Critical error while parsing MRT; '
         'terminating process and exiting.')
     exit(1)

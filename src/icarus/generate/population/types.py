@@ -15,9 +15,9 @@ class RouteMode(Enum):
         elif self == self.BIKE:
             speed = 10.0
         elif self == self.CAR:
-            speed = 35
+            speed = 35.0
         elif self == self.PT:
-            speed = 30
+            speed = 30.0
         return speed
 
 

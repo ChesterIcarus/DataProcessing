@@ -66,4 +66,4 @@ sm = plt.cm.ScalarMappable(cmap='OrRd',
 sm._A = []
 cbar = fig.colorbar(sm)
 
-fig.savefig('results/daymet_map.png', dpi=600, bbox_inches='tight')
+fig.savefig('result/daymet_map.png', dpi=600, bbox_inches='tight')

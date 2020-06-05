@@ -1,6 +1,7 @@
 
 import logging as log
 from pyproj import Transformer
+from shapely.wkt import loads
 from shapely.geometry import Polygon
 
 from icarus.generate.population.types import Mode
@@ -13,7 +14,7 @@ def region_coords(region):
     points = region[10:-2].split(', ')
     for point in points:
         x, y = point.split(' ')
-        result.append((float(x) * 0.3048, float(y) * 0.3048))
+        result.append((float(x), float(y)))
     return result
 
 
@@ -70,7 +71,6 @@ class Trips:
             trips = self.database.cursor.fetchmany(bin_size)
             
 
-
     def minimum_distance(self):
         log.info('Running lower bound speed test.')
         
@@ -93,11 +93,11 @@ class Trips:
             elif key in distances:
                 distance = distances[key]
             elif origin_maz in regions and dest_maz in regions:
-                distance = regions[origin_maz].distance(regions[dest_maz])
+                distance = regions[origin_maz].distance(regions[dest_maz]) * 0.3048
                 distances[key] = distance
             else:
                 distance = 0
-                bad_maz += 0
+                bad_maz += 1
 
             if duration > 0:
                 speed = distance / duration / 60
@@ -129,18 +129,20 @@ class Trips:
                 log.info(f'Analyzing trip {count}.')
                 n <<= 1
 
+            if count == 2000000:
+                break
+
         if count != n >> 1:
             log.info(f'Analyzing trip {count}.')
 
+        bad_total = sum((bad_walk, bad_bike, bad_transit, bad_vehicle, bad_maz))
+
         log.info('Lower bound speed test results:\n'
             '===================================================\n'
-            f'unreasonable walks: {bad_walk} ({bad_walk / walk * 10}%)\n'
-            f'unreasonable bikes: {bad_bike} ({bad_bike / bike * 10}%)\n'
-            f'unreasonable transits: {bad_transit} ({bad_transit / transit * 10}%)\n'
-            f'unreasonable vehicles: {bad_vehicle} ({bad_vehicle / vehicle * 10}%)\n'
-            f'unreasonable maz: {bad_maz} ({bad_maz / count * 10}%)\n'
+            f'bad walks: {bad_walk} ({bad_walk / walk * 100}%)\n'
+            f'bad bikes: {bad_bike} ({bad_bike / bike * 100}%)\n'
+            f'bad transits: {bad_transit} ({bad_transit / transit * 100}%)\n'
+            f'bad vehicles: {bad_vehicle} ({bad_vehicle / vehicle * 100}%)\n'
+            f'bad maz: {bad_maz} ({bad_maz / count * 100}%)\n'
+            f'bad total: {bad_total} ({bad_total / count * 100}%)\n)'
             '===================================================')
-        
-
-
-

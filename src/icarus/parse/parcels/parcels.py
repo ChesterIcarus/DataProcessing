@@ -43,7 +43,7 @@ class Parcels:
         ready = True
         tables = ('regions',)
         present = self.database.table_exists(*tables)
-        if len(exists) < len(tables):
+        if len(present) < len(tables):
             missing = ', '.join(set(tables) - set(present))
             log.info(f'Could not find tables {missing} in database.')
             ready = False

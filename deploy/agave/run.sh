@@ -11,7 +11,7 @@
 #SBATCH --mail-type=ALL                             # Send a notification when a job starts, stops, or fails
 #SBATCH --mail-user=bmbrownl@asu.edu                # send-to address
 
-# interactive -n 8 -N 1 --mem=32000 -t 0-04:00      # interactive with 
+# interactive -n 8 -N 1 --mem=32000 -t 0-04:00      # interactive
 
 java -Xms16G -Xmx32G \
     -cp /home/bmbrownl/icarus/run/matsim.jar \

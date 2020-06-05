@@ -23,7 +23,22 @@ conda create --name icarus python=3.7
 conda activate icarus
 ```
 
-Then you will need to install this project manually as a python package. Clone this repository using git and then install it using pip:
+Before we can install the project we will need to install some dependencies. If you are using a Windows based machine, install them using `conda`:
+
+```bash
+conda install -c conda-forge libspatialindex
+conda install -c conda-forge rtree
+```
+
+And on debian based machines, install the dependencies using `apt`:
+
+```bash
+sudo apt install libspatialindex-dev python-rtree
+```
+
+If you are on another type of machine or the above two solutions don't work, there are options for spatialindex using `homebrew`. See [this issue](https://github.com/Toblerity/rtree/issues/146) for more details.
+
+Next you will need to install this project manually as a python package. Clone this repository using git and then install it using pip:
 
 ```bash
 git clone https://github.com/ChesterIcarus/DataProcessing.git /path/to/save/repository
@@ -37,14 +52,7 @@ git fetch
 git checkout -t origin/dev
 ```
 
-Lastly you will need to install all the dependent python packages. The pip dependencies are listed in `requirements.txt` and the conda dependencies need to be specified manually:
-
-```bash
-pip install -r /path/to/save/repository/requirements.txt
-conda install -c conda-forge libspatialindex=1.9.3
-```
-
-You will also need to download [osmosis](https://github.com/openstreetmap/osmosis/releases/tag/0.48.0) and [pt2matsim](https://bintray.com/polettif/matsim/pt2matsim/) from their respective sources as well as the source data (daymet, MAG ABM, etc.) and the custom built 12-SNAPSHOT JAR of MATSim from the Dropbox.
+You will also need to download [osmosis](https://github.com/openstreetmap/osmosis/releases/) and [pt2matsim](https://bintray.com/polettif/matsim/pt2matsim/) from their respective sources as well as the source data (daymet, MAG ABM, etc.) and the custom built 12-SNAPSHOT JAR of MATSim from the Dropbox.
 
 ## Project Structure
 
