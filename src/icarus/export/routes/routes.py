@@ -1,7 +1,9 @@
 
 import shapefile
 import logging as log
+
 from typing import List
+from pyproj import Transformer
 
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.general import counter
@@ -27,7 +29,13 @@ class Link:
 
 
 def export_routes(database: SqliteUtil, modes: List[str], 
-        filepath: str, skip_empty: bool):
+        filepath: str, skip_empty: bool, epsg: int):
+
+    transform = lambda x, y: (x, y)
+    if epsg is not None and epsg != 2223:
+        transformer = Transformer.from_crs('epsg:2223', 
+            f'epsg:{epsg}', always_xy=True)
+        transform = transformer.transform
 
     log.info('Loading network node data.')
     query = '''
@@ -41,7 +49,7 @@ def export_routes(database: SqliteUtil, modes: List[str],
     result = counter(database.fetch_rows(), 'Loading node %s.')
 
     for node_id, point in result:
-        x, y = map(float, point[7:-1].split(' '))
+        x, y = transform(*map(float, point[7:-1].split(' ')))
         nodes[node_id] = Node(x, y)
     
     log.info('Loading network link data.')
@@ -95,6 +103,8 @@ def export_routes(database: SqliteUtil, modes: List[str],
     routes.field('mode', 'C')
     routes.field('duration', 'N')
     routes.field('length', 'N')
+
+    
 
     log.info('Exporting simulation routes to shapefile.')
     for leg_id, agent_id, agent_idx, mode, duration, events in result:
