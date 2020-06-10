@@ -5,10 +5,9 @@ import subprocess
 import logging as log
 from typing import List
 from pyproj import Transformer
-from shapely.geometry import Point
-from shapely.wkt import dumps
 
 from icarus.util.sqlite import SqliteUtil
+from icarus.util.general import counter
 
 
 def hhmm_to_secs(hhmm):
@@ -30,15 +29,18 @@ class Mrt:
 
     
     def create_tables(self):
+        self.database.drop_table('mrt_centroids')
+        self.database.drop_table('mrt_temperatures')
         query = '''
             CREATE TABLE mrt_centroids (
-                centroid_id INT SIGNED,
-                point VARCHAR(255)
+                centroid_id INT UNSIGNED,
+                point VARCHAR(255),
+                region TEXT
             );
         '''
         self.database.cursor.execute(query)
         query = '''
-            CREATE TABLE mrt_exposure (
+            CREATE TABLE mrt_temperatures (
                 centroid_id INT UNSIGNED,
                 time MEDIUMINT UNSIGNED,
                 mrt FLOAT,
@@ -49,54 +51,69 @@ class Mrt:
         self.database.cursor.execute(query)
         self.database.connection.commit()
 
+    
+    def create_indexes(self):
+        query = '''
+            CREATE INDEX mrt_centroids_centroid
+            ON mrt_centroids(centroid_id);
+        '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX mrt_temperatures_centroid
+            ON mrt_temperatures(centroid_id);
+        '''
+        self.database.cursor.execute(query)
+        self.database.connection.commit()
+
 
     def find_files(self, dirpath: str) -> List[str]:
-        result = subprocess.run(('find', dirpath, '-name', '*.csv'), capture_output=True)
+        result = subprocess.run(('find', dirpath, '-name', '*.csv'), 
+            capture_output=True)
         files = result.stdout.decode('utf-8').splitlines()
         return files
 
     
     def parse(self, dirpath: str):
-        
-        filepaths = self.find_files(dirpath)
 
+        self.create_tables()
+        filepaths = self.find_files(dirpath)
         transformer = Transformer.from_crs('epsg:4326', 'epsg:2223', always_xy=True)
 
         for idx, filepath in enumerate(filepaths):
             log.info(f'Parsing points from {filepath}.')
 
-            with open(filepath, 'r') as mrtfile:
-                count, n = 0, 1
-                data = []
-                points = csv.reader(mrtfile, delimiter=',', quotechar='"')
-                next(points)
+            mrtfile = open(filepath, 'r')
+            points = csv.reader(mrtfile, delimiter=',', quotechar='"')
 
-                for lat, lon, time, mrt, pet, utci in points:
-                    point = Point(transformer.transform(lon, lat))
-                    secs = hhmm_to_secs(time)
-                    data.append((
-                        count, 
-                        secs, 
-                        float(mrt), 
-                        float(pet), 
-                        float(utci), 
-                        dumps(point)))
-
-                    count += 1
-                    if count == n:
-                        log.info(f'Parsed point {count}.')
-                        n <<= 1
-
-            if count != n >> 1:
-                log.info(f'Parsed point {count}.')
+            centroids = []
+            temperatures = []
+            count = 0
             
+            next(points)
+            points = counter(points, 'Parsing point %s.')
+
+            for lat, lon, time, mrt, pet, utci in points:
+                count += 1
+                secs = hhmm_to_secs(time)
+                temperatures.append((
+                    count, 
+                    secs, 
+                    float(mrt), 
+                    float(pet), 
+                    float(utci)
+                ))
+                if idx == 0:
+                    x, y = transformer.transform(lon, lat)
+                    centroids.append((
+                        count,
+                        f'POINT ({x} {y})',
+                        None
+                    ))
+
+            self.database.insert_values('mrt_temperatures', temperatures, 5)
             if idx == 0:
-                self.database.insert_values('mrt_dentroids', )
+                self.database.insert_values('mrt_centroids', centroids, 2)
+            self.database.connection.commit()
 
-            breakpoint()
-
-
-
-
-                    
+        self.create_indexes()
         

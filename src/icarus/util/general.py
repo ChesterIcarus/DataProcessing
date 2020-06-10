@@ -17,7 +17,7 @@ def bins(iterable: Iterable, binsize: int):
         yield iterable[idx : idx + binsize]
 
 
-def counter(iterable: Iterable, message: str, 
+def counter(iterable: Iterable, message: str,
         start: int = 1, end: bool = True):
     n = 1
     count = 0

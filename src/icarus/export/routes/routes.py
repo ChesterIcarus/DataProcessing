@@ -1,5 +1,7 @@
 
+import os
 import shapefile
+import requests
 import logging as log
 
 from typing import List
@@ -21,21 +23,30 @@ class Node:
 class Link:
     __slots__ = ('source_node', 'terminal_node', 'length')
 
-    def __init__(self, source_node: Node, terminal_node: Node, length: float):
+    def __init__(self, source_node: Node, terminal_node: Node):
         self.source_node = source_node
         self.terminal_node = terminal_node
-        self.length = length
+        self.length = ((source_node.x - terminal_node.x) ** 2 + 
+            (source_node.y - terminal_node.y) ** 2) ** 0.5
 
+
+def get_datum_info(epsg: int):
+    res = requests.request('get', f'http://spatialreference.org/ref/epsg/{epsg}/prettywkt/')
+    info = res.content.decode().replace(' ', '').replace('\n', '')
+    return info
 
 
 def export_routes(database: SqliteUtil, modes: List[str], 
-        filepath: str, skip_empty: bool, epsg: int):
+        filepath: str, skip_empty: bool, epsg: int = 2223):
 
-    transform = lambda x, y: (x, y)
-    if epsg is not None and epsg != 2223:
-        transformer = Transformer.from_crs('epsg:2223', 
-            f'epsg:{epsg}', always_xy=True)
-        transform = transformer.transform
+    transformer = Transformer.from_crs('epsg:2223', 
+        f'epsg:{epsg}', always_xy=True, skip_equivalent=True)
+    transform = transformer.transform
+
+    prjpath = os.path.splitext(filepath)[0] + '.prj'
+    with open(prjpath, 'w') as prjfile:
+        info = get_datum_info(epsg)
+        prjfile.write(info)
 
     log.info('Loading network node data.')
     query = '''
@@ -57,20 +68,15 @@ def export_routes(database: SqliteUtil, modes: List[str],
         SELECT 
             link_id,
             source_node,
-            terminal_node,
-            length
+            terminal_node
         FROM links;
     '''
     links = {}
     database.cursor.execute(query)
     result = counter(database.fetch_rows(), 'Loading link %s.')
 
-    for link_id, source_node, terminal_node, length in result:
-        links[link_id] = Link(
-            nodes[source_node], 
-            nodes[terminal_node], 
-            length
-        )
+    for link_id, source_node, terminal_node in result:
+        links[link_id] = Link(nodes[source_node], nodes[terminal_node])
 
 
     log.info('Loading network routing data.')

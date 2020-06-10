@@ -50,12 +50,21 @@ class Roads:
         return self.database.connection.execute(query)
 
     
-    def fetch_centroids(self):
+    def fetch_daymet_centroids(self):
         self.database.cursor.execute('''
             SELECT
                 centroid_id,
-                center
-            FROM centroids; ''')
+                point
+            FROM daymet_centroids; ''')
+        return self.database.cursor.fetchall()
+
+    
+    def fetch_mrt_centroids(self):
+        self.database.cursor.execute('''
+            SELECT
+                centroid_id,
+                point
+            FROM mrt_centroids; ''')
         return self.database.cursor.fetchall()
 
 
@@ -66,7 +75,8 @@ class Roads:
             CREATE TABLE nodes(
                 node_id VARCHAR(255),
                 maz SMALLINT UNSIGNED,
-                centroid_id MEDIUMINT UNSIGNED,
+                daymet_centroid MEDIUMINT UNSIGNED,
+                mrt_centroid INT UNSIGNED,
                 point VARCHAR(255)
             );  ''')
         self.database.cursor.execute('''
@@ -106,7 +116,7 @@ class Roads:
 
     
     def ready(self, networkpath):
-        tables = ('regions', 'centroids')
+        tables = ('regions', 'daymet_centroids', 'mrt_centroids')
         exists = self.database.table_exists(*tables)
         if len(exists) < len(tables):
             missing = ', '.join(set(tables) - set(exists))
@@ -125,17 +135,26 @@ class Roads:
 
     def parse(self, networkpath):
         log.info('Fetching exposure geospatial data.')
-        centroids_list = self.fetch_centroids()
+        daymet_list = self.fetch_daymet_centroids()
+        daymet_list = counter(daymet_list, 'Loading daymet centroid %s.')
+        mrt_list = self.fetch_mrt_centroids()
+        mrt_list = counter(mrt_list, 'Loading mrt centroid %s.')
 
         log.info('Loading centroids into spatial index.')
-        centroids = {}
-        for uuid, centroid in counter(centroids_list, 'Loading centroid %s.'):
-            x, y = map(float, centroid[7:-1].split(' '))
-            centroids[uuid] = Centroid(uuid, x, y)
-
-        centroid_idx = index.Index(centroid.entry() 
-            for centroid in centroids.values())
-        del centroids_list
+        daymet_centroids = {}
+        mrt_centroids = {}
+        for centroid_id, point in daymet_list:
+            x, y = map(float, point[7:-1].split(' '))
+            centroid = Centroid(centroid_id, x, y)
+            daymet_centroids[centroid_id] = centroid
+        daymet_centroid_idx = index.Index(centroid.entry() 
+            for centroid in daymet_centroids.values())
+        for centroid_id, point in mrt_list:
+            x, y = map(float, point[7:-1].split(' '))
+            centroid = Centroid(centroid_id, x, y)
+            mrt_centroids[centroid_id] = centroid
+        mrt_centroid_idx = index.Index(centroid.entry() 
+            for centroid in mrt_centroids.values())
 
         log.info('Fetching network region data.')
         regions_list = self.fetch_regions()
@@ -151,8 +170,11 @@ class Roads:
         del regions_list
 
 
-        def get_centroid(node):
-            return next(centroid_idx.nearest(node, 1))
+        def get_daymet_centroid(node):
+            return next(daymet_centroid_idx.nearest(node, 1))
+
+        def get_mrt_centroid(node):
+            return next(mrt_centroid_idx.nearest(node, 1))
         
         def get_region(node: Point):
             regions = region_idx.query(node)
@@ -181,7 +203,7 @@ class Roads:
                     n = 1
                 elif elem.tag == 'links':
                     if count != n << 1:
-                        log.info(f'Parsed node {count}.')
+                        log.info(f'Parsing node {count}.')
                     log.info('Parsing links from network file.')
                     count = 0
                     n = 1
@@ -192,12 +214,15 @@ class Roads:
                     y = float(elem.get('y'))
                     point = Point(x, y)
                     region = get_region(point)
-                    centroid = get_centroid((x, y, x, y))
+                    daymet_centroid = get_daymet_centroid((x, y, x, y))
+                    mrt_centroid = get_mrt_centroid((x, y, x, y))
                     nodes.append((
                         node_id,
                         region,
-                        centroid,
-                        dumps(point)))
+                        daymet_centroid,
+                        mrt_centroid,
+                        dumps(point)
+                    ))
                     points[node_id] = point
                     count += 1
                     if count == n:
@@ -206,7 +231,10 @@ class Roads:
                 elif elem.tag == 'link':
                     source_node = str(elem.get('from'))
                     terminal_node = str(elem.get('to'))
-                    line = LineString((points[source_node], points[terminal_node]))
+                    line = LineString((
+                        points[source_node], 
+                        points[terminal_node]
+                    ))
                     links.append((
                         str(elem.get('id')),
                         source_node,
@@ -217,7 +245,8 @@ class Roads:
                         float(elem.get('permlanes')),
                         int(elem.get('oneway')),
                         str(elem.get('modes')),
-                        dumps(line) ))
+                        dumps(line) 
+                    ))
                     count += 1
                     if count == n:
                         log.info(f'Parsing link {count}.')
@@ -231,7 +260,7 @@ class Roads:
 
         log.info('Writing parsed links and nodes to database.')
         self.create_tables()
-        self.database.insert_values('nodes', nodes, 4)
+        self.database.insert_values('nodes', nodes, 5)
         self.database.insert_values('links', links, 10)
         self.database.connection.commit()
         

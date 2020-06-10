@@ -115,13 +115,13 @@ class Exposure:
         return False
         
     
-    def analyze(self):
+    def analyze(self, source: str):
         log.info('Reallocating tables for exposure analysis.')
         self.database.drop_temporaries()
         self.create_tables()
 
         log.info('Loading network data.')
-        self.network.load_network()
+        self.network.load_network(source)
 
         log.info('Identifying agents to analyze.')
         uuids = tuple(uuid[0] for uuid in self.fetch_agents())

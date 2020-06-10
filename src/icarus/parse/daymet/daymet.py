@@ -27,17 +27,17 @@ class Daymet:
 
     
     def create_tables(self):
-        self.database.drop_table('centroids')
-        self.database.drop_table('temperatures')
+        self.database.drop_table('daymet_centroids')
+        self.database.drop_table('daymet_temperatures')
         self.database.cursor.execute('''
-            CREATE TABLE centroids(
+            CREATE TABLE daymet_centroids(
                 centroid_id MEDIUMINT UNSIGNED,
                 temperature_id MEDIUMINT UNSIGNED,
-                center VARCHAR(255),
+                point VARCHAR(255),
                 region TEXT
             );  ''')
         self.database.cursor.execute('''
-            CREATE TABLE temperatures(
+            CREATE TABLE daymet_temperatures(
                 temperature_id MEDIUMINT UNSIGNED,
                 temperature_idx TINYINT UNSIGNED,
                 time MEDIUMINT UNSIGNED,
@@ -48,12 +48,12 @@ class Daymet:
     
     def create_indexes(self):
         query = '''
-            CREATE INDEX temperatures_temperature
-            ON temperatures(temperature_id, temperature_idx); '''
+            CREATE INDEX daymet_temperatures_temperature
+            ON daymet_temperatures(temperature_id, temperature_idx); '''
         self.database.cursor.execute(query)
         query = '''
-            CREATE INDEX centroids_centroid
-            ON centroids(centroid_id); '''
+            CREATE INDEX daymet_centroids_centroid
+            ON daymet_centroids(centroid_id); '''
         self.database.cursor.execute(query)
         self.database.connection.commit()
 
@@ -68,7 +68,7 @@ class Daymet:
 
 
     def complete(self):
-        tables = ('centroids', 'temperatures')
+        tables = ('daymet_centroids', 'daymet_temperatures')
         exists = self.database.table_exists(*tables)
         if len(exists):
             present = ', '.join(exists)
@@ -77,7 +77,7 @@ class Daymet:
 
     
     def parse(self, tmin_files, tmax_files, steps, day):
-        log.info('Reallocating tables for centroids and temperatures.')
+        log.info('Reallocating tables for daymet centroids and temperatures.')
         self.create_tables()
 
         log.info('Iterating through daymet centroid data.')
@@ -151,14 +151,15 @@ class Daymet:
                     min(pt[0] for pt in vertices) > minx and
                     max(pt[0] for pt in vertices) < maxx and
                     min(pt[1] for pt in vertices) > miny and
-                    max(pt[1] for pt in vertices) < maxy )
+                    max(pt[1] for pt in vertices) < maxy 
+                )
                 if valid:
                     reg = Polygon(vertices)
                     centers.append(centroid + (dumps(reg.centroid), dumps(reg)))
 
         log.info('Writing parsed centroids and temperatures to database.')
-        self.database.insert_values('centroids', centers, 4)
-        self.database.insert_values('temperatures', temperatures, 4)
+        self.database.insert_values('daymet_centroids', centers, 4)
+        self.database.insert_values('daymet_temperatures', temperatures, 4)
         self.database.connection.commit()
 
         log.info('Creating indexes on new tables.')
