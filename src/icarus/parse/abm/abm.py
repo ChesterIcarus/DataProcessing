@@ -46,7 +46,7 @@ class Abm:
                 numFtWorkers TINYINT UNSIGNED,
                 numPtWorkers TINYINT UNSIGNED,
                 numUnivStuds TINYINT UNSIGNED,
-                numNonWorkers TINYINT UNSIGNED
+                numNonWorkers TINYINT UNSIGNED,
                 numRetired TINYINT UNSIGNED,
                 numDrivAgeStuds TINYINT UNSIGNED,
                 numPreDrivStuds TINYINT UNSIGNED,
@@ -149,7 +149,7 @@ class Abm:
 
         for household in households:
             yield [int(h) for h in household[0:2]] + [float(household[2])] + \
-                [int(h) for h in household[3:17]]
+                [int(h) for h in household[3:18]]
             count += 1
             if count == n:
                 log.info(f'Parsing household {count}.')
@@ -196,12 +196,12 @@ class Abm:
 
 
     def parse(self, trips_file, households_file, persons_file):
-        log.info('Reallocating tables for abm population data.')
+        log.info('Allocating tables for households, persons and trips.')
         self.create_tables()
 
         log.info('Parsing households.')
         households = self.load_households(households_file)
-        self.database.insert_values('households', households, 17)
+        self.database.insert_values('households', households, 18)
         self.database.connection.commit()
         del households
 

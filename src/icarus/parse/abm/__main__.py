@@ -25,12 +25,12 @@ log.basicConfig(
 
 path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
-config = ConfigUtil.load_config(path('config.json'))
 
 log.info('Running MAG ABM parsing tool.')
 log.info(f'Loading run data from {home}.')
 
 database = SqliteUtil(path('database.db'))
+config = ConfigUtil.load_config(path('config.json'))
 abm = Abm(database)
 
 trips_file = config['population']['trips_file']
@@ -41,7 +41,8 @@ if not abm.ready(trips_file, households_file, persons_file):
     log.warning('Dependent data not parsed or generated.')
     exit(1)
 elif abm.complete():
-    log.warning('Population data already parsed. Would you like to replace it? [Y/n]')
+    log.warning('Population data already parsed. Would you'
+        ' like to replace it? [Y/n]')
     if input().lower() not in ('y', 'yes', 'yeet'):
         log.info('User chose to keep existing population data; exiting parsing tool.')
         exit()

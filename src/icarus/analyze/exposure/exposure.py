@@ -30,22 +30,26 @@ class Exposure:
         query = f'''
             CREATE TABLE {temp("agents")}
             AS SELECT * FROM output_agents
-            WHERE FALSE; '''
+            WHERE FALSE;
+        '''
         self.database.cursor.execute(query)
         query = f'''
             CREATE TABLE {temp("legs")}
             AS SELECT * FROM output_legs
-            WHERE FALSE; '''
+            WHERE FALSE;
+        '''
         self.database.cursor.execute(query)
         query = f'''
             CREATE TABLE {temp("activities")}
             AS SELECT * FROM output_activities
-            WHERE FALSE; '''
+            WHERE FALSE;
+        '''
         self.database.cursor.execute(query)
         query = f'''
             CREATE TABLE {temp("events")}
             AS SELECT * FROM output_events
-            WHERE FALSE; '''
+            WHERE FALSE;
+        '''
         self.database.cursor.execute(query)
         self.database.connection.commit()
 
@@ -53,15 +57,18 @@ class Exposure:
     def create_indexes(self):
         query = '''
             CREATE INDEX output_agents_agent 
-            ON output_agents(agent_id);'''
+            ON output_agents(agent_id);
+        '''
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_activities_agent
-            ON output_activities(agent_id, agent_idx);'''
+            ON output_activities(agent_id, agent_idx);
+        '''
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_legs_agent 
-            ON output_legs(agent_id, agent_idx);'''
+            ON output_legs(agent_id, agent_idx);
+        '''
         self.database.cursor.execute(query)
         self.database.connection.commit()
 
@@ -85,19 +92,23 @@ class Exposure:
             'output_legs', 'output_events')
         query = f'''
             ALTER TABLE {temp("agents")}
-            RENAME TO output_agents; '''
+            RENAME TO output_agents;
+        '''
         self.database.cursor.execute(query)
         query = f'''
             ALTER TABLE {temp("legs")}
-            RENAME TO output_legs; '''
+            RENAME TO output_legs;
+        '''
         self.database.cursor.execute(query)
         query = f'''
             ALTER TABLE {temp("activities")}
-            RENAME TO output_activities; '''
+            RENAME TO output_activities;
+        '''
         self.database.cursor.execute(query)
         query = f'''
             ALTER TABLE {temp("events")}
-            RENAME TO output_events; '''
+            RENAME TO output_events;
+        '''
         self.database.cursor.execute(query)
         self.database.connection.commit()
 
@@ -116,7 +127,7 @@ class Exposure:
         
     
     def analyze(self, source: str):
-        log.info('Reallocating tables for exposure analysis.')
+        log.info('Allocating tables for exposure analysis.')
         self.database.drop_temporaries()
         self.create_tables()
 

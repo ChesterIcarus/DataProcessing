@@ -40,7 +40,8 @@ class Population:
             USING(agent_id)
             ORDER BY
                 leg_id,
-                leg_idx; '''
+                leg_idx;
+        '''
         self.database.cursor.execute(query)
         return self.database.cursor.fetchall()
 
@@ -56,7 +57,8 @@ class Population:
                 end
             FROM output_legs
             INNER JOIN {self.table}
-            USING(agent_id); '''
+            USING(agent_id);
+        '''
         self.database.cursor.execute(query)
         return self.database.cursor.fetchall()
 
@@ -68,12 +70,15 @@ class Population:
                 agent_id,
                 agent_idx,
                 type,
-                link_id,
                 start,
-                end
+                end,
+                apn
             FROM output_activities
             INNER JOIN {self.table}
-            USING(agent_id); '''
+            USING(agent_id); 
+            INNER JOIN activities
+            USING(agent_id)
+        '''
         self.database.cursor.execute(query)
         return self.database.cursor.fetchall()
 
@@ -83,7 +88,8 @@ class Population:
             SELECT agent_id
             FROM output_agents
             INNER JOIN {self.table}
-            USING(agent_id); '''
+            USING(agent_id);
+        '''
         self.database.cursor.execute(query)
         return self.database.cursor.fetchall()
 
@@ -124,11 +130,13 @@ class Population:
             CREATE TABLE {self.table} AS 
             SELECT agent_id 
             FROM output_agents
-            WHERE agent_id in {tuple(agents)}; '''
+            WHERE agent_id in {tuple(agents)};
+        '''
         self.database.cursor.execute(query)
         query = f'''
             CREATE INDEX {self.table}_agent
-            ON {self.table}(agent_id);   '''
+            ON {self.table}(agent_id);
+        '''
         self.database.cursor.execute(query)
         self.database.connection.commit()
 

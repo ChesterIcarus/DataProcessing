@@ -144,7 +144,7 @@ class Population:
 
         log.info('Iterating over trips for each household.')
 
-        error = defaultdict(int)
+        # error = defaultdict(int)
 
         def valid_party(party: Party) -> bool:
             return party.driver is not None or party.mode != RouteMode.CAR
@@ -161,11 +161,13 @@ class Population:
             return valid
 
         def valid_agent(agent: Agent) -> bool:
-            return (agent.modes.issubset(modes)
+            return (
+                agent.modes.issubset(modes)
                 and agent.activity_types.issubset(activity_types)
                 and agent.mazs.issubset(network.mazs)
                 and all(valid_party(party) for party in agent.parties)
-                and all(valid_leg(leg) for leg in agent.legs))
+                and all(valid_leg(leg) for leg in agent.legs)
+            )
 
         # def valid_agent(agent: Agent) -> bool:
         #     valid = True

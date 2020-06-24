@@ -1,6 +1,5 @@
 
 import os
-import psutil
 import logging as log
 from typing import List
 from xml.etree.ElementTree import iterparse

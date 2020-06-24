@@ -1,15 +1,16 @@
 
 from icarus.analyze.exposure.types import ActivityType
 from icarus.analyze.exposure.link import Link
+from icarus.analyze.exposure.parcel import Parcel
 
 
 class Activity:
-    __slots__ = ('id', 'type', 'link', 'start', 'end', 'exposure')
+    __slots__ = ('id', 'type', 'parcel', 'start', 'end', 'exposure')
 
-    def __init__(self, uuid: int, kind: ActivityType, link: Link,
+    def __init__(self, uuid: int, kind: ActivityType, parcel: Parcel,
             start: int, end: int):
         self.id = uuid
-        self.link = link
+        self.parcel = parcel
         self.type = kind
         self.start = start
         self.end = end
@@ -17,7 +18,7 @@ class Activity:
 
 
     def calculate_exposure(self) -> float:
-        self.exposure = 25.5 * (self.end - self.start)
+        self.exposure = self.parcel.get_exposure(self.start, self.end)
         return self.exposure
 
     
@@ -27,8 +28,9 @@ class Activity:
             agent,
             idx,
             self.type.value,
-            self.link.id,
+            self.parcel.apn,
             self.start,
             self.end,
             self.end - self.start,
-            self.exposure )
+            self.exposure 
+        )
