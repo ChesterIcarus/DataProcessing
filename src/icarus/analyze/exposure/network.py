@@ -20,38 +20,57 @@ def xy(point: str) -> tuple:
 
 
 class Network:
-    __slots__ = ('database', 'temperatures', 'centroids', 
-        'nodes', 'links', 'parcels')
+    __slots__ = ('database', 'air_temperatures', 'mrt_temperatures',
+        'centroids', 'nodes', 'links', 'parcels')
 
     def __init__(self, database: SqliteUtil):
         self.database = database
-        self.temperatures: Dict[str, Temperature] = {}
+        self.air_temperatures: Dict[str, Temperature] = {}
+        self.mrt_temperatures: Dict[str, Temperature] = {}
         self.links: Dict[str, Link] = {}
         self.nodes: Dict[str, Node] = {}
         self.parcels: Dict[str, Parcel] = {}
 
 
-    def load_temperatures(self):
-        log.info('Loading network temperature data.')
+    def load_temperatures(self, kind: str = 'mrt'):
+        log.info('Loading network air temperature data.')
         query = '''
             SELECT
                 temperature_id,
                 temperature_idx,
                 temperature
-            FROM air_temperatures
-            ORDER BY
-                temperature_id,
-                temperature_idx;
+            FROM air_temperatures;
         '''
         self.database.cursor.execute(query)
-        result = self.database.cursor.fetchall()
+        rows = self.database.fetch_rows()
 
-        temps = defaultdict(lambda: [])
-        temperatures = counter(result, 'Loading temperature %s.')
-        for temperature_id, _, temperature in temperatures:
-            temps[temperature_id].append(temperature)
+        temps = defaultdict(lambda: [None]*96)
+        rows = counter(rows, 'Loading air temperature %s.')
+        for temperature_id, temperature_idx, temperature in rows:
+            temps[temperature_id][temperature_idx] = temperature
         for uuid, values in temps.items():
-            self.temperatures[uuid] = Temperature(uuid, values)
+            self.air_temperatures[uuid] = Temperature(uuid, values)
+
+        log.info('Loading network mrt temperature data.')
+        query = f'''
+            SELECT
+                temperature_id,
+                temperature_idx,
+                {kind}
+            FROM mrt_temperatures;
+        '''
+        self.database.cursor.execute(query)
+        rows = self.database.cursor.fetchall()
+
+        temps = defaultdict(lambda: [None]*96)
+        rows = counter(rows, 'Loading mrt temperature %s.')
+        for temperature_id, temperature_idx, temperature in rows:
+            temps[temperature_id][temperature_idx] = temperature
+        for uuid, values in temps.items():
+            self.mrt_temperatures[uuid] = Temperature(uuid, values)
+
+        
+
 
 
     # def load_nodes(self):
@@ -79,22 +98,27 @@ class Network:
                 length,
                 freespeed,
                 modes,
-                air_temperature
+                air_temperature,
+                mrt_temperature
             FROM links; 
         '''
         self.database.cursor.execute(query)
         result = self.database.cursor.fetchall()
 
         links = counter(result, 'Loading link %s.')
-        for link_id, length, speed, modes, temp in links:
+        for link_id, length, speed, modes, air_temp, mrt_temp in links:
             modes_set = set(NetworkMode(mode) for mode in modes.split(','))
-            temperature = self.temperatures[temp]
+            air_temperature = self.air_temperatures[air_temp]
+            mrt_temperature = None
+            if mrt_temp is not None:
+                mrt_temperature = self.mrt_temperatures[mrt_temp]
             link = Link(
                 link_id,
                 length, 
                 speed, 
                 modes_set,
-                temperature
+                air_temperature,
+                mrt_temperature
             )
             self.links[link_id] = link
 
@@ -112,7 +136,7 @@ class Network:
         rows = counter(rows, 'Loading parcel %s.')
 
         for apn, temperature in rows:
-            temp = self.temperatures[temperature] 
+            temp = self.air_temperatures[temperature] 
             parcel = Parcel(apn, temp)
             self.parcels[apn] = parcel
         

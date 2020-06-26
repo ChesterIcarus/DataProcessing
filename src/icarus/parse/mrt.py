@@ -71,7 +71,7 @@ def xy(point: str) -> tuple:
 
 def hhmm_to_secs(hhmm: str) -> int:
     hrs, mins, ampm = hhmm.upper().replace(' ', ':').split(':')
-    return int(hrs) * 3600 + int(mins) * 60 + (ampm == 'PM') * 43200
+    return (int(hrs) % 12) * 3600 + int(mins) * 60 + (ampm == 'PM') * 43200
 
 
 def create_tables(database: SqliteUtil):

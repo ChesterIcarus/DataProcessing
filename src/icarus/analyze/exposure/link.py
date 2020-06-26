@@ -8,20 +8,34 @@ from icarus.analyze.exposure.node import Node
 
 class Link:
     __slots__ = ('length', 'freespeed', 'id', 'capacity',
-            'modes', 'temperature')
+            'modes', 'air_temperature', 'mrt_temperature')
 
     def __init__(self, link_id: str, length: float, freespeed: float,
-            modes: Set[NetworkMode], temperature: Temperature):
+            modes: Set[NetworkMode], air_temperature: Temperature, 
+            mrt_temperature: Temperature):
         self.id = link_id
         self.length = length
         self.freespeed = freespeed
         self.modes = modes
-        self.temperature = temperature
+        self.air_temperature = air_temperature
+        self.mrt_temperature = mrt_temperature
 
     
     def get_temperature(self, time: int) -> float:
-        return self.temperature.get_temperature(time)
+        temp = None
+        if self.mrt_temperature:
+            temp = self.mrt_temperature.get_temperature(
+                time, self.air_temperature)
+        else:
+            temp = self.air_temperature.get_temperature(time)
+        return temp
 
 
     def get_exposure(self, start: int, end: int) -> float:
-        return self.temperature.get_exposure(start, end)
+        temp = None
+        if self.mrt_temperature:
+            temp = self.mrt_temperature.get_exposure(
+                start, end, self.air_temperature)
+        else:
+            temp = self.air_temperature.get_exposure(start, end)
+        return temp
