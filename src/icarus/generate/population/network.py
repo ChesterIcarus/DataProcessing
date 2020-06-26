@@ -1,8 +1,8 @@
 
+import random
 import logging as log
 
 from shapely.geometry import Polygon
-from random import randint
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.general import defaultdict, counter
 
@@ -31,9 +31,10 @@ class Region:
 
 
 class Network:
-    def __init__(self, database: SqliteUtil):
+    def __init__(self, database: SqliteUtil, seed: int):
         self.database = database
         self.loaded = False
+        random.seed(seed)
 
     
     def fetch_parcels(self):
@@ -116,10 +117,10 @@ class Network:
                 parcel  = self.residential_parcels[maz][idx]
                 self.offset[maz] = (idx + 1) % len(self.residential_parcels[maz])
             elif maz in self.commercial_parcels:
-                idx = randint(0, len(self.commercial_parcels[maz]) - 1)
+                idx = random.randint(0, len(self.commercial_parcels[maz]) - 1)
                 parcel = self.commercial_parcels[maz][idx]
             elif maz in self.other_parcels:
-                idx = randint(0, len(self.other_parcels[maz]) - 1)
+                idx = random.randint(0, len(self.other_parcels[maz]) - 1)
                 parcel = self.other_parcels[maz][idx]
             elif maz in self.default_parcels:
                 parcel = self.default_parcels[maz]
@@ -130,13 +131,13 @@ class Network:
         parcel = None
         if maz in self.mazs:
             if maz in self.commercial_parcels:
-                idx = randint(0, len(self.commercial_parcels[maz]) - 1)
+                idx = random.randint(0, len(self.commercial_parcels[maz]) - 1)
                 parcel = self.commercial_parcels[maz][idx]
             elif maz in self.other_parcels:
-                idx = randint(0, len(self.other_parcels[maz]) - 1)
+                idx = random.randint(0, len(self.other_parcels[maz]) - 1)
                 parcel = self.other_parcels[maz][idx]
             elif maz in self.residential_parcels:
-                idx = randint(0, len(self.residential_parcels[maz]) - 1)
+                idx = random.randint(0, len(self.residential_parcels[maz]) - 1)
                 parcel = self.residential_parcels[maz][idx]
             elif maz in self.default_parcels:
                 parcel = self.default_parcels[maz]

@@ -1,153 +1,402 @@
 
+from __future__ import annotations
+
 import os
-import shapefile
-import requests
+import csv
 import logging as log
 
-from shapely.wkt import loads
-from shapely.geometry import Point
-from argparse import ArgumentParser
-from pyproj import Transformer, Geod
-from typing import List
+from glob import glob
+from math import sqrt
+from typing import List, Dict, FrozenSet, Tuple
+from argparse import ArgumentParser, SUPPRESS
+from pyproj.transformer import Transformer
+from rtree.index import Index
 
 from icarus.util.general import counter
 from icarus.util.sqlite import SqliteUtil
+from icarus.util.config import ConfigUtil
 
 
-class Centroid:
-    __slots__ = ('id', 'point')
+class Point:
+    __slots__ = ('id', 'x', 'y', 'mrt', 'pet', 'utci')
 
-    def __init__(self, uuid: int, point: Point):
+    def __init__(self, uuid: int, x: float, y: float, mrt: float, 
+            pet: float, utci: float):
         self.id = uuid
-        self.point = point
+        self.x = x
+        self.y = y
+        self.mrt = mrt
+        self.pet = pet
+        self.utci = utci
+
+    def entry(self):
+        return (self.id, (self.x, self.y, self.x, self.y), None)
+
+
+class Link:
+    __slots__ = ('id', 'source_node', 'terminal_node', 'lanes', 'freespeed',
+            'profile')
+
+    def __init__(self, uuid: str, source_node: Node, terminal_node: Node, 
+            lanes: float, freespeed: float):
+        self.id = uuid
+        self.source_node = source_node
+        self.terminal_node = terminal_node
+        self.lanes = lanes
+        self.freespeed = freespeed
+        self.profile = None
+
+
+    def bounds(self, buffer: float = 0):
+        xmin = min(self.source_node.x, self.terminal_node.x) - buffer
+        xmax = max(self.source_node.x, self.terminal_node.x) + buffer
+        ymin = min(self.source_node.y, self.terminal_node.y) - buffer
+        ymax = max(self.source_node.y, self.terminal_node.y) + buffer
+        
+        return (xmin, ymin, xmax, ymax)
 
 
 class Node:
-    __slots__ = ('id', 'point', 'maz', 'centroid')
+    __slots__ = ('id', 'maz', 'x', 'y')
 
-    def __init__(self, uuid: int, maz:int, centroid: Centroid, point: Point):
+    def __init__(self, uuid: str, x: float, y: float):
         self.id = uuid
-        self.maz = maz
-        self.centroid = centroid
-        self.point = point
+        self.x = x
+        self.y = y
 
 
 def xy(point: str) -> tuple:
     return tuple(map(float, point[7:-1].split(' ')))
 
 
-def get_wkt_string(epsg: int) -> str:
-    res = requests.request('get', f'https://epsg.io/{epsg}.prettywkt')
-    string = res.content.decode().replace(' ', '').replace('\n', '')
-    return string
+def hhmm_to_secs(hhmm: str) -> int:
+    hrs, mins, ampm = hhmm.upper().replace(' ', ':').split(':')
+    return int(hrs) * 3600 + int(mins) * 60 + (ampm == 'PM') * 43200
 
 
-def get_proj_string(epsg: int) -> str:
-    res = requests.request('get', f'https://epsg.io/{epsg}.proj4')
-    string = res.content.decode().replace('\n', '')
-    return string
-
-
-def load_nodes(database: SqliteUtil, threshold: float, epsg: int = None) -> List[Node]:
-    centroids = {}
-    nodes = {}
-
-    transformer = Transformer.from_crs('epsg:2223', 
-        f'epsg:{epsg}', always_xy=True, skip_equivalent=True)
-    transform = transformer.transform
-
+def create_tables(database: SqliteUtil):
+    database.drop_table('mrt_temperatures', 'temp_links', 'temp_links_merged')
     query = '''
-        SELECT
-            centroid_id,
-            point
-        FROM mrt_centroids
-        INNER JOIN nodes
-        ON mrt_centroids.centroid_id = modes.mrt_centroid;
+        CREATE TABLE mrt_temperatures(
+            temperature_id MEDIUMINT UNSIGNED,
+            temperature_idx SMALLINT UNSIGNED,
+            time MEDIUMINT UNSIGNED,
+            mrt FLOAT,
+            pet FLOAT,
+            utci FLOAT
+        );
     '''
-
     database.cursor.execute(query)
-    rows = database.fetch_rows()
-    rows = counter(rows, 'Loading centroid %s.')
+    query = '''
+        CREATE TABLE temp_links(
+            link_id VARCHAR(255),
+            mrt_temperature MEDIUMINT UNSIGNED
+        );
+    '''
+    database.cursor.execute(query)
+    database.connection.commit()
 
-    log.info('Loading network MRT centroids.')
-    for centroid_id, point in rows:
-        if centroid_id not in centroids:
-            x, y = transform(*xy(point))
-            pt = Point(x, y)
-            centroids[centroid_id] = Centroid(centroid_id, pt)
 
+def create_indexes(database: SqliteUtil):
+    query = '''
+        CREATE INDEX mrt_temperatures_temperature
+        ON mrt_temperatures(temperature_id, temperature_idx); 
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX links_link
+        ON links(link_id);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX links_node1
+        ON links(source_node);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX links_node2
+        ON links(terminal_node);
+    '''
+    database.cursor.execute(query)
+    database.connection.commit()
+
+
+
+def load_nodes(database: SqliteUtil) -> Dict[str,Node]:
     query = '''
         SELECT
             node_id,
-            maz,
-            mrt_centroid,
-            point,
-            GROUP_CONCAT(links.link_id, " ")
+            point
         FROM nodes;
     '''
-
-        # INNER JOIN links
-        # ON links.source_node = nodes.node_id
-        # OR links.terminal_node = nodes.node_id
-        # GROUP BY links.link_id;
-
     database.cursor.execute(query)
     rows = database.fetch_rows()
     rows = counter(rows, 'Loading node %s.')
 
-    log.info('Loading network nodes.')
-    for node_id, maz, centroid_id, point in rows:
-        x, y = transform(*xy(point))
-        pt = Point(x, y)
-        centroid = centroids[centroid_id]
-        nodes[node_id] = Node(node_id, maz, centroid, pt)
-
-    log.info('Filtering nodes by threshold.')
-    unmatched = []
-    for node in nodes.values():
-        centroid = node.centroid
-        if node.point.distance(centroid.point) > threshold:
-            unmatched.append(node)
+    nodes: Dict[str,Node] = {}
+    for uuid, point in rows:
+        x, y = xy(point)
+        node = Node(uuid, x, y)
+        nodes[uuid] = node
     
-    return unmatched
+    return nodes
 
 
-def export_map(nodes: List[Node], filepath: str):
-    pass
+def load_links(database: SqliteUtil, nodes: Dict[str,Node]) -> Dict[str,Link]:
+    query = '''
+        SELECT
+            link_id,
+            source_node,
+            terminal_node,
+            freespeed,
+            permlanes
+        FROM links;
+    '''
+    database.cursor.execute(query)
+    rows = database.fetch_rows()
+    rows = counter(rows, 'Loading link %s.')
+
+    links: Dict[str,Link] = {}
+    for uuid, src, term, speed, lanes in rows:
+        source_node = nodes[src]
+        terminal_node = nodes[term]
+        link = Link(uuid, source_node, terminal_node, lanes, speed)
+        links[uuid] = link
+
+    return links
 
 
-def export_shapefile(nodes: List[Node], filepath: str):
-    
-    for node in nodes:
-        pass
+def parse_points(csvfile: str, src_epsg: int, prj_epsg: int) \
+            -> Tuple[List[Point],int]:
+    log.info(f'Opening {csvfile}.')
+    csv_file = open(csvfile, 'r')
+    iter_points = csv.reader(csv_file, delimiter=',', quotechar='"')
+    next(iter_points)
+    iter_points = counter(iter_points, 'Parsing point %s.')
+
+    transformer = Transformer.from_crs(f'epsg:{src_epsg}', 
+        f'epsg:{prj_epsg}', always_xy=True, skip_equivalent=True)
+    project = transformer.transform
+
+    points = []
+    peek = next(iter_points)
+    iter_points.send(peek)
+    secs = hhmm_to_secs(peek[2])
+    for uuid, (lat, lon, _, mrt, pet, utci) in enumerate(iter_points):
+        x, y = project(lon, lat)
+        point = Point(uuid, x, y, float(mrt), float(pet), float(utci))
+        points.append(point)
+
+    csv_file.close()
+
+    return points, secs
+
+
+def parse_temperatures(csvfile: str) \
+            -> Tuple[List[Tuple[float,float,float]],int]:
+    log.info(f'Opening {csvfile}.')
+    csv_file = open(csvfile, 'r')
+    iter_temps = csv.reader(csv_file, delimiter=',', quotechar='"')
+    next(iter_temps)
+    iter_temps = counter(iter_temps, 'Parsing temperature %s.')
+
+    temps = []
+    peek = next(iter_temps)
+    iter_temps.send(peek)
+    secs = hhmm_to_secs(peek[2])
+    for _, _, _, mrt, pet, utci in iter_temps:
+        temps.append((float(mrt), float(pet), float(utci)))
         
+    csv_file.close()
+
+    return temps, secs
+
+
+def parse_mrt(database: SqliteUtil, path: str, src_epsg: int, prj_epsg: int,
+        bounds:int = 30, steps: int = 96):
+    log.info('Allocating tables for MRT temperature profiles.')
+    create_tables(database)
+
+    log.info('Loading network nodes from database.')
+    nodes: Dict[str,Node]
+    nodes = load_nodes(database)
+
+    log.info('Loading network links from database.')
+    links: Dict[str,Link] 
+    links= load_links(database, nodes)
+
+    log.info(f'Searching for mrt files in {path}')
+    csvfiles = iter(glob(f'{path}/**/*.csv', recursive=True))
+
+    log.info('Handling initial dataset for profile construction.')
+    points: List[Point]
+    time: int 
+    points, time = parse_points(next(csvfiles), src_epsg, prj_epsg)
+    
+    log.info('Building spatial index on MRT points.')
+    index = Index((point.entry() for point in points))
+
+    log.info('Scanning link bounds and building profiles.')
+    mapping: Dict[FrozenSet[int],int] = {}
+    count = 0
+    empty = 0
+    iter_links = counter(links.values(), 'Scanning link %s.')
+    for link in iter_links:
+        d = link.terminal_node.x * link.source_node.y - \
+            link.source_node.x * link.terminal_node.y
+        dx = link.terminal_node.x - link.source_node.x
+        dy = link.terminal_node.y - link.source_node.y
+        l = sqrt(dy * dy + dx * dx)
+
+        nearby = index.intersection(link.bounds(bounds))
+        contained = []
+        for uuid in nearby:
+            point = points[uuid]
+            x = point.x
+            y = point.y
+            if l > 0:
+                dist = abs(dy * x - dx * y + d ) / l
+            else:
+                px = point.x - link.source_node.x
+                py = point.y - link.source_node.y
+                dist = sqrt(px * px + py * py)
+            if dist <= bounds:
+                contained.append(point.id)
+        
+        if contained:
+            profile = frozenset(contained)
+            if profile in mapping:
+                link.profile = mapping[profile]
+            else:
+                mapping[profile] = count
+                link.profile = count
+                count += 1
+        else:
+            empty += 1
+
+    profiles: List[Tuple[int]]
+    profiles = [tuple(key) for key in mapping.keys()]
+
+    if empty:
+        log.warning(f'Found {empty} links without any MRT temperature profile.')
+
+    def dump_points():
+        idx = time // (86400 // steps)
+        for uuid, profile in enumerate(profiles):
+            mrt, pet, utci = 0, 0, 0
+            count = len(profile)
+            for ptid in profile:
+                point = points[ptid]
+                mrt += point.mrt
+                pet += point.pet
+                utci += point.utci
+            yield (uuid, idx, time, mrt / count, pet / count, utci / count)
+
+    def dump_links():
+        for link in links.values():
+            yield (link.id, link.profile)
+
+    breakpoint()
+
+    log.info('Writing link updates and temperatures to dataabse.')
+
+    database.insert_values('mrt_temperatures', dump_points(), 6)
+    database.insert_values('temp_links', dump_links(), 2)
+
+    log.info('Merging, dropping and renaming old tables.')
+
+    query = '''
+        CREATE INDEX temp_links_link
+        ON temp_links(link_id);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE TABLE temp_links_merged
+        AS SELECT
+            links.link_id,
+            links.source_node,
+            links.terminal_node,
+            links.length,
+            links.freespeed,
+            links.capacity,
+            links.permlanes,
+            links.oneway,
+            links.modes,
+            links.air_temperature,
+            temp_links.mrt_temperature
+        FROM links
+        INNER JOIN temp_links
+        USING(link_id);
+    '''
+    database.cursor.execute(query)
+
+    original = database.count_rows('links')
+    merged = database.count_rows('temp_links_merged')
+    if original != merged:
+        log.error('Original links and updated links tables '
+            'do not align; quiting to prevent data loss.')
+        raise RuntimeError
+    
+    database.drop_table('links', 'temp_links')
+    query = '''
+        ALTER TABLE temp_links_merged
+        RENAME TO links;
+    '''
+    database.cursor.execute(query)
+
+    database.connection.commit()
+
+    del links
+    del nodes
+    del index
+    del mapping
+    del points
+
+    log.info('Handling remain temperatures with defined profile.')
+
+    def dump_temperaures(time: int, temperatures: List[Tuple[float,float,float]]):
+        idx = time // (86400 // steps)
+        for uuid, profile in enumerate(profiles):
+            mrt, pet, utci = 0, 0, 0
+            count = len(profile)
+            for tempid in profile:
+                temp = temperatures[tempid]
+                mrt += temp[0]
+                pet += temp[1]
+                utci += temp[2]
+            yield (uuid, idx, time, mrt / count, pet / count, utci / count)
+
+    for csvfile in csvfiles:
+        time: int
+        temperatures: List[Tuple[float,float,float]]
+        temperatures, time = parse_temperatures(csvfile)
+
+        log.info('Writing temperature data to database.')
+        database.insert_values('mrt_temperatures', 
+            dump_temperaures(time, temperatures), 6)
+        database.connection.commit()
+
+    log.info('Creating indexes on new/updated tables.')
+    create_indexes(database)
 
 
 def main():
-    parser = ArgumentParser('MRT Centroid Analyzer')
-
-    parser.add_argument('threshold', type=float, required=True,
-        help='maximum distance of MRT point to network node; units '
-            'match those of the chosen coordinate system')
-    parser.add_argument('--epsg', type=int, dest='epsg', default=None,
-        help='epsg to convert to; defualt is no transformation')
-    parser.add_argument('--map', type=str, dest='map', default=None,
-        help='location to save map; map not saved by default')
-    parser.add_argument('--shapefile', type=str, dest='shapefile', default=None,
-        help='location to save shapefile; shapefile not saved by default')
-
-    oper = parser.add_argument_group('operational')
-    oper.add_argument('--dir', type=str, dest='dir', default='.',
+    parser = ArgumentParser('mrt temperature parser', add_help=False)
+    
+    parser.add_argument('--help', action='help', default=SUPPRESS,
+        help='show this help menu and exit process')
+    parser.add_argument('--dir', type=str, dest='dir', default='.',
         help='path to directory containing Icarus run data')
-    oper.add_argument('--log', type=str, dest='log', default=None,
+    parser.add_argument('--log', type=str, dest='log', default=None,
         help='path to file to save the process log; not saved by default')
-    oper.add_argument('--level', type=str, dest='level', default='info',
+    parser.add_argument('--level', type=str, dest='level', default='info',
         choices=('notset', 'debug', 'info', 'warning', 'error', 'critical'),
         help='verbosity of the process log')
 
     args = parser.parse_args()
 
-    handlers = [log.StreamHandler()]
+    handlers = []
+    handlers.append(log.StreamHandler())
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
     log.basicConfig(
@@ -157,11 +406,29 @@ def main():
     )
 
     path = lambda x: os.path.abspath(os.path.join(args.dir, x))
+    home = path('')
 
-    database = SqliteUtil(path('.'), readonly=True)
+    log.info('Running mrt temperature parsing tool.')
+    log.info(f'Loading run data from {home}.')
 
-    nodes = load_nodes(database, args.threshold)
+    config = ConfigUtil.load_config(path('config.json'))
+    database = SqliteUtil(path('database.db'))
 
+    path = config['network']['exposure']['mrt_dir']
+
+    try:
+        log.info('Starting mrt temperature parsing.')
+        parse_mrt(
+            database, 
+            path, 
+            src_epsg=4326,
+            prj_epsg=2223, 
+            bounds=50,
+            steps=96
+        )
+    except:
+        log.exception('Critical error while running mrt temperature '
+            'parsing; cleaning up and terminating.')
 
 
 if __name__ == '__main__':

@@ -139,7 +139,7 @@ class Population:
         self.create_tables()
         
         log.info('Loading network data.')
-        network = Network(self.database)
+        network = Network(self.database, seed)
         network.load_network()
 
         log.info('Iterating over trips for each household.')

@@ -51,6 +51,8 @@ class Network:
 
     def cleanup(self, folder):
         path = lambda x: os.path.join(folder, x)
+        subprocess.run(('sed', '-i', 's/Infinity/9999.0/', 
+            path('input/network.xml')), check=True)
         subprocess.run(('gzip', '-q', path('input/network.xml')), check=True)
         subprocess.run(('gzip', '-q', path('input/transitSchedule.xml')), check=True)
         subprocess.run(('gzip', '-q', path('input/transitVehicles.xml')), check=True)

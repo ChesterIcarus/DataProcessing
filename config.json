@@ -17,7 +17,7 @@
                 "/home/benjamin/Documents/icarus/data/source/daymet/tmin_11195.nc"
             ],
             "day": 181,
-            "steps": 48,
+            "steps": 96,
             "vehicle_assumption": 25.5,
             "indoor_assumption": 25.5
         },

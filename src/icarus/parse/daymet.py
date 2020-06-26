@@ -83,7 +83,7 @@ def create_tables(database: SqliteUtil):
     query = '''
         CREATE TABLE air_temperatures(
             temperature_id MEDIUMINT UNSIGNED,
-            temperature_idx TINYINT UNSIGNED,
+            temperature_idx SMALLINT UNSIGNED,
             time MEDIUMINT UNSIGNED,
             temperature FLOAT
         );  

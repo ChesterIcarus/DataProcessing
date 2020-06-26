@@ -12,10 +12,6 @@ from icarus.util.general import defaultdict
 from icarus.util.sqlite import SqliteUtil
 
 
-def temp(table):
-    return f'temp_{abs(hash(table))}'
-
-
 class Population:
     def __init__(self, database: SqliteUtil, network: Network):
         self.database = database
@@ -66,18 +62,19 @@ class Population:
     def fetch_activities(self):
         query = f'''
             SELECT
-                activity_id,
-                agent_id,
-                agent_idx,
-                type,
-                start,
-                end,
-                apn
+                output_activities.activity_id,
+                output_activities.agent_id,
+                output_activities.agent_idx,
+                output_activities.type,
+                output_activities.link_id,
+                output_activities.start,
+                output_activities.end,
+                activities.apn
             FROM output_activities
             INNER JOIN {self.table}
-            USING(agent_id); 
-            INNER JOIN activities
             USING(agent_id)
+            INNER JOIN activities
+            USING(activity_id);
         '''
         self.database.cursor.execute(query)
         return self.database.cursor.fetchall()
@@ -111,9 +108,11 @@ class Population:
     
     def load_activities(self):
         activities = self.fetch_activities()
-        for activity_id, agent_id, _, kind, link_id, start, end in activities:
+        for activity_id, agent_id, _, kind, link_id, start, end, apn in activities:
+            parcel = self.network.parcels[apn]
             link = self.network.links[link_id]
-            activity = Activity(activity_id, ActivityType(kind), link, start, end)
+            activity = Activity(activity_id, ActivityType(kind), 
+                parcel, start, end, link)
             self.agents[agent_id].add_activity(activity)
 
 
@@ -124,7 +123,7 @@ class Population:
 
 
     def create_population(self, agents: List[str]):
-        self.table = temp('population')
+        self.table = 'temp_population'
         self.database.drop_table(self.table)
         query = f'''
             CREATE TABLE {self.table} AS 

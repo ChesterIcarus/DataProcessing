@@ -5,15 +5,17 @@ from icarus.analyze.exposure.parcel import Parcel
 
 
 class Activity:
-    __slots__ = ('id', 'type', 'parcel', 'start', 'end', 'exposure')
+    __slots__ = ('id', 'type', 'parcel', 'start', 
+        'end', 'link', 'exposure')
 
     def __init__(self, uuid: int, kind: ActivityType, parcel: Parcel,
-            start: int, end: int):
+            start: int, end: int, link: Link):
         self.id = uuid
         self.parcel = parcel
         self.type = kind
         self.start = start
         self.end = end
+        self.link = link
         self.exposure: float = None
 
 
@@ -28,7 +30,7 @@ class Activity:
             agent,
             idx,
             self.type.value,
-            self.parcel.apn,
+            self.link.id,
             self.start,
             self.end,
             self.end - self.start,

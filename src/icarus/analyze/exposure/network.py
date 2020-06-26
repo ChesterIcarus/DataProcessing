@@ -10,6 +10,7 @@ from icarus.analyze.exposure.node import Node
 from icarus.analyze.exposure.link import Link
 from icarus.analyze.exposure.parcel import Parcel
 from icarus.analyze.exposure.types import NetworkMode
+from icarus.analyze.exposure.temperature import Temperature
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.general import counter, defaultdict
 
@@ -24,7 +25,7 @@ class Network:
 
     def __init__(self, database: SqliteUtil):
         self.database = database
-        self.temperatures = defaultdict(lambda x: [])
+        self.temperatures: Dict[str, Temperature] = {}
         self.links: Dict[str, Link] = {}
         self.nodes: Dict[str, Node] = {}
         self.parcels: Dict[str, Parcel] = {}
@@ -45,10 +46,12 @@ class Network:
         self.database.cursor.execute(query)
         result = self.database.cursor.fetchall()
 
+        temps = defaultdict(lambda: [])
         temperatures = counter(result, 'Loading temperature %s.')
         for temperature_id, _, temperature in temperatures:
-            self.temperatures[temperature_id].append(temperature)
-        self.temperatures.lock()
+            temps[temperature_id].append(temperature)
+        for uuid, values in temps.items():
+            self.temperatures[uuid] = Temperature(uuid, values)
 
 
     # def load_nodes(self):
@@ -101,15 +104,16 @@ class Network:
         query = '''
             SELECT
                 apn,
-                cooling
+                air_temperature
             FROM parcels;
         '''
         self.database.cursor.execute(query)
         rows = self.database.fetch_rows()
         rows = counter(rows, 'Loading parcel %s.')
 
-        for apn, cooling in rows:
-            parcel = Parcel(apn, bool(cooling))
+        for apn, temperature in rows:
+            temp = self.temperatures[temperature] 
+            parcel = Parcel(apn, temp)
             self.parcels[apn] = parcel
         
     

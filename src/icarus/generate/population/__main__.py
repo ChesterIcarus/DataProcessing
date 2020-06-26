@@ -26,12 +26,15 @@ log.basicConfig(
 
 path = lambda x: os.path.abspath(os.path.join(args.folder, x))
 home = path('')
-config = ConfigUtil.load_config(path('config.json'))
 
 log.info('Running population generation tool.')
 log.info(f'Loading run data from {home}.')
 
 database = SqliteUtil(path('database.db'))
+config = ConfigUtil.load_config(path('config.json'))
+
+seed = config['population']['seed']
+
 population = Population(database)
 
 if not population.ready():
@@ -45,7 +48,7 @@ elif population.complete():
 
 try:
     log.info('Starting population generation.')
-    population.generate()
+    population.generate(seed=seed)
 except:
     log.exception('Critical error while generating population; '
         'terminating process and exiting.')
