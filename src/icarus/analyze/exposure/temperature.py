@@ -44,5 +44,3 @@ class Temperature:
                 exposure += step_size * temp(step % steps)
             exposure += (end - end_step * step_size) * temp(end_step % steps)
         return exposure
-
-

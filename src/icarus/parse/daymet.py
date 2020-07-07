@@ -17,52 +17,95 @@ from icarus.util.general import counter
 class Point:
     __slots__ = ('id', 'x', 'y', 'profile')
 
-    def __init__(self, id: int, x: float, y: float, profile: int):
-        self.id = id
+    def __init__(self, uuid: int, x: float, y: float, profile: int):
+        self.id = uuid
         self.x = x
         self.y = y
         self.profile = profile
     
 
 class Link:
-    __slots__ = ('id', 'source_node', 'terminal_node', 'length', 'freespeed', 
-        'capacity', 'permlanes', 'oneway', 'modes', 'air_temperature', 
-        'mrt_temperature', 'x', 'y')
+    __slots__ = ('id', 'x', 'y', 'air_temperature')
 
-    def __init__(self, id: str, source_node: str, terminal_node: str,
-            length: float, freespeed: float, capacity: float, permlanes: float,
-            oneway: int, modes: str, air_temperature: int, mrt_temperature: int,
-            x: int, y: int):
-        self.id = id
-        self.source_node = source_node
-        self.terminal_node = terminal_node
-        self.length = length
-        self.freespeed = freespeed
-        self.capacity = capacity
-        self.permlanes = permlanes
-        self.oneway = oneway
-        self.modes = modes
-        self.air_temperature = air_temperature
-        self.mrt_temperature = mrt_temperature
+    def __init__(self, uuid: str, x: int, y: int):
+        self.id = uuid
         self.x = x
         self.y = y
+        self.air_temperature = None
 
 
 class Parcel:
-    __slots__ = ('apn', 'maz', 'kind', 'cooling', 'air_temperature', 
-        'mrt_temperature', 'center', 'region')
+    __slots__ = ('apn', 'x', 'y', 'kind', 'cooling', 'air_temperature')
     
-    def __init__(self, apn: str, maz: int, kind: str, cooling: bool,
-            air_temperature: int, mrt_temperature: int, center: str,
-            region: str):
+    def __init__(self, apn: str, kind: str, cooling: bool, x: float, y: float):
         self.apn = apn
-        self.maz = maz
+        self.x = x
+        self.y = y
         self.kind = kind
         self.cooling = cooling
-        self.air_temperature = air_temperature
-        self.mrt_temperature = mrt_temperature
-        self.center = center
-        self.region = region
+        self.air_temperature = None
+
+
+def null_count(database: SqliteUtil, table: str, col: str):
+    query = f'''
+        SELECT
+            CASE 
+                WHEN {col} IS NULL 
+                THEN 0 ELSE 1 
+                END AS valid,
+            COUNT(*) AS freq
+        FROM {table}
+        GROUP BY valid
+        ORDER BY valid ASC;
+    '''
+    database.cursor.execute(query)
+    rows = database.fetch_rows()
+    
+    null, nnull = 0, 0
+    for value, freq in rows:
+        if value == 0:
+            null = freq
+        elif value == 1:
+            nnull = freq
+
+    return null, nnull
+
+
+def complete(database: SqliteUtil):
+    done = False
+    exists = database.table_exists('air_temperatures')
+    if len(exists):
+        log.warning(f'Database already has table air_temperatures.')
+        done = True
+    null, nnull = null_count(database, 'links', 'air_temperature')
+    if nnull > 0:
+        log.warning(f'Found {nnull}/{null} links with/without air '
+            'temperature profiles.')
+        done = True
+    null, nnull = null_count(database, 'parcels', 'air_temperature')
+    if nnull > 0:
+        log.warning(f'Found {nnull}/{null} parcels with/without air '
+            'temperature profiles.')
+        done = True
+    
+    return done
+    
+
+def ready(database: SqliteUtil, tmin_files: List[str], tmax_files: List[str]):
+    ready = True
+    for t_file in tmin_files + tmax_files:
+        exists = os.path.exists(t_file)
+        if not exists:
+            log.warning(f'Could not open file {t_file}.')
+            ready = False
+    tables = ('parcels', 'links', 'nodes')
+    exists = database.table_exists(*tables)
+    missing = set(tables) - set(exists)
+    for table in missing:
+        log.warning(f'Database is missing table {table}.')
+        ready = False    
+
+    return ready
 
 
 def xy(point: str) -> tuple:
@@ -79,7 +122,8 @@ def iterpolation(tmin: float, tmax: float, tdawn: float, tpeak: float):
 
 
 def create_tables(database: SqliteUtil):
-    database.drop_table('air_temperatures', 'temp_links')
+    database.drop_table('air_temperatures', 'temp_links', 'temp_parcels',
+        'temp_links_merged', 'temp_parcels_merged')
     query = '''
         CREATE TABLE air_temperatures(
             temperature_id MEDIUMINT UNSIGNED,
@@ -87,6 +131,20 @@ def create_tables(database: SqliteUtil):
             time MEDIUMINT UNSIGNED,
             temperature FLOAT
         );  
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE TABLE temp_links(
+            link_id VARCHAR(255),
+            air_temperature MEDIUMINT UNSIGNED
+        );
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE TABLE temp_parcels(
+            apn VARCHAR(255),
+            air_temperature MEDIUMINT UNSIGNED
+        );
     '''
     database.cursor.execute(query)
     database.connection.commit()
@@ -98,6 +156,51 @@ def create_indexes(database: SqliteUtil):
         ON air_temperatures(temperature_id, temperature_idx); 
     '''
     database.cursor.execute(query)
+    query = '''
+        CREATE INDEX links_link
+        ON links(link_id);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX links_node1
+        ON links(source_node);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX links_node2
+        ON links(terminal_node);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX links_air
+        ON links(air_temperature);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX links_mrt
+        ON links(mrt_temperature);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX parcels_apn
+        ON parcels(apn);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX parcels_maz
+        ON parcels(maz);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX parcels_air
+        ON parcels(air_temperature);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX parcels_mrt
+        ON parcels(mrt_temperature);
+    '''
+    database.cursor.execute(query)
     database.connection.commit()
 
 
@@ -105,16 +208,6 @@ def load_links(database: SqliteUtil):
     query = '''
         SELECT
             links.link_id,
-            links.source_node,
-            links.terminal_node,
-            links.length,
-            links.freespeed,
-            links.capacity,
-            links.permlanes,
-            links.oneway,
-            links.modes,
-            links.air_temperature,
-            links.mrt_temperature,
             nodes.point
         FROM links
         INNER JOIN nodes
@@ -125,9 +218,9 @@ def load_links(database: SqliteUtil):
     rows = counter(rows, 'Loading link %s.')
 
     links = []
-    for row in rows:
-        x, y = xy(row[-1])
-        link = Link(*row[:-1], x, y)
+    for link_id, point in rows:
+        x, y = xy(point)
+        link = Link(link_id, x, y)
         links.append(link)
 
     return links
@@ -137,13 +230,9 @@ def load_parcels(database: SqliteUtil):
     query = '''
         SELECT
             apn,
-            maz,
             type,
             cooling,
-            air_temperature,
-            mrt_temperature,
-            center,
-            region
+            center
         FROM parcels;
     '''
     database.cursor.execute(query)
@@ -151,9 +240,9 @@ def load_parcels(database: SqliteUtil):
     rows = counter(rows, 'Loading parcel %s.')
 
     parcels = []
-    for row in rows:
-        parcel = Parcel(*row)
-        parcel.air_temperature = None
+    for apn, kind, cooling, center in rows:
+        x, y = xy(center)
+        parcel = Parcel(apn, kind, bool(cooling), x, y)
         parcels.append(parcel)
 
     return parcels
@@ -250,23 +339,12 @@ def parse_temperatures(database: SqliteUtil, tmin_files: List[str],
     def dump_links():
         for link in links:
             yield (
-                link.id, 
-                link.source_node, 
-                link.terminal_node, 
-                link.length, 
-                link.freespeed, 
-                link.capacity, 
-                link.permlanes, 
-                link.oneway, 
-                link.modes, 
-                link.air_temperature, 
-                link.mrt_temperature
+                link.id,
+                link.air_temperature
             )
 
     log.info('Writing updated links to database.')
-    query = 'DELETE FROM links;'
-    database.cursor.execute(query)
-    database.insert_values('links', dump_links(), 11)
+    database.insert_values('temp_links', dump_links(), 2)
     database.connection.commit()
     del links
 
@@ -306,19 +384,11 @@ def parse_temperatures(database: SqliteUtil, tmin_files: List[str],
         for parcel in parcels:
             yield (
                 parcel.apn,
-                parcel.maz,
-                parcel.kind,
-                parcel.cooling,
-                parcel.air_temperature,
-                parcel.mrt_temperature,
-                parcel.center,
-                parcel.region
+                parcel.air_temperature
             )
     
     log.info('Writing updated parcels to database.')
-    query = 'DELETE FROM parcels;'
-    database.cursor.execute(query)
-    database.insert_values('parcels', dump_parcels(), 8)
+    database.insert_values('temp_parcels', dump_parcels(), 2)
     database.connection.commit()
     del parcels
 
@@ -329,6 +399,85 @@ def parse_temperatures(database: SqliteUtil, tmin_files: List[str],
 
     log.info('Writing parsed air temperatures to database.')
     database.insert_values('air_temperatures', dump_temperatures(), 4)
+    database.connection.commit()
+    del temperatures
+
+    log.info('Merging, dropping and renaming old tables.')
+
+    query = '''
+        CREATE INDEX temp_links_link
+        ON temp_links(link_id);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE TABLE temp_links_merged
+        AS SELECT
+            links.link_id,
+            links.source_node,
+            links.terminal_node,
+            links.length,
+            links.freespeed,
+            links.capacity,
+            links.permlanes,
+            links.oneway,
+            links.modes,
+            temp_links.air_temperature,
+            links.mrt_temperature
+        FROM links
+        INNER JOIN temp_links
+        USING(link_id);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX temp_parcels_parcel
+        ON temp_parcels(apn);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE TABLE temp_parcels_merged
+        AS SELECT
+            parcels.apn,
+            parcels.maz,
+            parcels.type,
+            parcels.cooling,
+            temp_parcels.air_temperature,
+            parcels.mrt_temperature,
+            parcels.center,
+            parcels.region
+        FROM parcels
+        INNER JOIN temp_parcels
+        USING(apn);
+    '''
+    database.cursor.execute(query)
+
+    original = database.count_rows('links')
+    merged = database.count_rows('temp_links_merged')
+    if original != merged:
+        log.error('Original links and updated links tables '
+            'do not align; quiting to prevent data loss.')
+        raise RuntimeError
+    else:
+        database.drop_table('links', 'temp_links')
+        query = '''
+            ALTER TABLE temp_links_merged
+            RENAME TO links;
+        '''
+        database.cursor.execute(query)
+    
+    original = database.count_rows('parcels')
+    merged = database.count_rows('temp_parcels_merged')
+    if original != merged:
+        log.error('Original parcels and updated parcels tables '
+            'do not align; quiting to prevent data loss.')
+        raise RuntimeError
+    else:
+        database.drop_table('parcels', 'temp_parcels')
+        query = '''
+            ALTER TABLE temp_parcels_merged
+            RENAME TO parcels;
+        '''
+        database.cursor.execute(query)
+    
     database.connection.commit()
 
     log.info('Creating indexes on new tables.')
@@ -374,8 +523,24 @@ def main():
     log.info('Running roads parsing tool.')
     log.info(f'Loading run data from {home}.')
 
+    if not ready(database, tmin_files, tmax_files):
+        log.error('Process dependencies not met; see warnings and '
+            'docuemntation for more details.')
+        exit(1)
+    if complete(database):
+        log.info('All or some of this process is already complete. '
+            ' Would you like to proceed? [Y/n]')
+        valid = ('y', 'n', 'yes', 'no', 'yee', 'naw')
+        response = input().lower()
+        while response not in valid:
+            print('Try again; would you like to proceed? [Y/n]')
+            response = input().lower()
+        if response in ('n', 'no', 'naw'):
+            log.info('User chose to terminate process.')
+            exit()
+
     try:
-        log.info('Starting roads parsing.')
+        log.info('Starting road parsing.')
         parse_temperatures(database, tmin_files, tmax_files, 
             steps, day, 4326, 2223)
     except:

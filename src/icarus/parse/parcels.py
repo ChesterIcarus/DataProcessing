@@ -35,6 +35,33 @@ class Parcel:
         self.maz = None
 
 
+def complete(database: SqliteUtil):
+    done = False
+    exists = database.table_exists('parcels')
+    if len(exists):
+        log.warning('Database already has table parcels.')
+        done = True
+
+    return done
+
+
+def ready(database: SqliteUtil, residence_file: str, commerce_file:str, 
+        parcel_file: str):
+    ready = True
+    exists = database.table_exists('regions')
+    if not len(exists):
+        log.warning('Database is missing table regions.')
+        ready = False
+    files = (residence_file, commerce_file, parcel_file)
+    for f in files:
+        exists = os.path.exists(f)
+        if not exists:
+            log.warning(f'Could not open file {f}.')
+            ready = False
+    
+    return ready
+
+
 def create_tables(database: SqliteUtil):
     database.drop_table('parcels')
     query = '''
@@ -91,7 +118,7 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
     boundaries = {}
     cooling = {}
     parcels = []
-    apns = []
+    apns = set()
 
     transformer = Transformer.from_crs(f'epsg:{src_epsg}', 
         f'epsg:{prj_epsg}', always_xy=True, skip_equivalent=True)
@@ -111,7 +138,7 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
             boundaries[apn] = polygon
     parser.close()
 
-    log.info('Loading cooling infomration from csv file.')
+    log.info('Loading cooling information from csv file.')
     with open(cooling_file, 'r') as open_file:
             lines = csv.reader(open_file, delimiter=',', quotechar='"')
             next(lines)
@@ -123,12 +150,12 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
     iter_parcels = counter(parser.iterRecords(), 'Parsing residential parcel %s.')
     for record in iter_parcels:
         apn = record['APN']
-        if apn in boundaries:
+        if apn in boundaries and apn not in apn:
             cool = True
             polygon = boundaries[apn]
             parcel = Parcel(apn, 'residential', cool, polygon)
             parcels.append(parcel)
-            apns.append(apn)
+            apns.add(apn)
     parser.close()
     
     log.info('Parsing comercial parcels from database file.')
@@ -136,17 +163,17 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
     iter_parcels = counter(parser.iterRecords(), 'Parsing commercial parcel %s.')
     for record in iter_parcels:
         apn = record['APN']
-        if apn in boundaries:
+        if apn in boundaries and apn not in apns:
             desc = record['DESCRIPT']
             cool = cooling[desc]
             polygon = boundaries[apn]
             parcel = Parcel(apn, 'commercial', cool, polygon)
             parcels.append(parcel)
-            apns.append(apn)
+            apns.add(apn)
     parser.close()
 
     log.info('Parsing extraneous parcels from shapefile.')
-    other = set(boundaries) - set(apns)
+    other = set(boundaries.keys()) - apns
     other = counter(other, 'Parsing extraneous parcel %s.')
     for apn in other:
         polygon = boundaries[apn]
@@ -171,7 +198,7 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
         parcel = Parcel(apn, 'default', True, region.polygon)
         parcel.maz = region.maz
         parcels.append(parcel)
-        result = index.contains(region.polygon.bounds)
+        result = index.intersection(region.polygon.bounds)
         for idx in result:
             parcel = parcels[idx]
             if region.polygon.contains(parcel.polygon.centroid):
@@ -240,7 +267,24 @@ def main():
     parcel_file = config['network']['parcels']['parcel_file']
     cooling_file = config['network']['parcels']['type_file']
 
+    if not ready(database, residence_file, commerce_file, parcel_file):
+        log.error('Process dependencies not met; see warnings and '
+            'docuemntation for more details.')
+        exit(1)
+    if complete(database):
+        log.info('All or some of this process is already complete. '
+            ' Would you like to proceed? [Y/n]')
+        valid = ('y', 'n', 'yes', 'no', 'yee', 'naw')
+        response = input().lower()
+        while response not in valid:
+            print('Try again; would you like to proceed? [Y/n]')
+            response = input().lower()
+        if response in ('n', 'no', 'naw'):
+            log.info('User chose to terminate process.')
+            exit()
+
     try:
+        log.info('Starting parcel parsing.')
         parse_parcels(database, residence_file, commerce_file, 
             parcel_file, cooling_file, 2223, 2223)
     except:

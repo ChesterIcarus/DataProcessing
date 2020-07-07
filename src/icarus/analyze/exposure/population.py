@@ -181,5 +181,3 @@ class Population:
             for leg in agent.legs:
                 for idx, event in enumerate(leg.events):
                     yield event.export(leg.id, idx)
-
-    

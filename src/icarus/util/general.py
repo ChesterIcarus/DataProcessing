@@ -17,17 +17,17 @@ def bins(iterable: Iterable, binsize: int):
         yield iterable[idx : idx + binsize]
 
 
-def counter(iterable: Iterable, message: str,
-        start: int = 1, end: bool = True):
+def counter(iterable: Iterable, message: str, start: int = 1, 
+        end: bool = True, level=log.INFO):
     n = 1
     count = 0
     for count, item in enumerate(iterable, start):
         if count == n:
-            log.info(message % count)
+            log.log(level, message % count)
             n <<= 1
         yield item
     if count != n >> 1 and end:
-        log.info(message % count)
+        log.log(level, message % count)
 
 
 T = TypeVar('T')

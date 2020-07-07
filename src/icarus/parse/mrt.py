@@ -65,6 +65,40 @@ class Node:
         self.y = y
 
 
+def null_count(database: SqliteUtil, table: str, col: str):
+    query = f'''
+        SELECT
+            CASE 
+                WHEN {col} IS NULL 
+                THEN 0 ELSE 1 
+                END AS valid,
+            COUNT(*) AS freq
+        FROM {table}
+        GROUP BY valid
+        ORDER BY valid ASC;
+    '''
+    database.cursor.execute(query)
+    rows = database.fetch_rows()
+    
+    null, nnull = 0, 0
+    for value, freq in rows:
+        if value == 0:
+            null = freq
+        elif value == 1:
+            nnull = freq
+
+    return null, nnull
+
+
+def complete(database: SqliteUtil):
+    null, nnull = null_count(database, 'links', 'mrt_temperature')
+    # null, nnull = null_count(database, 'parcels', 'mrt_temperature')
+
+
+def ready():
+    pass
+
+
 def xy(point: str) -> tuple:
     return tuple(map(float, point[7:-1].split(' ')))
 
@@ -118,6 +152,36 @@ def create_indexes(database: SqliteUtil):
         ON links(terminal_node);
     '''
     database.cursor.execute(query)
+    query = '''
+        CREATE INDEX links_air
+        ON links(air_temperature);
+    '''
+    database.cursor.execute(query)
+    query = '''
+        CREATE INDEX links_mrt
+        ON links(mrt_temperature);
+    '''
+    database.cursor.execute(query)
+    # query = '''
+    #     CREATE INDEX parcels_apn
+    #     ON parcels(apn);
+    # '''
+    # database.cursor.execute(query)
+    # query = '''
+    #     CREATE INDEX parcels_maz
+    #     ON parcels(maz);
+    # '''
+    # database.cursor.execute(query)
+    # query = '''
+    #     CREATE INDEX parcels_air
+    #     ON parcels(air_temperature);
+    # '''
+    # database.cursor.execute(query)
+    # query = '''
+    #     CREATE INDEX parcels_mrt
+    #     ON parcels(mrt_temperature);
+    # '''
+    # database.cursor.execute(query)
     database.connection.commit()
 
 
@@ -295,8 +359,6 @@ def parse_mrt(database: SqliteUtil, path: str, src_epsg: int, prj_epsg: int,
     def dump_links():
         for link in links.values():
             yield (link.id, link.profile)
-
-    breakpoint()
 
     log.info('Writing link updates and temperatures to dataabse.')
 

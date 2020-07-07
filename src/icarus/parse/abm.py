@@ -254,3 +254,7 @@ def main():
         log.exception('Critical error while parsing population; '
             'terminating process and exiting.')
         exit(1)
+
+
+if __name__ == '__main__':
+    main()

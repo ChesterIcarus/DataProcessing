@@ -4,7 +4,6 @@ import shapefile
 import logging as log
 
 from argparse import ArgumentParser
-from typing import Tuple
 from rtree.index import Index
 from shapely.geometry import Polygon, Point
 from pyproj import Transformer
@@ -12,8 +11,27 @@ from shapely.wkt import dumps
 
 from icarus.util.config import ConfigUtil
 from icarus.util.general import counter
-from icarus.util.iter import pair
 from icarus.util.sqlite import SqliteUtil
+
+
+def complete(database: SqliteUtil):
+    done = False
+    exists = database.table_exists('regions')
+    if len(exists):
+        log.warning('Database already has table regions.')
+        done = True
+
+    return done
+
+
+def ready(regions_file: str):
+    ready = True
+    exists = os.path.exists(regions_file)
+    if not exists:
+        log.warning(f'Could not open {regions_file}.')
+        ready = False
+
+    return ready
 
 
 def create_tables(database: SqliteUtil):
@@ -109,6 +127,22 @@ def main():
 
     log.info('Running regions parsing tool.')
     log.info(f'Loading run data from {home}.')
+
+    if not ready(regions_file):
+        log.error('Process dependencies not met; see warnings and '
+            'docuemntation for more details.')
+        exit(1)
+    if complete(database):
+        log.info('All or some of this process is already complete. '
+            ' Would you like to proceed? [Y/n]')
+        valid = ('y', 'n', 'yes', 'no', 'yee', 'naw')
+        response = input().lower()
+        while response not in valid:
+            print('Try again; would you like to proceed? [Y/n]')
+            response = input().lower()
+        if response in ('n', 'no', 'naw'):
+            log.info('User chose to terminate process.')
+            exit()
 
     try:
         log.info('Starting regions parsing.')

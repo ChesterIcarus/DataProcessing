@@ -69,9 +69,6 @@ class Network:
         for uuid, values in temps.items():
             self.mrt_temperatures[uuid] = Temperature(uuid, values)
 
-        
-
-
 
     # def load_nodes(self):
     #     query = f'''
