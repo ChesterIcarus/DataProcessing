@@ -1,9 +1,9 @@
 
-# Icarus Simulation Data Processing
+# Icarus
 
 ## About
 
-This repository is a collection of python scripts designed to prepare the MAG ABM dataset to be simulated in MATSim and analyze the results of said simulation with exposure data.
+This repository is a collection of python scripts for the simulation platform Icarus designed to prepare the MAG ABM dataset to be simulated in MATSim and analyze the results of said simulation with exposure data.
 
 - [Installation](#installation)
 - [Project Structure](#project-structure)
@@ -16,43 +16,45 @@ This repository is a collection of python scripts designed to prepare the MAG AB
 
 ## Installation
 
-This project is a python package and will require several other packages to function. I highly recommend using Anaconda to manage you python environments, and my instructions for installation will assume are doing so. First create an python 3.7 conda environment for the project and activate it:
+This repository is organized and installed as a local python package and has several other python and non-python dependencies. Most of the dependencies can be satisified automatically on install if using `pip` as your python package installer; these dependencies are listed in `requirements.txt`. However, before `rtree` can be installed can be installed, you will also need `libspatialindex`, which has binaries avaiable [here](https://libspatialindex.org/) or on many popular package mangers (conda, apt, pacman, etc.).
+
+As an example, if you are unfamiliar with python and its package management, I will demonstrate an install with Anaconda using a unix-like shell, which should be available for all platforms. First, install Anaconda and make sure its added to your system path. Then create an python 3.7 conda environment for the project and activate it.
 
 ```bash
 conda create --name icarus python=3.7
 conda activate icarus
 ```
 
-Then you will need to install this project manually as a python package. Clone this repository using git and then install it using pip:
+Then we will install the non-python dependencies mentioned above using Anaconda (Windows), apt (Debian) or Homebrew (MacOS).  
 
 ```bash
-git clone https://github.com/ChesterIcarus/DataProcessing.git /path/to/save/repository
-pip install /path/to/save/repository
+(Windows)   conda install -c conda-forge libspatialindex
+            conda install -c conda-forge rtree
+(Debian)    sudo apt install libspatialindex-dev
+(MacOS)     brew install spatialindex
 ```
 
-If you intend to use the developmental build, you will want to download and checkout the `dev` branch of the repository before installing with pip. This branch will have the new updates, but not everything here is guarenteed to be stable.
+With the essential dependencies met, we can now install Icarus. Navigate to the preferred location to download this repository and then download and install it using `git` and `pip`. If you change any scripts in the repository and want them to take effect in the package, you will have to install the repository using `pip` again.
+
+```bash
+git clone https://github.com/ChesterIcarus/DataProcessing.git
+pip install icarus-python
+```
+
+If you intend to use the developmental build, you will want to download and checkout the `dev` branch and then install with `pip` again. This branch will have the new updates, but not everything here is guarenteed to be stable. You may also choose to fetch all tags and then check out a specific tag to get the code for a specific release. If you are uncomfortable using git, it may be easiest to go to the releases page and download the repository as a zip folder.
 
 ```bash
 git fetch
 git checkout -t origin/dev
 ```
 
-Lastly you will need to install all the dependent python packages. The pip dependencies are listed in `requirements.txt` and the conda dependencies need to be specified manually:
-
-```bash
-pip install -r /path/to/save/repository/requirements.txt
-conda install -c conda-forge libspatialindex=1.9.3
-```
-
-You will also need to download [osmosis](https://github.com/openstreetmap/osmosis/releases/tag/0.48.0) and [pt2matsim](https://bintray.com/polettif/matsim/pt2matsim/) from their respective sources as well as the source data (daymet, MAG ABM, etc.) and the custom built 12-SNAPSHOT JAR of MATSim from the Dropbox.
+You will also need to download [osmosis](https://github.com/openstreetmap/osmosis/releases/) and [pt2matsim](https://bintray.com/polettif/matsim/pt2matsim/) from their respective sources as well as the source data (daymet, MAG ABM, etc.) and the custom built 12-SNAPSHOT JAR of MATSim from the Dropbox.
 
 ## Project Structure
 
 This package has a collection of scripts which can prepare simulation input data and analyze the output data. A given simulation run has a folder dedicated to it where the scripts to prepare and analyze the simulation data are executed from. All data relevant to the simulation will be saved in this directory according to structure of files and tables described below. This will make the project a bit more modular, but it will still need to access external source data and programs, which have to be specified in the project configuration file (more on that later).
 
-A visual summary of the database structure can be found here on [dbdiagrams.io](https://dbdiagram.io/d/5e9e7ded39d18f5553fdef7e), but this link may not be regularly undated or maintained.
-
-Here is a run down of the internal structure of a simulation run folder.
+A visual summary of the database structure can be found here on [dbdiagrams.io](https://dbdiagram.io/d/5e9e7ded39d18f5553fdef7e), but this link may not be regularly undated or maintained. Below is a run down of the internal structure of a simulation run folder.
 
 ### Files
 
@@ -60,19 +62,19 @@ Here is a run down of the internal structure of a simulation run folder.
 
 This is the project configuration file which describes how this simulation run is going to be prepared, executed and analyzed. All scripts will reference this config file to locate external source data and executeables as well as settings that tweak how it is run. A default configuration file has been provided in the root directory of this repository; all possible fields are already present in the default config, and with exception to file paths, no values should need to change to run a simulation under default settings.
 
-THere is no section going over each setting in the project config file. instead, see each executeable script in the [process descriptions](#processes) for more details regarding relevant attributes of the config to the script.
+There is no section going over each setting in the project config file. Instead, see each executeable script in the [process descriptions](#processes) for more details regarding relevant attributes of the config to the script.
 
 #### database.db
 
-This is the project database file which contains all the project data stored in a sqlite database. Previously we had used an SQL database for hosting our data, but technical issues with getting users access to the database lead to this more modular solution. Everything that the project uses, including intermediary data, is saved in this database, which can lead to it being quite large (typically between five and seven gigabytes). Of course, particular data of interest can be export as CSV or its own database at on request. Descriptions of all tables in this database are given below in the [tables](#tables) section.
+This is the project database file which contains all the project data stored in a sqlite database. Previously we had used an SQL database for hosting our data, but technical issues with getting users access to the database lead to this more modular solution. Everything that the project uses, including intermediary data, is saved in this database, which can lead to it being quite large (typically between five and seven gigabytes). Of course, particular data of interest can be export as CSV or its own database on request. Descriptions of all tables in this database are given below in the [tables](#tables) section.
 
 #### config/
 
-This folder includes additional configuration files used in some process (such as the network generation). This is partly a consequence of the fact that not all steps of data preparation are done entirely in house, so some external software needs to be run with special configuration files. Eventually these files will be generated temporarily form the information in the project configuration file, but only when time permits.
+This folder includes additional configuration files that are geneated from the project configuration file and used as inputs to other processes. These really are intermediary files but they are kept for reference purposes so that certain process settings can be easily reviewed.
 
 #### input/
 
-This folder includes all the files needed to run a MATSim simulation. After the files have been generated, this file can be zipped an sent else where to handle the simulation. The only other thing needed to run the simulation is an installation of Java and the MATSim JAR.
+This folder includes all the files needed to run a MATSim simulation. After the files have been generated, this file can be zipped an sent else where to handle the simulation. The only other thing needed to run the simulation is an installation of Java and the custom MATSim JAR.
 
 #### output/
 
@@ -80,7 +82,7 @@ This folder includes all the files that the MATSim simulation spits out. The onl
 
 #### result/
 
-This folder includes all visuals and summaries drawn from the project data. The actual contents of this folder may vary.
+This folder includes all visuals and summaries of the project generated from the validation and visualization tools. The contents of this folder may vary as these tools change rapidly, but the naming and titling of graphs should be self explanatory.
 
 #### tmp/
 
@@ -118,7 +120,7 @@ This table links the input data of the simulation to the ABM data. All agents th
 
 #### activities
 
-Originally activities were described in the ABM trips table along with legs. After being parsed, assigned groups, filtered, cleaned and prepared, activities are extracted from trips and given a table of their own. Each activity has its own unique `activity_id`, but more useful are the `agent_id` and `agent_idx` fields, which link the activities to their respective agents in `agents`. The `group` field is a unique id that links together activities that needed to be assigned APNs together due to party restrictions; a group of zero means the activity was assigned an APN independent of all other activities.
+Originally activities were described in the ABM trips table along with legs. After being parsed, assigned groups, filtered, cleaned and prepared, activities are extracted from trips and given a table of their own. Each activity has its own unique `activity_id`, but more useful are the `agent_id` and `agent_idx` fields, which uniquely identify each activity in a sequence of activities for each agent. The `group` field is a unique id that links together activities that needed to be assigned APNs together due to party restrictions; a group of zero means the activity was assigned an APN independent of all other activities.
 
 Every agent will have a `plan_size` of `2n+1`, which will mean the agent has `n+1` activities in the `activities` table and `n` legs in the `legs` table. For a leg with `leg_idx` of `n`, the activity preceding the leg has an `activity_idx` of `n` and that proceding the leg has one of `n+1`.
 
@@ -136,7 +138,7 @@ Every agent will have a `plan_size` of `2n+1`, which will mean the agent has `n+
 
 #### legs
 
-Originally legs were described in the ABM trips table along with activities. After being parsed, assigned parties, filtered, cleaned and prepared, legs are extracted from trips and given a table of their own. Each leg has its own unique `leg_id`, but more useful are the `leg_id` and `leg_idx` fields, which link the legs to their respective `agents`. The `party` field is a unique id that links together legs that are travelling together; a party of zero means a leg is travelled alone. See the activities cetion for more details regarding sequencing activities and legs.
+Originally legs were described in the ABM trips table along with activities. After being parsed, assigned parties, filtered, cleaned and prepared, legs are extracted from trips and given a table of their own. Each leg has its own unique `leg_id`, but more useful are the `leg_id` and `leg_idx` fields, which uniquely identify each leg in a sequence of legs for each agent. The `party` field is a unique id that links together legs that are travelling together; a party of zero means a leg is travelled alone. See the activities creation for more details regarding sequencing activities and legs.
 
 | field     | schema             | description                                                      |
 |-----------|--------------------|------------------------------------------------------------------|
@@ -158,17 +160,9 @@ Originally legs were described in the ABM trips table along with activities. Aft
 | area   | float             | area in square miles of the region              |
 | center | varchar           | WKT encoded point of the centroid of the region |
 | region | text              | WKT encoded polygon of the region               |
+the centroid is closest |
 
-#### centroids
-
-| field          | schema             | description                                                        |
-|----------------|--------------------|--------------------------------------------------------------------|
-| centroid_id    | mediumint unsigned | uniquely identifying field                                         |
-| temperature_id | mediumint unsigned | temperature profile for the centroid                               |
-| center         | varchar            | WKT encoded point of the centroid                                  |
-| region         | text               | WKT encoded polygon of the region to which the centroid is closest |
-
-#### temperatures
+#### air_temperatures
 
 | field           | schema             | description                                                          |
 |-----------------|--------------------|----------------------------------------------------------------------|
@@ -177,22 +171,35 @@ Originally legs were described in the ABM trips table along with activities. Aft
 | time            | mediumint unsigned | time of day of the temperature; cooresponds with the temperature_idx |
 | temperature     | float              | temperature in degrees celcius                                       |
 
+#### mrt_tmperatures
+
+| field           | schema             | description                                                          |
+|-----------------|--------------------|----------------------------------------------------------------------|
+| temperature_id  | mediumint unsigned | uniquely identifying field for a profile, not the table              |
+| temperature_idx | smallint unsigned  | the sequence index of the temperature of the temperature profile     |
+| time            | mediumint unsigned | time of day of the temperature; cooresponds with the temperature_idx |
+| mrt             | float              | mean radiant temperature value                                       |
+| pet             | float              | physiological equivalent temperature value                           |
+| utci            | float              | universal thermal climate index value                                 |
+
 #### links
 
-The `links` table expresses most the information that can be understood from the links in the MATSim network file (excluding relational data). Note that the `source_node` and `terminal_node` fields refer to the `node_id` field on the `nodes` table. The `link_id`s are mostly integers with exception to the artifical links created by the transit mapper in the network generation.
+The `links` table expresses most the information that can be understood from the links in the MATSim network file (excluding relational data). Note that the `source_node` and `terminal_node` fields refer to the `node_id` field on the `nodes` table while the `air_temperature` and `mrt_temperature` fields refer to the `temperature_id` on the `air_temperatures` and `mrt_temperatures` tables respectively. The `link_id`s are mostly integers with exception to the artifical links created by the transit mapper in the network generation.
 
-| field         | schema  | description                                          |
-|---------------|---------|------------------------------------------------------|
-| link_id       | varchar | uniquely identifying field                           |
-| source_node   | varchar | the source node of the link                          |
-| terminal_node | varchar | the terminal node of the link                        |
-| length        | float   | length of the link in meters                         |
-| freespeed     | float   | max speed of link in meters per second               |
-| capacity      | float   | max occupancy of link                                |
-| permlanes     | float   | number of lanes in link                              |
-| oneway        | tinyint | 1 if the link contains only traffic in one direction |
-| modes         | varchar | comma delimited list of allowed modes on link        |
-| line          | varchar | WTK encoded linestring of the link geometry          |
+| field           | schema  | description                                          |
+|-----------------|---------|------------------------------------------------------|
+| link_id         | varchar | uniquely identifying field                           |
+| source_node     | varchar | the source node of the link                          |
+| terminal_node   | varchar | the terminal node of the link                        |
+| length          | float   | length of the link in meters                         |
+| freespeed       | float   | max speed of link in meters per second               |
+| capacity        | float   | max occupancy of link                                |
+| permlanes       | float   | number of lanes in link                              |
+| oneway          | tinyint | 1 if the link contains only traffic in one direction |
+| modes           | varchar | comma delimited list of allowed modes on link        |
+| line            | varchar | WTK encoded linestring of the link geometry          |
+| air_temperature | int     | the air temperature profile of the link              |
+| mrt_temperature | int     | the mrt temperature profile of the link              |
 
 #### nodes
 
@@ -202,7 +209,6 @@ The `nodes` table expresses most the information that can be understood from the
 |-------------|--------------------|----------------------------------|
 | node_id     | varchar            | uniquely identifying field       |
 | maz         | smallint unsigned  | the region that the node lies in |
-| centroid_id | mediumint unsigned | the centroid closest to the node |
 | point       | varchar            | WKT encoded point of the node    |
 
 #### output_agents
@@ -263,7 +269,7 @@ python -m icarus.[action].[item] [--folder /path/to/folder] [--log /path/to/logf
 
 The `--folder` argument is used to specify the location of the folder that the run data is in; without it it is assumed that the working directory is the location of the data. If the folder in question is missing important data, the process will most likely fail. The `--log` argument will save the log printed to the terminal to the filepath specified. The log will still be printed, but it will also be copied to the specified file.
 
-Most commands do not take additional arguements to control the nature of the process's execution. The project configuration file (see above in files) should have all the settings that can be set for each process.
+Most commands do not take additional arguements to control the nature of the process's execution. The project configuration file (see above in files) should have all the settings that can be set for each process. However, there are some exceptions, but the `--help` argument on any module should print a help menu which lists all the options that the module can be run with along with a full explanation.
 
 ### Dependencies
 
@@ -273,15 +279,9 @@ The rounded boxes represent processes, which have input (arrows pointing towards
 
 ### Processes
 
-#### parse daymet
-
-The daymet data comes in pairs netCDF files, one containing the minimum temperatures for each day and the other containing the maximum values. While netCDF files are quite good at densely storing high dimensional data, they are not particularly efficient to iterate over or manipulate, so as usual, we parse the data into SQL tables. In this case, the we form two tables, `centroids` and `temperatures`, where the centroids are the locations of the measured temperatures and the temperatures are the temperature profiles at the centroids; see the table information for more details. Temperature profiles are generated by interpolating between the minimum and maximum temperatures for a single day under the assumption that the minimum temperature occurs around dawn (5:00) and the max temperature in early afternoon (15:00). The day to parse and the resolution of the interpolation can be chosen using the `day` and `step` options in the configuration file. Note that the daymet data is not particularly percise (only to the nearest half a degree celcius to my observation) and the regions are not particularly small, so many centroids have the same temperature profiles, which saves storage. The configuration file also has the options `tmax_files` and `tmin_files`, which should point to the netCDF files you wish to parse; these lists need to coorespond to each other respectively to be parsed correctly. Do not use any daymet tile other than the smallest tiles as large tiles become exponentially slower to iterate over and will contain much unneeded data. In my case, I was able to generously cover all of the greater Maricopa region with four small daymet tiles.
-
-All geometries are transformed from the source CRS (epsg:4326) to this project's CRS (epsg:2223); the `epsg` setting in the project config file is ignored. You may have also noticed that a region is generated for each centroid despite the fact the netCDF data only specifies a single point for the temperatures. These regions are calculated using voronoi tesselations, filtering out polygons that exist outside the centroid limits. These regions encompass all the area to which each respective centroid is closest to; all points in this area will be considered the temperature of the centroid.
-
 #### parse regions
 
-Regions is an alias for the microanalysis zones (MAZs). MAZ and TAZ data comes packaged together in a shape/database file pair, which is parsed into an SQL table called `regions`; see table information for more details. The Maricopa MAZ an TAZ data is projected in epsg:2223, and the parser currently does not have any support for reprojection. This is one amoung many reasons that a different projection -- despite having an option in the project config -- for this project is not recommended.
+The term regions is an alias for the microanalysis zones (MAZs) used by the MAG ABM. Of course, when Icarus is applied to locations other than Phoenix, the regions will coorespond to whatever set of regions is used to define the trips in that dataset. Region data is distributed in a shape/database file pair; these regions are parsed, transformed and saved to a table named `regions`. See the schema for the table as documented above for more details. While the code for parsing regions supports CRS transofrmation, its is currently hardcoded to assume the shapefile is in EPSG:2223 and the desired output is EPSG:2223.
 
 #### parse abm
 
@@ -306,13 +306,33 @@ As a word of warning, make sure that the resources in the `resources` option in 
 
 #### parse roads
 
-After a network has been generated, it is useful to have the road information in an accessible format as we analyze agent movement and exposure across it. From the `input/network.xml.gz` file, the tables `links` and `nodes` are extracted; see table information for more details. While nodes and links are related in a rather obvious manner, nodes are also related to the regions and centroids spatially, which are calculated at this point. The parsed daymet and region data is loaded in before parsing the nodes, and the closest centroid and encompassing region is found as the nodes are parsed. Despite using an strtree spatial index, this process is quite computationally burdensome and can take upwards of a hour to do.
-
-As a sidenote, I had this process running much faster using the spatial indexes built into MySQL, but some reason none of the tools available to python for spatial indexing seem to match the performance of MySQL, or I'm just not implementing them efficiently.
+After a network has been generated, it is useful to have the road information in an accessible format as we analyze agent movement and exposure across it. From the `input/network.xml.gz` file, the tables `links` and `nodes` are extracted; see table information for more details. Each link has fields for an air temperature and mrt temperature profile, which remain null until the parsing processes for each are run.
 
 #### parse parcels
 
-The county has information available regarding all the parcels in Maricopa county. These locations can be used in the simulation as locations that agents can travel between. Parcels can be either residential, commercial or other (which is really actually unknown), and a defualt fake parcel is generated for each region as failsafe for some operations. These are saved in the `parcels` table. Like the network, this data is stored in a pair of database/shape files, and the parcels parsed with the region data inorder to assign each parcel a region. Consequently, parcel parsing is also extremely slow for the same reasons, taking about two hours on my machine. Also like the road parsing, the Maricopa parcel data is delivered already projected in epsg:2223, and this tool does not implement any reprojection.
+The county has information available regarding all the parcels in Maricopa county. These locations can be used in the simulation as locations that agents can travel between. Parcels can be either residential, commercial or other (which is actually unknown), and a defualt fake parcel is generated for each region as failsafe for some operations. These are saved in the `parcels` table. Like the network, this data is stored in a pair of database/shape files, and the parcels parsed with the region data inorder to assign each parcel a region. Consequently, parcel parsing is also extremely slow for the same reasons, taking about two hours on my machine. 
+
+#### parse daymet
+
+Daymet is a collection of minimum and maximum temperature readings for every square kilometer and every day in North America taken via satellite since 1980. This data is distriubted by the tile (a unit of geographic region) in pairs of netCDF files, one containing the minimum temperatures for each day for a year and the other containing the maximum values. In this process, a set of files coorseponding with the selected daymet tiles are selected as well as a desired day and number of steps, as specified in the configuration file. All the locations of the temperature readings are extracted and used to populate a spatial index. Due to the low granularity of the temperature data and the relative uniformity of air temperature data, only a few unique combinations of minimum and maximum temperature pairs exist; each of these distinct pairs of values and the subsequent values calculated from them are referred to as a temerature profile. Then, all the links and parcels in the database are loaded in and the nearest temperature reading location is calculated for each them, which is written back to the database. While daymet only distributes the minimum and maximum daily temperatures, a full day of air temperatures can be estimated using the diurnial air temperature estimation process. The temperatures for the entire day are calculated and used to populate the new `air_temperatures` table. A few additional constant temperature profiles are generated for indoor temperatures of parcels with air conditioning.
+
+The `tmax_files` and `tmin_files` parameters are lists of cooresponding file locations to the netCDF files for the daymet tiles. The `day` parameter chooses the day of the Julian calendar from the datatset while the `steps` parameter chooses the number of temperature readings to calculate from the minimum and maximum temperature. When downloading netCDF files, only select tiles of the smallest granularity; larger tiles become exponentially more expensive to iterate and process (and generally very few daymet locations are need to cover a desired region). This process supports coordinate transformation, but like the regions parsing the current implementation has the transoformation hardcoded to transofrm EPSG:4326 to EPSG:2223.
+
+#### parse mrt
+
+The MRT temperature dataset is a set of nearly four million points in Maricopa county where Google street view images have been analyzed and evaluated for several temperature metrics: mean radiant temperature (MRT), physiological equivalent temperature (PET) and universal thermal climate index (UTCI). These values have been calculated for 15 minute intervals in daylight hours; outside of daylight hours, these values are assumed to be the same as the air temperature. The mrt parsing tools performs the following steps:
+
+1. Load the network nodes and links into the process.
+2. Load the first temperature file (any timestamp will do).
+2. Parse the temeprature reading locations and load them into a spatial index.
+3. Iterate over the links and locate all mrt points within a specified range of the link; every link is associated with a profile of a unique set of mrt points.
+4. Write the links, now updated with mrt profile information, back to the database.
+5. Evaluate the exposure for a profile by averaging the values for the points that make up the profile.
+6. Write the results to the `mrt_temperatures` table in the database.
+7. Load in another mrt temperature file (a new timestamp).
+8. Repeat steps 4 through 6 until all mrt files have been parsed.
+
+Parcels could be added to this process much like how they are in the daymet parsing proces, but to be usefully applied, activities at particular parcel types would need to have strong estimations as to whether they are outside (like a park) or indoor (like an unconditioned warehouse). See the `mrt_temperatures` for more details regarding the output of this process.
 
 #### generate population
 

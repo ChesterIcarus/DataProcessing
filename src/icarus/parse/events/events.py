@@ -83,8 +83,31 @@ class Events:
             ON output_activities(agent_id, agent_idx);'''
         self.database.cursor.execute(query)
         query = '''
+            CREATE INDEX output_activities_activity
+            ON output_activities(activity_id);'''
+        self.database.cursor.execute(query)
+        query = '''
             CREATE INDEX output_legs_agent 
             ON output_legs(agent_id, agent_idx);'''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX output_legs_leg
+            ON output_legs(leg_id);'''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX output_events_event
+            ON output_events(event_id)
+        '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX output_events_link
+            ON output_events(link_id)
+        '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX output_events_leg
+            ON output_events(leg_id, leg_idx)
+        '''
         self.database.cursor.execute(query)
         self.database.connection.commit()
 
@@ -220,4 +243,3 @@ class Events:
 
         log.info('Creating indexes on new tables.')
         self.create_indexes()
-

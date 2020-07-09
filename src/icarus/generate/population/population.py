@@ -9,7 +9,7 @@ from icarus.generate.population.party import Party
 from icarus.generate.population.agent import Agent, Leg
 from icarus.generate.population.types import Mode, ActivityType, RouteMode
 from icarus.util.sqlite import SqliteUtil
-from icarus.util.general import chunk
+from icarus.util.general import chunk, defaultdict
 
 
 class Population:
@@ -139,10 +139,12 @@ class Population:
         self.create_tables()
         
         log.info('Loading network data.')
-        network = Network(self.database)
+        network = Network(self.database, seed)
         network.load_network()
 
         log.info('Iterating over trips for each household.')
+
+        # error = defaultdict(int)
 
         def valid_party(party: Party) -> bool:
             return party.driver is not None or party.mode != RouteMode.CAR
@@ -159,11 +161,32 @@ class Population:
             return valid
 
         def valid_agent(agent: Agent) -> bool:
-            return (agent.modes.issubset(modes)
+            return (
+                agent.modes.issubset(modes)
                 and agent.activity_types.issubset(activity_types)
                 and agent.mazs.issubset(network.mazs)
                 and all(valid_party(party) for party in agent.parties)
-                and all(valid_leg(leg) for leg in agent.legs))
+                and all(valid_leg(leg) for leg in agent.legs)
+            )
+
+        # def valid_agent(agent: Agent) -> bool:
+        #     valid = True
+        #     if not agent.modes.issubset(modes):
+        #         error['mode'] += 1
+        #         valid = False
+        #     if not agent.activity_types.issubset(activity_types):
+        #         error['activity'] += 1
+        #         valid = False
+        #     if any(not valid_party(party) for party in agent.parties):
+        #             error['party'] += 1
+        #             valid = False
+        #     if not agent.mazs.issubset(network.mazs):
+        #         error['maz'] += 1
+        #         valid = False
+        #     elif any(not valid_leg(leg) for leg in agent.legs):
+        #         error['leg'] += 1
+        #         valid = False
+        #     return valid
 
         for min_household, max_household in chunk(0, size, 100000):
             log.info(f'Fetching trips from household {min_household}'

@@ -7,10 +7,6 @@ from icarus.util.general import bins
 from icarus.util.sqlite import SqliteUtil
 
 
-def temp(table):
-    return f'temp_{abs(hash(table))}'
-
-
 class Exposure:
     def __init__(self, database: SqliteUtil):
         self.database = database
@@ -25,27 +21,31 @@ class Exposure:
 
     
     def create_tables(self):
-        self.database.drop_table(
-            *map(temp, ('agents', 'activities', 'legs', 'events')))
+        self.database.drop_table('temp_agents', 'temp_activities', 
+            'temp_legs', 'temp_events')
         query = f'''
-            CREATE TABLE {temp("agents")}
+            CREATE TABLE temp_agents
             AS SELECT * FROM output_agents
-            WHERE FALSE; '''
+            WHERE FALSE;
+        '''
         self.database.cursor.execute(query)
         query = f'''
-            CREATE TABLE {temp("legs")}
+            CREATE TABLE temp_legs
             AS SELECT * FROM output_legs
-            WHERE FALSE; '''
+            WHERE FALSE;
+        '''
         self.database.cursor.execute(query)
         query = f'''
-            CREATE TABLE {temp("activities")}
+            CREATE TABLE temp_activities
             AS SELECT * FROM output_activities
-            WHERE FALSE; '''
+            WHERE FALSE;
+        '''
         self.database.cursor.execute(query)
         query = f'''
-            CREATE TABLE {temp("events")}
+            CREATE TABLE temp_events
             AS SELECT * FROM output_events
-            WHERE FALSE; '''
+            WHERE FALSE;
+        '''
         self.database.cursor.execute(query)
         self.database.connection.commit()
 
@@ -53,15 +53,18 @@ class Exposure:
     def create_indexes(self):
         query = '''
             CREATE INDEX output_agents_agent 
-            ON output_agents(agent_id);'''
+            ON output_agents(agent_id);
+        '''
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_activities_agent
-            ON output_activities(agent_id, agent_idx);'''
+            ON output_activities(agent_id, agent_idx);
+        '''
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_legs_agent 
-            ON output_legs(agent_id, agent_idx);'''
+            ON output_legs(agent_id, agent_idx);
+        '''
         self.database.cursor.execute(query)
         self.database.connection.commit()
 
@@ -71,12 +74,14 @@ class Exposure:
             self.database.count_rows('output_agents'),
             self.database.count_rows('output_activities'),
             self.database.count_rows('output_legs'),
-            self.database.count_rows('output_events')  )
+            self.database.count_rows('output_events')  
+        )
         result_count = (
-            self.database.count_rows(temp('agents')),
-            self.database.count_rows(temp('activities')),
-            self.database.count_rows(temp('legs')),
-            self.database.count_rows(temp('events')) )
+            self.database.count_rows('temp_agents'),
+            self.database.count_rows('temp_activities'),
+            self.database.count_rows('temp_legs'),
+            self.database.count_rows('temp_events')
+        )
         return original_count == result_count
 
 
@@ -84,20 +89,24 @@ class Exposure:
         self.database.drop_table('output_agents', 'output_activities', 
             'output_legs', 'output_events')
         query = f'''
-            ALTER TABLE {temp("agents")}
-            RENAME TO output_agents; '''
+            ALTER TABLE temp_agents
+            RENAME TO output_agents;
+        '''
         self.database.cursor.execute(query)
         query = f'''
-            ALTER TABLE {temp("legs")}
-            RENAME TO output_legs; '''
+            ALTER TABLE temp_legs
+            RENAME TO output_legs;
+        '''
         self.database.cursor.execute(query)
         query = f'''
-            ALTER TABLE {temp("activities")}
-            RENAME TO output_activities; '''
+            ALTER TABLE temp_activities
+            RENAME TO output_activities;
+        '''
         self.database.cursor.execute(query)
         query = f'''
-            ALTER TABLE {temp("events")}
-            RENAME TO output_events; '''
+            ALTER TABLE temp_events
+            RENAME TO output_events;
+        '''
         self.database.cursor.execute(query)
         self.database.connection.commit()
 
@@ -115,13 +124,13 @@ class Exposure:
         return False
         
     
-    def analyze(self):
-        log.info('Reallocating tables for exposure analysis.')
+    def analyze(self, source: str):
+        log.info('Allocating tables for exposure analysis.')
         self.database.drop_temporaries()
         self.create_tables()
 
         log.info('Loading network data.')
-        self.network.load_network()
+        self.network.load_network(source)
 
         log.info('Identifying agents to analyze.')
         uuids = tuple(uuid[0] for uuid in self.fetch_agents())
@@ -144,10 +153,10 @@ class Exposure:
             legs = self.population.export_legs()
             events = self.population.export_events()
 
-            self.database.insert_values(temp('agents'), agents, 3)
-            self.database.insert_values(temp('activities'), activities, 9)
-            self.database.insert_values(temp('legs'), legs, 8)
-            self.database.insert_values(temp('events'), events, 8)
+            self.database.insert_values('temp_agents', agents, 3)
+            self.database.insert_values('temp_activities', activities, 9)
+            self.database.insert_values('temp_legs', legs, 8)
+            self.database.insert_values('temp_events', events, 8)
             self.database.connection.commit()
 
             self.population.delete_population()

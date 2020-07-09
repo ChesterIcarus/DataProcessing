@@ -8,7 +8,9 @@ from typing import List, Set, Dict
 from icarus.analyze.exposure.centroid import Centroid
 from icarus.analyze.exposure.node import Node
 from icarus.analyze.exposure.link import Link
+from icarus.analyze.exposure.parcel import Parcel
 from icarus.analyze.exposure.types import NetworkMode
+from icarus.analyze.exposure.temperature import Temperature
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.general import counter, defaultdict
 
@@ -18,108 +20,129 @@ def xy(point: str) -> tuple:
 
 
 class Network:
-    __slots__ = ('database', 'temperatures', 'centroids', 'nodes', 'links')
+    __slots__ = ('database', 'air_temperatures', 'mrt_temperatures',
+        'centroids', 'nodes', 'links', 'parcels')
 
     def __init__(self, database: SqliteUtil):
         self.database = database
-        self.temperatures = defaultdict(lambda x: [])
-        self.centroids: Dict[str, Centroid] = {}
+        self.air_temperatures: Dict[str, Temperature] = {}
+        self.mrt_temperatures: Dict[str, Temperature] = {}
         self.links: Dict[str, Link] = {}
         self.nodes: Dict[str, Node] = {}
+        self.parcels: Dict[str, Parcel] = {}
 
 
-    def fetch_temperatures(self) -> List[List]:
-        self.database.cursor.execute('''
+    def load_temperatures(self, kind: str = 'mrt'):
+        log.info('Loading network air temperature data.')
+        query = '''
             SELECT
                 temperature_id,
                 temperature_idx,
                 temperature
-            FROM temperatures
-            ORDER BY
+            FROM air_temperatures;
+        '''
+        self.database.cursor.execute(query)
+        rows = self.database.fetch_rows()
+
+        temps = defaultdict(lambda: [None]*96)
+        rows = counter(rows, 'Loading air temperature %s.')
+        for temperature_id, temperature_idx, temperature in rows:
+            temps[temperature_id][temperature_idx] = temperature
+        for uuid, values in temps.items():
+            self.air_temperatures[uuid] = Temperature(uuid, values)
+
+        log.info('Loading network mrt temperature data.')
+        query = f'''
+            SELECT
                 temperature_id,
-                temperature_idx;    ''')
-        return self.database.cursor.fetchall()
+                temperature_idx,
+                {kind}
+            FROM mrt_temperatures;
+        '''
+        self.database.cursor.execute(query)
+        rows = self.database.cursor.fetchall()
 
-    
-    def fetch_centroids(self) -> List[List]:
-        self.database.cursor.execute('''
-            SELECT
-                centroid_id,
-                temperature_id,
-                center
-            FROM centroids; ''')
-        return self.database.cursor.fetchall()
-
-    
-    def fetch_nodes(self) -> List[List]:
-        self.database.cursor.execute('''
-            SELECT
-                node_id,
-                maz,
-                centroid_id,
-                point
-            FROM nodes; ''')
-        return self.database.cursor.fetchall()
+        temps = defaultdict(lambda: [None]*96)
+        rows = counter(rows, 'Loading mrt temperature %s.')
+        for temperature_id, temperature_idx, temperature in rows:
+            temps[temperature_id][temperature_idx] = temperature
+        for uuid, values in temps.items():
+            self.mrt_temperatures[uuid] = Temperature(uuid, values)
 
 
-    def fetch_links(self) -> List[List]:
-        self.database.cursor.execute('''
-            SELECT
-                link_id,
-                source_node,
-                terminal_node,
-                length,
-                freespeed,
-                modes
-            FROM links; ''')
-        return self.database.cursor.fetchall()
+    # def load_nodes(self):
+    #     query = f'''
+    #         SELECT
+    #             node_id,
+    #             maz,
+    #             point
+    #         FROM nodes;
+    #     '''
+    #     self.database.cursor.execute(query)
+    #     result = self.database.cursor.fetchall()
 
-
-    def load_temperatures(self):
-        log.info('Loading network daymet temperature data.')
-        temperatures = counter(self.fetch_temperatures(), 'Loading temperature %s.')
-        for temperature_id, _, temperature in temperatures:
-            self.temperatures[temperature_id].append(temperature)
-        self.temperatures.lock()
-
-
-    def load_centroids(self):
-        log.info('Loading network daymet centroid data.')
-        centroids = counter(self.fetch_centroids(), 'Loading centroid %s.')
-        for centroid_id, temperature_id, center in centroids:
-            temperatures = self.temperatures[temperature_id]
-            x, y = xy(center)
-            self.centroids[centroid_id] = Centroid(centroid_id, temperatures, x, y)
-
-
-    def load_nodes(self):
-        log.info('Loading network road node data.')
-        nodes = counter(self.fetch_nodes(), 'Loading node %s.')
-        for node_id, maz, centroid_id, point in nodes:
-            centroid = self.centroids[centroid_id]
-            x, y = xy(point)
-            self.nodes[node_id] = Node(node_id, maz, centroid, x, y)
+    #     nodes = counter(result, 'Loading node %s.')
+    #     for node_id, maz, point in nodes:
+    #         x, y = xy(point)
+    #         self.nodes[node_id] = Node(node_id, maz, x, y)
 
 
     def load_links(self):
         log.info('Loading network road link data.')
-        links = counter(self.fetch_links(), 'Loading link %s.')
-        for link in links:
-            link_id = link[0]
-            src_node = self.nodes[link[1]]
-            term_node = self.nodes[link[2]]
-            length = link[3]
-            freespeed = link[4]
-            modes = set(NetworkMode(mode) for mode in link[5].split(','))
-            self.links[link_id] = Link(link_id, src_node, term_node, 
-                length, freespeed, modes)
+        query = '''
+            SELECT
+                link_id,
+                length,
+                freespeed,
+                modes,
+                air_temperature,
+                mrt_temperature
+            FROM links; 
+        '''
+        self.database.cursor.execute(query)
+        result = self.database.cursor.fetchall()
+
+        links = counter(result, 'Loading link %s.')
+        for link_id, length, speed, modes, air_temp, mrt_temp in links:
+            modes_set = set(NetworkMode(mode) for mode in modes.split(','))
+            air_temperature = self.air_temperatures[air_temp]
+            mrt_temperature = None
+            if mrt_temp is not None:
+                mrt_temperature = self.mrt_temperatures[mrt_temp]
+            link = Link(
+                link_id,
+                length, 
+                speed, 
+                modes_set,
+                air_temperature,
+                mrt_temperature
+            )
+            self.links[link_id] = link
 
     
-    def load_network(self):
+    def load_parcels(self):
+        log.info('Loading network parcel data.')
+        query = '''
+            SELECT
+                apn,
+                air_temperature
+            FROM parcels;
+        '''
+        self.database.cursor.execute(query)
+        rows = self.database.fetch_rows()
+        rows = counter(rows, 'Loading parcel %s.')
+
+        for apn, temperature in rows:
+            temp = self.air_temperatures[temperature] 
+            parcel = Parcel(apn, temp)
+            self.parcels[apn] = parcel
+        
+    
+    def load_network(self, source: str):
         self.load_temperatures()
-        self.load_centroids()
-        self.load_nodes()
+        # self.load_nodes()
         self.load_links()
+        self.load_parcels()
 
 
     def get_temperature(self, link_id: str, time: int) -> float:

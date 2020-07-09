@@ -3,26 +3,29 @@
         "epsg": 2223,
         "units": "feet",
         "exposure": {
+            "mrt_dir": "/home/benjamin/Documents/icarus/data/source/MRT/",
             "tmax_files": [
-                "/home/benjamin/Documents/Icarus/data/source/daymet/tmax_11014.nc",
-                "/home/benjamin/Documents/Icarus/data/source/daymet/tmax_11015.nc",
-                "/home/benjamin/Documents/Icarus/data/source/daymet/tmax_11194.nc",
-                "/home/benjamin/Documents/Icarus/data/source/daymet/tmax_11195.nc"
+                "/home/benjamin/Documents/icarus/data/source/daymet/tmax_11014.nc",
+                "/home/benjamin/Documents/icarus/data/source/daymet/tmax_11015.nc",
+                "/home/benjamin/Documents/icarus/data/source/daymet/tmax_11194.nc",
+                "/home/benjamin/Documents/icarus/data/source/daymet/tmax_11195.nc"
             ],
             "tmin_files": [
-                "/home/benjamin/Documents/Icarus/data/source/daymet/tmin_11014.nc",
-                "/home/benjamin/Documents/Icarus/data/source/daymet/tmin_11015.nc",
-                "/home/benjamin/Documents/Icarus/data/source/daymet/tmin_11194.nc",
-                "/home/benjamin/Documents/Icarus/data/source/daymet/tmin_11195.nc"
+                "/home/benjamin/Documents/icarus/data/source/daymet/tmin_11014.nc",
+                "/home/benjamin/Documents/icarus/data/source/daymet/tmin_11015.nc",
+                "/home/benjamin/Documents/icarus/data/source/daymet/tmin_11194.nc",
+                "/home/benjamin/Documents/icarus/data/source/daymet/tmin_11195.nc"
             ],
             "day": 181,
-            "steps": 48
+            "steps": 96,
+            "vehicle_assumption": 25.5,
+            "indoor_assumption": 25.5
         },
         "roads": {
-            "osm_file": "/home/benjamin/Documents/Icarus/data/source/openstreet/arizona-latest.osm.pbf",
-            "schedule_dir": "/home/benjamin/Documents/Icarus/data/source/valleymetro/",
-            "osmosis": "/home/benjamin/Documents/Icarus/data/exec/osmosis-0.47/bin/osmosis",
-            "pt2matsim": "/home/benjamin/Documents/Icarus/data/exec/pt2matsim-19.5/pt2matsim-19.5-shaded.jar",
+            "osm_file": "/home/benjamin/Documents/icarus/data/source/openstreet/arizona-latest.osm.pbf",
+            "schedule_dir": "/home/benjamin/Documents/icarus/data/source/valleymetro/",
+            "osmosis": "/home/benjamin/Documents/icarus/data/exec/osmosis-0.47/bin/osmosis",
+            "pt2matsim": "/home/benjamin/Documents/icarus/data/exec/pt2matsim-19.5/pt2matsim-19.5-shaded.jar",
             "transit": true,
             "region": [
                 [ -0.113054810E+03, 0.32623183E+02 ],
@@ -66,19 +69,19 @@
             }
         },
         "regions": {
-            "region_file": "/home/benjamin/Documents/Icarus/data/source/maz_taz/maz_taz.shp"
+            "region_file": "/home/benjamin/Documents/icarus/data/source/maz_taz/maz_taz.shp"
         },
         "parcels": {
-            "residence_file": "/home/benjamin/Documents/Icarus/data/source/parcels/residential_parcels.dbf",
-            "commerce_file": "/home/benjamin/Documents/Icarus/data/source/parcels/commercial_parcels.dbf",
-            "parcel_file": "/home/benjamin/Documents/Icarus/data/source/parcels/parcels.shp"
-
+            "residence_file": "/home/benjamin/Documents/icarus/data/source/parcels/residential_parcels.dbf",
+            "commerce_file": "/home/benjamin/Documents/icarus/data/source/parcels/commercial_parcels.dbf",
+            "parcel_file": "/home/benjamin/Documents/icarus/data/source/parcels/parcels.shp",
+            "type_file": "/home/benjamin/Documents/icarus/data/source/parcels/parcel_types.csv"
         }
     },
     "population": {
-        "trips_file": "/home/benjamin/Documents/Icarus/data/source/abm/trips.csv.gz",
-        "households_file": "/home/benjamin/Documents/Icarus/data/source/abm/households.csv.gz",
-        "persons_file": "/home/benjamin/Documents/Icarus/data/source/abm/persons.csv.gz",
+        "trips_file": "/home/benjamin/Documents/icarus/data/source/abm/trips.csv.gz",
+        "households_file": "/home/benjamin/Documents/icarus/data/source/abm/households.csv.gz",
+        "persons_file": "/home/benjamin/Documents/icarus/data/source/abm/persons.csv.gz",
         "modes": [
             "bike",
             "car",
@@ -126,13 +129,16 @@
             "networked": [],
             "routed": [
                 "bike", 
-                "walk"
+                "netwalk"
             ],
             "transit": [
                 "Bus", 
                 "Tram"
             ],
-            "teleported": [],
+            "teleported": [
+                "walk",
+                "default"
+            ],
             "virtualized": [
                 "car", 
                 "pt"

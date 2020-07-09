@@ -10,3 +10,6 @@ pyshp
 netCDF4
 pyproj
 seaborn
+requests
+fiona
+contextily

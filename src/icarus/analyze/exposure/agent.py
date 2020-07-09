@@ -42,4 +42,5 @@ class Agent:
         return (
             self.id,
             len(self.activities) + len(self.legs),
-            self.exposure )
+            self.exposure
+        )

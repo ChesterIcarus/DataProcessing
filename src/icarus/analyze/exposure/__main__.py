@@ -8,6 +8,8 @@ from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil
 
 parser = ArgumentParser()
+parser.add_argument('--temp-source', type=str, dest='source', default='air',
+    choices=('air', 'mrt', 'pet', 'utci'))
 parser.add_argument('--folder', type=str, dest='folder', default='.')
 parser.add_argument('--log', type=str, dest='log', default=None)
 parser.add_argument('--level', type=str, dest='level', default='info',
@@ -44,7 +46,7 @@ elif exposure.complete():
 
 try:
     log.info('Starting exposure analysis.')
-    exposure.analyze()
+    exposure.analyze(args.source)
 except:
     log.exception('Critical error while analyzing exposure; '
         'terminating process and exiting.')

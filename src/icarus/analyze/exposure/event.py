@@ -27,5 +27,6 @@ class Event:
             self.start,
             self.end,
             self.end - self.start,
-            self.exposure )
+            self.exposure 
+        )
     

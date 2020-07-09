@@ -10,7 +10,7 @@ from icarus.util.general import defaultdict
 
 class Subpopulation:
     def __init__(self):
-        self.households: Dict[int, Household] = defaultdict(lambda x: Household(x))
+        self.households = defaultdict(lambda x: Household(x))
         self.last_trip: Trip = None
 
 
@@ -24,12 +24,11 @@ class Subpopulation:
     
     def parse_trip(self, trip: Trip):
         if self.last_trip is not None:
-            if self.last_trip.household_id == trip.household_id:
-                self.households[self.last_trip.household_id].parse_trip(
-                    self.last_trip, trip)
+            hhid = self.last_trip.household_id
+            if hhid == trip.household_id:
+                self.households[hhid].parse_trip(self.last_trip, trip)
             else:
-                self.households[self.last_trip.household_id].parse_trip(
-                    self.last_trip, None)
+                self.households[hhid].parse_trip(self.last_trip, None)
         self.last_trip = trip
     
     
