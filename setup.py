@@ -11,7 +11,7 @@ with open('requirements.txt', 'r') as requirements:
 
 setup(
     name='icarus-simulation',
-    version='1.0',
+    version='2.0',
     author='Benjamin Brownlee',
     author_email='benjamin.brownlee1@gmail.com',
     description='simulation data processing for the icarus project',

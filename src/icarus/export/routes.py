@@ -49,8 +49,8 @@ def export_routes(database: SqliteUtil, modes: List[str],
         f'epsg:{epsg}', always_xy=True, skip_equivalent=True)
     transform = transformer.transform
 
-    measurer = Geod(f'epsg:{epsg}')
-    measure = lambda n1, n2: measurer.inv([n1.y], [n1.x], [n2.y], [n2.x])
+    # measurer = Geod(f'epsg:{epsg}')
+    # measure = lambda n1, n2: measurer.inv([n1.y], [n1.x], [n2.y], [n2.x])
 
     prjpath = os.path.splitext(filepath)[0] + '.prj'
     with open(prjpath, 'w') as prjfile:
@@ -77,19 +77,21 @@ def export_routes(database: SqliteUtil, modes: List[str],
         SELECT 
             link_id,
             source_node,
-            terminal_node
+            terminal_node,
+            length
         FROM links;
     '''
     links = {}
     database.cursor.execute(query)
     result = counter(database.fetch_rows(), 'Loading link %s.')
 
-    for link_id, source_node, terminal_node in result:
+    for link_id, source_node, terminal_node, length in result:
         src_node = nodes[source_node]
         term_node = nodes[terminal_node]
-        length = measure(src_node, term_node)
+        # length = measure(src_node, term_node)
         links[link_id] = Link(src_node, term_node, length)
 
+    modes_str = ','.join((f'"{mode}"' for mode in modes))
 
     log.info('Loading network routing data.')
     query = f'''
@@ -103,7 +105,7 @@ def export_routes(database: SqliteUtil, modes: List[str],
         FROM output_legs
         LEFT JOIN output_events
         ON output_legs.leg_id = output_events.leg_id
-        WHERE output_legs.mode IN {tuple(modes)}
+        WHERE output_legs.mode IN ({modes_str})
         GROUP BY
             output_legs.leg_id
         ORDER BY
@@ -111,7 +113,7 @@ def export_routes(database: SqliteUtil, modes: List[str],
             output_events.leg_idx;
     '''
     database.cursor.execute(query)
-    result = counter(database.fetch_rows(block=1000000),
+    result = counter(database.fetch_rows(block_size=1000000),
         'Exporting route %s.')
 
     routes = shapefile.Writer(filepath)

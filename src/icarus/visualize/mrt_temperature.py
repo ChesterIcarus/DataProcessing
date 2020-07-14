@@ -167,7 +167,7 @@ def map_mrt_temperature(database: SqliteUtil, kind: str):
     log.info('Loading network links.')
     links = load_links(database)
 
-    os.makedirs('result/mrt_temperatures/', exist_ok=True)
+    os.makedirs('result/mrt_temperatures1/', exist_ok=True)
 
     log.info('Loading temperatures.')
     temps = defaultdict(lambda: [None] * (max_idx - min_idx + 1))

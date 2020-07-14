@@ -32,7 +32,7 @@ class Network:
         self.parcels: Dict[str, Parcel] = {}
 
 
-    def load_temperatures(self, kind: str = 'mrt'):
+    def load_temperatures(self, source: str = 'mrt'):
         log.info('Loading network air temperature data.')
         query = '''
             SELECT
@@ -56,7 +56,7 @@ class Network:
             SELECT
                 temperature_id,
                 temperature_idx,
-                {kind}
+                {source}
             FROM mrt_temperatures;
         '''
         self.database.cursor.execute(query)
@@ -139,7 +139,7 @@ class Network:
         
     
     def load_network(self, source: str):
-        self.load_temperatures()
+        self.load_temperatures(source)
         # self.load_nodes()
         self.load_links()
         self.load_parcels()

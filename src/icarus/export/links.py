@@ -102,9 +102,9 @@ def main():
     parser = ArgumentParser()
     main = parser.add_argument_group('main')
     main.add_argument('file', type=str,
-        help='file path to save the exported routes to')
+        help='file path to save the exported links to')
     main.add_argument('--epsg', dest='epsg', type=int, default=2223,
-        help='epsg system to convert routes to; default is 2223')
+        help='epsg system to convert links to; default is 2223')
         
     common = parser.add_argument_group('common')
     common.add_argument('--folder', type=str, dest='folder', default='.',

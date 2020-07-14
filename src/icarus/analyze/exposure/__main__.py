@@ -8,7 +8,7 @@ from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil
 
 parser = ArgumentParser()
-parser.add_argument('--temp-source', type=str, dest='source', default='air',
+parser.add_argument('--temp-source', type=str, dest='source', default='mrt',
     choices=('air', 'mrt', 'pet', 'utci'))
 parser.add_argument('--folder', type=str, dest='folder', default='.')
 parser.add_argument('--log', type=str, dest='log', default=None)
