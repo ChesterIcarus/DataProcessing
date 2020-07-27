@@ -76,19 +76,23 @@ class Events:
     def create_indexes(self):
         query = '''
             CREATE INDEX output_agents_agent 
-            ON output_agents(agent_id);'''
+            ON output_agents(agent_id);
+        '''
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_activities_agent
-            ON output_activities(agent_id, agent_idx);'''
+            ON output_activities(agent_id, agent_idx);
+        '''
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_activities_activity
-            ON output_activities(activity_id);'''
+            ON output_activities(activity_id);
+        '''
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_legs_agent 
-            ON output_legs(agent_id, agent_idx);'''
+            ON output_legs(agent_id, agent_idx);
+        '''
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_legs_leg
@@ -96,17 +100,17 @@ class Events:
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_events_event
-            ON output_events(event_id)
+            ON output_events(event_id);
         '''
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_events_link
-            ON output_events(link_id)
+            ON output_events(link_id);
         '''
         self.database.cursor.execute(query)
         query = '''
             CREATE INDEX output_events_leg
-            ON output_events(leg_id, leg_idx)
+            ON output_events(leg_id, leg_idx);
         '''
         self.database.cursor.execute(query)
         self.database.connection.commit()

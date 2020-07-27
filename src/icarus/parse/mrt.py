@@ -74,8 +74,7 @@ def null_count(database: SqliteUtil, table: str, col: str):
                 END AS valid,
             COUNT(*) AS freq
         FROM {table}
-        GROUP BY valid
-        ORDER BY valid ASC;
+        GROUP BY valid;
     '''
     database.cursor.execute(query)
     rows = database.fetch_rows()
@@ -90,13 +89,13 @@ def null_count(database: SqliteUtil, table: str, col: str):
     return null, nnull
 
 
-def complete(database: SqliteUtil):
-    null, nnull = null_count(database, 'links', 'mrt_temperature')
-    # null, nnull = null_count(database, 'parcels', 'mrt_temperature')
+# def complete(database: SqliteUtil):
+#     null, nnull = null_count(database, 'links', 'mrt_temperature')
+#     null, nnull = null_count(database, 'parcels', 'mrt_temperature')
 
 
-def ready():
-    pass
+# def ready():
+#     pass
 
 
 def xy(point: str) -> tuple:
@@ -109,7 +108,7 @@ def hhmm_to_secs(hhmm: str) -> int:
 
 
 def create_tables(database: SqliteUtil):
-    database.drop_table('mrt_temperatures', 'temp_links', 'temp_links_merged')
+    database.drop_table('mrt_temperatures')
     query = '''
         CREATE TABLE mrt_temperatures(
             temperature_id MEDIUMINT UNSIGNED,
@@ -118,13 +117,6 @@ def create_tables(database: SqliteUtil):
             mrt FLOAT,
             pet FLOAT,
             utci FLOAT
-        );
-    '''
-    database.cursor.execute(query)
-    query = '''
-        CREATE TABLE temp_links(
-            link_id VARCHAR(255),
-            mrt_temperature MEDIUMINT UNSIGNED
         );
     '''
     database.cursor.execute(query)
@@ -138,52 +130,11 @@ def create_indexes(database: SqliteUtil):
     '''
     database.cursor.execute(query)
     query = '''
-        CREATE INDEX links_link
-        ON links(link_id);
+        CREATE INDEX links_mrt_temperature
+        ON links(mrt_temperature); 
     '''
     database.cursor.execute(query)
-    query = '''
-        CREATE INDEX links_node1
-        ON links(source_node);
-    '''
-    database.cursor.execute(query)
-    query = '''
-        CREATE INDEX links_node2
-        ON links(terminal_node);
-    '''
-    database.cursor.execute(query)
-    query = '''
-        CREATE INDEX links_air
-        ON links(air_temperature);
-    '''
-    database.cursor.execute(query)
-    query = '''
-        CREATE INDEX links_mrt
-        ON links(mrt_temperature);
-    '''
-    database.cursor.execute(query)
-    # query = '''
-    #     CREATE INDEX parcels_apn
-    #     ON parcels(apn);
-    # '''
-    # database.cursor.execute(query)
-    # query = '''
-    #     CREATE INDEX parcels_maz
-    #     ON parcels(maz);
-    # '''
-    # database.cursor.execute(query)
-    # query = '''
-    #     CREATE INDEX parcels_air
-    #     ON parcels(air_temperature);
-    # '''
-    # database.cursor.execute(query)
-    # query = '''
-    #     CREATE INDEX parcels_mrt
-    #     ON parcels(mrt_temperature);
-    # '''
-    # database.cursor.execute(query)
     database.connection.commit()
-
 
 
 def load_nodes(database: SqliteUtil) -> Dict[str,Node]:
@@ -195,7 +146,7 @@ def load_nodes(database: SqliteUtil) -> Dict[str,Node]:
     '''
     database.cursor.execute(query)
     rows = database.fetch_rows()
-    rows = counter(rows, 'Loading node %s.')
+    rows = counter(rows, 'Loading node %s.', level=log.DEBUG)
 
     nodes: Dict[str,Node] = {}
     for uuid, point in rows:
@@ -218,7 +169,7 @@ def load_links(database: SqliteUtil, nodes: Dict[str,Node]) -> Dict[str,Link]:
     '''
     database.cursor.execute(query)
     rows = database.fetch_rows()
-    rows = counter(rows, 'Loading link %s.')
+    rows = counter(rows, 'Loading link %s.', level=log.DEBUG)
 
     links: Dict[str,Link] = {}
     for uuid, src, term, speed, lanes in rows:
@@ -232,11 +183,11 @@ def load_links(database: SqliteUtil, nodes: Dict[str,Node]) -> Dict[str,Link]:
 
 def parse_points(csvfile: str, src_epsg: int, prj_epsg: int) \
             -> Tuple[List[Point],int]:
-    log.info(f'Opening {csvfile}.')
+    log.debug(f'Opening {csvfile}.')
     csv_file = open(csvfile, 'r')
     iter_points = csv.reader(csv_file, delimiter=',', quotechar='"')
     next(iter_points)
-    iter_points = counter(iter_points, 'Parsing point %s.')
+    iter_points = counter(iter_points, 'Parsing point %s.', level=log.DEBUG)
 
     transformer = Transformer.from_crs(f'epsg:{src_epsg}', 
         f'epsg:{prj_epsg}', always_xy=True, skip_equivalent=True)
@@ -258,11 +209,11 @@ def parse_points(csvfile: str, src_epsg: int, prj_epsg: int) \
 
 def parse_temperatures(csvfile: str) \
             -> Tuple[List[Tuple[float,float,float]],int]:
-    log.info(f'Opening {csvfile}.')
+    log.debug(f'Opening {csvfile}.')
     csv_file = open(csvfile, 'r')
     iter_temps = csv.reader(csv_file, delimiter=',', quotechar='"')
     next(iter_temps)
-    iter_temps = counter(iter_temps, 'Parsing temperature %s.')
+    iter_temps = counter(iter_temps, 'Parsing temperature %s.', level=log.DEBUG)
 
     temps = []
     peek = next(iter_temps)
@@ -289,10 +240,12 @@ def parse_mrt(database: SqliteUtil, path: str, src_epsg: int, prj_epsg: int,
     links: Dict[str,Link] 
     links= load_links(database, nodes)
 
-    log.info(f'Searching for mrt files in {path}')
-    csvfiles = iter(glob(f'{path}/**/*.csv', recursive=True))
+    log.info(f'Searching for mrt files in {path}.')
+    csvfiles = glob(f'{path}/**/*.csv', recursive=True)
+    total = len(csvfiles)
+    csvfiles = iter(csvfiles)
 
-    log.info('Handling initial dataset for profile construction.')
+    log.info(f'Parsing temperatures from mrt file 1 of {total}.')
     points: List[Point]
     time: int 
     points, time = parse_points(next(csvfiles), src_epsg, prj_epsg)
@@ -304,7 +257,7 @@ def parse_mrt(database: SqliteUtil, path: str, src_epsg: int, prj_epsg: int,
     mapping: Dict[FrozenSet[int],int] = {}
     count = 0
     empty = 0
-    iter_links = counter(links.values(), 'Scanning link %s.')
+    iter_links = counter(links.values(), 'Scanning link %s.', level=log.DEBUG)
     for link in iter_links:
         d = link.terminal_node.x * link.source_node.y - \
             link.source_node.x * link.terminal_node.y
@@ -358,63 +311,22 @@ def parse_mrt(database: SqliteUtil, path: str, src_epsg: int, prj_epsg: int,
 
     def dump_links():
         for link in links.values():
-            yield (link.id, link.profile)
+            yield (link.profile, link.id)
 
-    log.info('Writing link updates and temperatures to dataabse.')
+    log.info('Writing profiles to dataabse.')
 
+    query = '''
+        UPDATE links
+        SET mrt_temperature = :profile
+        WHERE link_id = :id;
+    '''
     database.insert_values('mrt_temperatures', dump_points(), 6)
-    database.insert_values('temp_links', dump_links(), 2)
-
-    log.info('Merging, dropping and renaming old tables.')
-
-    query = '''
-        CREATE INDEX temp_links_link
-        ON temp_links(link_id);
-    '''
-    database.cursor.execute(query)
-    query = '''
-        CREATE TABLE temp_links_merged
-        AS SELECT
-            links.link_id,
-            links.source_node,
-            links.terminal_node,
-            links.length,
-            links.freespeed,
-            links.capacity,
-            links.permlanes,
-            links.oneway,
-            links.modes,
-            links.air_temperature,
-            temp_links.mrt_temperature
-        FROM links
-        INNER JOIN temp_links
-        USING(link_id);
-    '''
-    database.cursor.execute(query)
-
-    original = database.count_rows('links')
-    merged = database.count_rows('temp_links_merged')
-    if original != merged:
-        log.error('Original links and updated links tables '
-            'do not align; quiting to prevent data loss.')
-        raise RuntimeError
-    
-    database.drop_table('links', 'temp_links')
-    query = '''
-        ALTER TABLE temp_links_merged
-        RENAME TO links;
-    '''
-    database.cursor.execute(query)
-
+    database.cursor.executemany(query, dump_links())
     database.connection.commit()
 
-    del links
-    del nodes
-    del index
-    del mapping
-    del points
+    del links, nodes, index, mapping, points
 
-    log.info('Handling remain temperatures with defined profile.')
+    log.info('Handling remaining temperatures with defined profile.')
 
     def dump_temperaures(time: int, temperatures: List[Tuple[float,float,float]]):
         idx = time // (86400 // steps)
@@ -428,12 +340,13 @@ def parse_mrt(database: SqliteUtil, path: str, src_epsg: int, prj_epsg: int,
                 utci += temp[2]
             yield (uuid, idx, time, mrt / count, pet / count, utci / count)
 
-    for csvfile in csvfiles:
+    for idx, csvfile in enumerate(csvfiles, 2):
+        log.info(f'Parsing temperature file {idx} of {total}')
         time: int
         temperatures: List[Tuple[float,float,float]]
         temperatures, time = parse_temperatures(csvfile)
 
-        log.info('Writing temperature data to database.')
+        log.debug('Writing temperature data to database.')
         database.insert_values('mrt_temperatures', 
             dump_temperaures(time, temperatures), 6)
         database.connection.commit()

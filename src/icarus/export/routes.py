@@ -6,7 +6,7 @@ import logging as log
 
 from typing import List
 from argparse import ArgumentParser
-from pyproj import Transformer, Geod
+from pyproj import Transformer
 
 from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil

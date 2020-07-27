@@ -49,7 +49,8 @@ def create_tables(database: SqliteUtil):
             oneway TINYINT UNSIGNED,
             modes VARHCAR(255),
             air_temperature INT UNSIGNED,
-            mrt_temperature INT UNSIGNED
+            mrt_temperature INT UNSIGNED,
+            exposure FLOAT
         );
     '''
     database.cursor.execute(query)
@@ -142,6 +143,7 @@ def parse_roads(database: SqliteUtil, networkpath: str,
                     int(elem.get('oneway')),
                     str(elem.get('modes')),
                     None,
+                    None,
                     None
                 ))
                 count += 1
@@ -158,7 +160,7 @@ def parse_roads(database: SqliteUtil, networkpath: str,
 
     log.info('Writing parsed links and nodes to database.')
     database.insert_values('nodes', nodes, 3)
-    database.insert_values('links', links, 11)
+    database.insert_values('links', links, 12)
     database.connection.commit()
 
     log.info('Creating indexes on new tables.')

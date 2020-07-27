@@ -62,8 +62,32 @@ class Exposure:
         '''
         self.database.cursor.execute(query)
         query = '''
+            CREATE INDEX output_activities_activity
+            ON output_activities(activity_id);
+        '''
+        self.database.cursor.execute(query)
+        query = '''
             CREATE INDEX output_legs_agent 
             ON output_legs(agent_id, agent_idx);
+        '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX output_legs_leg
+            ON output_legs(leg_id);'''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX output_events_event
+            ON output_events(event_id);
+        '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX output_events_link
+            ON output_events(link_id);
+        '''
+        self.database.cursor.execute(query)
+        query = '''
+            CREATE INDEX output_events_leg
+            ON output_events(leg_id, leg_idx);
         '''
         self.database.cursor.execute(query)
         self.database.connection.commit()
@@ -74,7 +98,7 @@ class Exposure:
             self.database.count_rows('output_agents'),
             self.database.count_rows('output_activities'),
             self.database.count_rows('output_legs'),
-            self.database.count_rows('output_events')  
+            self.database.count_rows('output_events')
         )
         result_count = (
             self.database.count_rows('temp_agents'),
@@ -164,6 +188,18 @@ class Exposure:
             count += len(uuid_bin)
             log.info(f'Exposure analysis at agent {count}.')
 
+        log.info('Updating network properties.')
+
+        query = '''
+            UPDATE links
+            SET exposure = :exposure
+            WHERE link_id = :link_id;
+        '''
+        dump = ((link.exposure, link.id) 
+            for link in self.network.links.values())
+        self.database.cursor.executemany(query, dump)
+        self.database.connection.commit()
+
         log.info('Verify integrity of results.')
         if not self.verify_tables():
             log.error('Input and output table sizes did not match.')
@@ -172,7 +208,6 @@ class Exposure:
 
         log.info('Renaming data and dropping old tables.')
         self.rename_tables()
-
 
         log.info('Creating indexes on new tables.')
         self.create_indexes()

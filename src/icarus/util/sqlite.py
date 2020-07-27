@@ -39,21 +39,28 @@ class SqliteUtil:
         return self.cursor.fetchall()[0][0]
 
 
-    # def fetch_rows(self, chunk=None, block=1000000):
+    def count_null(self, table, col):
+        query = f'''
+            SELECT
+                CASE 
+                    WHEN {col} IS NULL 
+                    THEN 0 ELSE 1 
+                    END AS valid,
+                COUNT(*) AS freq
+            FROM {table}
+            GROUP BY valid;
+        '''
+        self.cursor.execute(query)
+        rows = self.fetch_rows()
+        
+        null, nnull = 0, 0
+        for value, freq in rows:
+            if value == 0:
+                null = freq
+            else:
+                nnull = freq
 
-    #     def chunks(lst, n):
-    #         for i in range(0, len(lst), n):
-    #             yield lst[i:i + n]
-
-    #     rows = self.cursor.fetchmany(block)
-    #     while len(rows):
-    #         if chunk is None:
-    #             for row in rows:
-    #                 yield row
-    #         else:
-    #             for row in chunks(rows, chunk):
-    #                 yield row
-    #         rows = self.cursor.fetchmany(block)
+        return null, nnull
 
 
     def fetch_rows(self, chunk_size=None, block_size=1000000):
@@ -88,6 +95,11 @@ class SqliteUtil:
     def drop_table(self, *tables):
         for table in tables:
             self.cursor.execute(f'DROP TABLE IF EXISTS {table};')
+
+
+    def drop_index(self, *indexes):
+        for index in indexes:
+            self.cursor.execute(f'DROP INDEX IF EXISTS {index};')
 
     
     def insert_values(self, table, values, cols):

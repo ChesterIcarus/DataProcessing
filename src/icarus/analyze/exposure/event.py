@@ -14,7 +14,7 @@ class Event:
 
 
     def calculate_exposure(self) -> float:
-        self.exposure = self.link.get_exposure(self.start, self.end)
+        self.exposure = self.link.get_exposure(self.start, self.end, True)
         return self.exposure
 
 

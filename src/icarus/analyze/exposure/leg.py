@@ -29,7 +29,7 @@ class Leg:
                 for event in self.events:
                     self.exposure += event.calculate_exposure()
             else:
-                self.exposure = link.get_exposure(self.start, self.end)
+                self.exposure = link.get_exposure(self.start, self.end, False)
         else:
             self.exposure = 25.5 * (self.end - self.start)
         return self.exposure
