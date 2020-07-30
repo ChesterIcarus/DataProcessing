@@ -144,7 +144,7 @@ class Population:
 
         log.info('Iterating over trips for each household.')
 
-        # error = defaultdict(int)
+        error = defaultdict(int)
 
         def valid_party(party: Party) -> bool:
             return party.driver is not None or party.mode != RouteMode.CAR
@@ -160,36 +160,36 @@ class Population:
                 valid = True
             return valid
 
-        def valid_agent(agent: Agent) -> bool:
-            return (
-                agent.modes.issubset(modes)
-                and agent.activity_types.issubset(activity_types)
-                and agent.mazs.issubset(network.mazs)
-                and all(valid_party(party) for party in agent.parties)
-                and all(valid_leg(leg) for leg in agent.legs)
-            )
-
         # def valid_agent(agent: Agent) -> bool:
-        #     valid = True
-        #     if not agent.modes.issubset(modes):
-        #         error['mode'] += 1
-        #         valid = False
-        #     if not agent.activity_types.issubset(activity_types):
-        #         error['activity'] += 1
-        #         valid = False
-        #     if any(not valid_party(party) for party in agent.parties):
-        #             error['party'] += 1
-        #             valid = False
-        #     if not agent.mazs.issubset(network.mazs):
-        #         error['maz'] += 1
-        #         valid = False
-        #     elif any(not valid_leg(leg) for leg in agent.legs):
-        #         error['leg'] += 1
-        #         valid = False
-        #     return valid
+        #     return (
+        #         agent.modes.issubset(modes)
+        #         and agent.activity_types.issubset(activity_types)
+        #         and agent.mazs.issubset(network.mazs)
+        #         and all(valid_party(party) for party in agent.parties)
+        #         and all(valid_leg(leg) for leg in agent.legs)
+        #     )
+
+        def valid_agent(agent: Agent) -> bool:
+            valid = True
+            if not agent.modes.issubset(modes):
+                error['mode'] += 1
+                valid = False
+            if not agent.activity_types.issubset(activity_types):
+                error['activity'] += 1
+                valid = False
+            if any(not valid_party(party) for party in agent.parties):
+                    error['party'] += 1
+                    valid = False
+            if not agent.mazs.issubset(network.mazs):
+                error['maz'] += 1
+                valid = False
+            elif any(not valid_leg(leg) for leg in agent.legs):
+                error['leg'] += 1
+                valid = False
+            return valid        
 
         for min_household, max_household in chunk(0, size, 100000):
-            log.info(f'Fetching trips from household {min_household}'
+            log.info(f'Processing trips from household {min_household}'
                 f' to {max_household}.')
             subpopulation = Subpopulation()
             trips = self.fetch_trips(min_household, max_household)
@@ -216,6 +216,19 @@ class Population:
             legs = subpopulation.export_legs()
             self.database.insert_values('legs', legs, 8)
             self.database.connection.commit()
+
+        message = (
+            'Printing filtering progress report.'
+            '\nFiltering Progress Report'
+            '\n-------------------------'
+            f'\nleg:   {error["leg"]}'
+            f'\nact:   {error["activity"]}'
+            f'\nmode:  {error["mode"]}'
+            f'\nparty: {error["party"]}'
+            f'\nmaz:   {error["maz"]}'
+        )
+
+        log.info(message)
 
         self.create_indexes()
         self.database.connection.commit()

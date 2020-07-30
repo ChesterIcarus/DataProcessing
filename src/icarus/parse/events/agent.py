@@ -12,7 +12,7 @@ from icarus.parse.events.types import ActivityType, LegMode
 
 class Agent:
     __slots__ = ('id', 'activities', 'legs', 'routes', 'active_activity', 'act_count',
-            'active_leg', 'active_transit', 'active_virtual', 'leg_count')
+            'active_leg', 'active_transit', 'active_virtual', 'leg_count', 'abort')
     
     def __init__(self, uuid):
         self.id = uuid
@@ -27,42 +27,99 @@ class Agent:
         self.active_transit = None
         self.active_virtual = None
 
+        self.abort = False
+
 
     def size(self):
         return len(self.legs) + len(self.activities)
 
     
+    def abort_plan(self):
+        if self.active_activity is not None:
+            self.active_activity.abort = True
+            self.activities.append(self.active_activity)
+            self.active_activity = None
+        if self.active_leg is not None:
+            self.active_leg.abort = True
+            self.legs.append(self.active_leg)
+            self.active_leg = None
+        self.abort = True
+
+    
     def export_activities(self):
-        activities = tuple((
-            Activity.activities[self.id][idx],
-            self.id,
-            idx,
-            activity.activity_type.name.lower(),
-            activity.link.id,
-            activity.start_time,
-            activity.end_time,
-            activity.end_time - activity.start_time,
-            None
-        ) for idx, activity in enumerate(self.activities, start=self.act_count))
+        activities = []
+        for idx, activity in enumerate(self.activities, start=self.act_count):
+            duration = None
+            if not activity.abort:
+                duration = activity.end_time - activity.start_time
+            dump = (
+                Activity.activities[self.id][idx],
+                self.id,
+                idx,
+                activity.activity_type.name.lower(),
+                activity.link.id,
+                activity.start_time,
+                activity.end_time,
+                duration,
+                int(activity.abort),
+                None
+            )
+            activities.append(dump)
+
+        # activities = tuple((
+        #     Activity.activities[self.id][idx],
+        #     self.id,
+        #     idx,
+        #     activity.activity_type.name.lower(),
+        #     activity.link.id,
+        #     activity.start_time,
+        #     activity.end_time,
+        #     activity.end_time - activity.start_time,
+        #     int(activity.abort),
+        #     None
+        # ) for idx, activity in enumerate(self.activities, start=self.act_count))
+
         self.act_count += len(self.activities)
         self.activities = []
-        return activities
+
+        return tuple(activities)
 
     
     def export_legs(self):
-        legs =  tuple((
-            Leg.legs[self.id][idx],
-            self.id,
-            idx,
-            leg.mode.string(),
-            leg.start_time,
-            leg.end_time,
-            leg.end_time - leg.start_time,
-            None
-        ) for idx, leg in enumerate(self.legs, start=self.leg_count))
+        legs = []
+        for idx, leg in enumerate(self.legs, start=self.leg_count):
+            duration = None
+            if not leg.abort:
+                duration = leg.end_time - leg.start_time
+            dump = (
+                Leg.legs[self.id][idx],
+                self.id,
+                idx,
+                leg.mode.string(),
+                leg.start_time,
+                leg.end_time,
+                duration,
+                int(leg.abort),
+                None    
+            )
+            legs.append(dump)
+
+        # legs =  tuple((
+        #     Leg.legs[self.id][idx],
+        #     self.id,
+        #     idx,
+        #     leg.mode.string(),
+        #     leg.start_time,
+        #     leg.end_time,
+        #     duration,
+        #     int(leg.abort),
+        #     None
+        # ) for idx, leg in enumerate(self.legs, start=self.leg_count))
+
         self.leg_count += len(self.legs)
         self.legs = []
-        return legs
+        
+        return tuple(legs)
 
 
     def export_events(self):

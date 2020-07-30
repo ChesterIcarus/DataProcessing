@@ -1,5 +1,6 @@
 
 import os
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import logging as log
@@ -12,9 +13,33 @@ from shapely.wkt import loads
 from collections import defaultdict
 from argparse import ArgumentParser
 from pyproj.transformer import Transformer
+from shapely.wkt import loads
+from shapely.geometry import Polygon
 from mpl_toolkits.axes_grid1 import ImageGrid
 
 from icarus.util.sqlite import SqliteUtil
+from icarus.util.general import counter
+
+
+def sorted_lte_portion(array, value):
+    high = len(array)
+    low = 0
+    portion: float
+    if array[0] > value:
+        portion = 0.0
+    elif array[-1] < value:
+        portion = 1.0
+    else:
+        while low < high:
+            idx = (high + low) // 2
+            point = array[idx]
+            if point > value or low == idx:
+                high = idx
+            else:
+                low = idx
+        portion = (low + 1) / len(array)
+    return portion
+
 
 
 def fetch_regions(database: SqliteUtil):
@@ -191,8 +216,115 @@ def plot_removed_demographics(database: SqliteUtil, savepath: str):
     
     log.info('Saving figure.')
     fig.savefig(savepath, bbox_inches='tight')
-    plt.clf()   
+    plt.clf()
+
+
+def plot_lowerbound_speeds(database: SqliteUtil, savepath: str):
+    log.info('Analyzing population lower bound speeds.')
+    log.info('Fetching region data.')
+    query = '''
+        SELECT
+            maz,
+            region
+        FROM regions;
+    '''
+    database.cursor.execute(query)
+    result = database.fetch_rows()
+
+    regions = {}
+    for maz, region in result:
+        polygon = Polygon(loads(region))
+        regions[maz] = polygon
+
+    log.info('Loading trip data.')
+    query = '''
+        SELECT
+            origMaz,
+            destMaz,
+            mode,
+            (isamAdjArrMin - isamAdjDepMin) * 60
+        FROM trips;
+    ''' 
+    database.cursor.execute(query)
+    result = database.fetch_rows()
+    result = counter(result, 'Analyzing trip %s.', level=log.DEBUG)
+
+    log.info('Calculating lower bound speeds.')
+    vehicle = []
+    walk = []
+    transit = []
+    bike = []
+    cache = defaultdict(dict)
+    for orig_maz, dest_maz, mode, dur in result:
+        if dur > 0 and orig_maz in regions and dest_maz in regions:
+            if orig_maz == dest_maz:
+                speed = 0
+            elif orig_maz < dest_maz:
+                if dest_maz in cache[orig_maz]:
+                    dist = cache[orig_maz][dest_maz]
+                else:
+                    dist = regions[orig_maz].distance(regions[dest_maz])
+                    cache[orig_maz][dest_maz] = dist
+                speed = dist / dur * 3600 / 5280
+            else:
+                if orig_maz in cache[dest_maz]:
+                    dist = cache[dest_maz][orig_maz]
+                else:
+                    dist = regions[dest_maz].distance(regions[orig_maz])
+                    cache[dest_maz][orig_maz] = dist
+                speed = dist / dur * 3600 / 5280
+
+            if mode in (1,2,3,4,13,14):
+                vehicle.append(speed)
+            elif mode in (5,6,7,8,9,10):
+                transit.append(speed)
+            elif mode in (11,):
+                walk.append(speed)
+            elif mode in (12,):
+                bike.append(speed)
     
+    del cache
+
+    vehicle.sort()
+    walk.sort()
+    transit.sort()
+    bike.sort()
+
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, True, True)
+
+    speed = np.array(list(range(0, 110, 10)))
+    proportion = np.array([sorted_lte_portion(vehicle, i) for i in speed])
+    sns.barplot(x=speed, y=proportion, ax=ax1, color='blue')
+
+    speed = np.array(list(range(0, 110, 10)))
+    proportion = np.array([sorted_lte_portion(transit, i) for i in speed])
+    sns.barplot(x=speed, y=proportion, ax=ax2, color='green')
+
+    speed = np.array(list(range(0, 110, 10)))
+    proportion = np.array([sorted_lte_portion(walk, i) for i in speed])
+    sns.barplot(x=speed, y=proportion, ax=ax3, color='red')
+
+    speed = np.array(list(range(0, 110, 10)))
+    proportion = np.array([sorted_lte_portion(bike, i) for i in speed])
+    sns.barplot(x=speed, y=proportion, ax=ax4, color='darkviolet')
+
+    ax1.set_title('vehicle trips')
+    ax2.set_title('transit trips')
+    ax3.set_title('walk trips')
+    ax4.set_title('bike trips')
+
+    fig.add_subplot(111, frameon=False)
+    plt.tick_params(labelcolor='none', top=False, bottom=False,
+        left=False, right=False)
+    plt.grid(False)
+    plt.xlabel('lower bound speed (mph)')
+    plt.ylabel('proportion of trips')
+    plt.tight_layout()
+
+    fig.suptitle('proportion of trips below lower bound speed by mode', y=1)
+    fig.savefig(savepath, bbox_inches='tight')
+    plt.clf()
+
 
 
 if __name__ == '__main__':
@@ -223,7 +355,6 @@ if __name__ == '__main__':
     os.makedirs(path('result/boxplots/'), exist_ok=True)
     database = SqliteUtil(path('database.db'), readonly=True)
 
-
     savepaths = [
         path('result/maps/filtered_trips_by_mode_tempe.png'),
         path('result/maps/filtered_trips_by_mode_phoenix.png')
@@ -232,8 +363,11 @@ if __name__ == '__main__':
         [ 681285.59126194, 868244.11666725, 710778.10020630, 888780.96744007 ],
         [ 538469.71851555, 820213.86426396, 795753.75497050, 978336.65984825 ]
     ]
-    # map_removed_trips_by_region(database, savepaths, bounds)
+    map_removed_trips_by_region(database, savepaths, bounds)
 
     savepath = path('result/boxplots/filtered_demographics.png')
     plot_removed_demographics(database, savepath)
+
+    savepath = path('result/barplots/lower_bound_speed.png')
+    plot_lowerbound_speeds(database, savepath)
 

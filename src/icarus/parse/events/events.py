@@ -34,6 +34,7 @@ class Events:
             CREATE TABLE output_agents (
                 agent_id MEDIUMINT UNSIGNED,
                 plan_size TINYINT UNSIGNED,
+                abort TINYINT UNSIGNED,
                 exposure FLOAT
             );  ''')
         self.database.cursor.execute('''
@@ -46,6 +47,7 @@ class Events:
                 start MEDIUMINT UNISGNED,
                 end MEDIUMINT UNSIGNED,
                 duration MEDIUMINT UNSIGNED,
+                abort TINYINT UNSIGNED,
                 exposure FLOAT
             );  ''')
         self.database.cursor.execute('''
@@ -57,6 +59,7 @@ class Events:
                 start MEDIUMINT UNISGNED,
                 end MEDIUMINT UNSIGNED,
                 duration MEDIUMINT UNSIGNED,
+                abort TINYINT UNSIGNED,
                 exposure FLOAT
             );  ''')
         self.database.cursor.execute('''
@@ -221,9 +224,9 @@ class Events:
                 legs = population.export_legs()
                 
                 log.debug('Pushing parsed event data to database.')
-                self.database.insert_values('output_activities', activities, 9)
+                self.database.insert_values('output_activities', activities, 10)
                 self.database.insert_values('output_events', events, 8)
-                self.database.insert_values('output_legs', legs, 8)
+                self.database.insert_values('output_legs', legs, 9)
                 self.database.connection.commit()
 
         root.clear()
@@ -240,10 +243,10 @@ class Events:
         agents = population.export_agents()
 
         log.debug('Pushing parsed event data to database.')
-        self.database.insert_values('output_agents', agents, 3)
-        self.database.insert_values('output_activities', activities, 9)
+        self.database.insert_values('output_agents', agents, 4)
+        self.database.insert_values('output_activities', activities, 10)
         self.database.insert_values('output_events', events, 8)
-        self.database.insert_values('output_legs', legs, 8)
+        self.database.insert_values('output_legs', legs, 9)
 
         log.info('Creating indexes on new tables.')
         self.create_indexes()

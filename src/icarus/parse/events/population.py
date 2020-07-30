@@ -84,7 +84,8 @@ class Population:
             agent.travel(time)
 
         elif action == 'stuckAndAbort':
-            pass
+            agent = self.get_agent(event.get('person'))
+            agent.abort_plan()
 
         else:
             pass
@@ -96,7 +97,9 @@ class Population:
                 yield (
                     agent.id,
                     agent.size(),
-                    None )
+                    int(agent.abort),
+                    None 
+                )
     
 
     def export_activities(self):

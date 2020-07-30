@@ -11,7 +11,7 @@ class Leg:
     legs: Dict[str, List]
 
     __slots__ = ('mode', 'start_time', 'start_link', 'end_time', 
-            'end_link', 'events', 'travelled')
+            'end_link', 'events', 'travelled', 'abort')
 
     def __init__(self, leg_mode: LegMode):
         self.mode = leg_mode
@@ -21,6 +21,8 @@ class Leg:
         self.end_link: Link = None
         self.events: List[Event] = []
         self.travelled = False
+
+        self.abort = False
 
 
     def travel(self):
