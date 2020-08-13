@@ -9,6 +9,7 @@ from icarus.analyze.exposure.activity import Activity
 from icarus.analyze.exposure.types import LegMode, ActivityType
 from icarus.analyze.exposure.agent import Agent
 from icarus.util.general import defaultdict
+from icarus.util.general import counter
 from icarus.util.sqlite import SqliteUtil
 
 
@@ -39,7 +40,7 @@ class Population:
                 leg_idx;
         '''
         self.database.cursor.execute(query)
-        return self.database.cursor.fetchall()
+        return self.database.fetch_rows()
 
     
     def fetch_legs(self):
@@ -50,13 +51,14 @@ class Population:
                 agent_idx,
                 mode,
                 start,
-                end
+                end,
+                abort
             FROM output_legs
             INNER JOIN {self.table}
             USING(agent_id);
         '''
         self.database.cursor.execute(query)
-        return self.database.cursor.fetchall()
+        return self.database.fetch_rows()
 
 
     def fetch_activities(self):
@@ -69,6 +71,7 @@ class Population:
                 output_activities.link_id,
                 output_activities.start,
                 output_activities.end,
+                output_activities.abort,
                 activities.apn
             FROM output_activities
             INNER JOIN {self.table}
@@ -77,22 +80,26 @@ class Population:
             USING(activity_id);
         '''
         self.database.cursor.execute(query)
-        return self.database.cursor.fetchall()
+        return self.database.fetch_rows()
 
     
     def fetch_agents(self):
         query = f'''
-            SELECT agent_id
+            SELECT 
+                agent_id,
+                abort
             FROM output_agents
             INNER JOIN {self.table}
             USING(agent_id);
         '''
         self.database.cursor.execute(query)
-        return self.database.cursor.fetchall()
+        return self.database.fetch_rows()
 
     
     def load_events(self):
+        log.debug('Loading events.')
         events = self.fetch_events()
+        events = counter(events, 'Loading event %s.', level=log.DEBUG)
         for event_id, agent_id, agent_idx, link_id, start, end in events:
             link = self.network.links[link_id]
             event = Event(event_id, link, start, end)
@@ -100,26 +107,33 @@ class Population:
 
     
     def load_legs(self):
+        log.debug('Loading legs.')
         legs = self.fetch_legs()
-        for leg_id, agent_id, _, mode, start, end in legs:
-            leg = Leg(leg_id, LegMode(mode), start, end)
+        legs = counter(legs, 'Loading leg %s.', level=log.DEBUG)
+        for leg_id, agent_id, _, mode, start, end, abort in legs:
+            leg = Leg(leg_id, LegMode(mode), start, end, abort)
             self.agents[agent_id].add_leg(leg)
 
     
     def load_activities(self):
+        log.debug('Loading activities.')
         activities = self.fetch_activities()
-        for activity_id, agent_id, _, kind, link_id, start, end, apn in activities:
+        activities = counter(activities, 'Loading activity %s.', level=log.DEBUG)
+        for activity_id, agent_id, _, kind, link_id, start, \
+                end, abort, apn in activities:
             parcel = self.network.parcels[apn]
             link = self.network.links[link_id]
             activity = Activity(activity_id, ActivityType(kind), 
-                parcel, start, end, link)
+                parcel, start, end, link, abort)
             self.agents[agent_id].add_activity(activity)
 
 
     def load_agents(self):
-        agents = tuple(agent[0] for agent in self.fetch_agents())
-        for agent_id in agents:
-            self.agents[agent_id] = Agent(agent_id)
+        log.debug('Loading agents.')
+        agents = self.fetch_agents()
+        agents = counter(agents, 'Loading agent %s.', level=log.DEBUG)
+        for agent_id, abort in agents:
+            self.agents[agent_id] = Agent(agent_id, abort)
 
 
     def create_population(self, agents: List[str]):

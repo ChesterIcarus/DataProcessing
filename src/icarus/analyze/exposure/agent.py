@@ -7,13 +7,14 @@ from icarus.analyze.exposure.event import Event
 
 
 class Agent:
-    __slots__= ('id', 'legs', 'activities', 'exposure')
+    __slots__= ('id', 'legs', 'activities', 'exposure', 'abort')
 
-    def __init__(self, uuid: int):
+    def __init__(self, uuid: int, abort: int):
         self.id = uuid
         self.legs: List[Leg] = []
         self.activities: List[Activity] = []
         self.exposure: float = None
+        self.abort = abort
 
     
     def add_leg(self, leg: Leg):
@@ -42,5 +43,6 @@ class Agent:
         return (
             self.id,
             len(self.activities) + len(self.legs),
+            self.abort,
             self.exposure
         )

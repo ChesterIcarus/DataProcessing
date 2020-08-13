@@ -69,7 +69,7 @@
             }
         },
         "regions": {
-            "region_file": "/home/benjamin/Documents/icarus/data/source/maz_taz/maz_taz.shp"
+            "region_file": "/home/benjamin/Documents/icarus/data/source/maz_taz/2019/maz_taz.shp"
         },
         "parcels": {
             "residence_file": "/home/benjamin/Documents/icarus/data/source/parcels/residential_parcels.dbf",

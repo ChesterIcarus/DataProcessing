@@ -43,9 +43,9 @@ class Network:
         '''
         self.database.cursor.execute(query)
         rows = self.database.fetch_rows()
+        rows = counter(rows, 'Loading air temperature %s.', level=log.DEBUG)
 
         temps = defaultdict(lambda: [None]*96)
-        rows = counter(rows, 'Loading air temperature %s.')
         for temperature_id, temperature_idx, temperature in rows:
             temps[temperature_id][temperature_idx] = temperature
         for uuid, values in temps.items():
@@ -60,10 +60,11 @@ class Network:
             FROM mrt_temperatures;
         '''
         self.database.cursor.execute(query)
-        rows = self.database.cursor.fetchall()
+        rows = self.database.fetch_rows()
+        rows = counter(rows, 'Loading mrt temperature %s.', level=log.DEBUG)
+
 
         temps = defaultdict(lambda: [None]*96)
-        rows = counter(rows, 'Loading mrt temperature %s.')
         for temperature_id, temperature_idx, temperature in rows:
             temps[temperature_id][temperature_idx] = temperature
         for uuid, values in temps.items():
@@ -100,9 +101,9 @@ class Network:
             FROM links; 
         '''
         self.database.cursor.execute(query)
-        result = self.database.cursor.fetchall()
+        result = self.database.fetch_rows()
 
-        links = counter(result, 'Loading link %s.')
+        links = counter(result, 'Loading link %s.', level=log.DEBUG)
         for link_id, length, speed, modes, air_temp, mrt_temp in links:
             modes_set = set(NetworkMode(mode) for mode in modes.split(','))
             air_temperature = self.air_temperatures[air_temp]
@@ -130,7 +131,7 @@ class Network:
         '''
         self.database.cursor.execute(query)
         rows = self.database.fetch_rows()
-        rows = counter(rows, 'Loading parcel %s.')
+        rows = counter(rows, 'Loading parcel %s.', level=log.DEBUG)
 
         for apn, temperature in rows:
             temp = self.air_temperatures[temperature] 

@@ -8,7 +8,7 @@ class Config:
     @staticmethod
     def configure_trim(folder, region):
         path = lambda x: os.path.abspath(os.path.join(folder, x))
-        config = path('config/trim.poly')
+        config = path('tmp/config_trim.poly')
         with open(config, 'w') as f:
             f.writelines(('network\n', 'first_area\n'))
             f.writelines((f'{pt[0]}\t{pt[1]}\n' for pt in region))
@@ -18,7 +18,7 @@ class Config:
     @staticmethod
     def configure_transit(folder, epsg, unit, highways, railways, subnetworks):
         path = lambda x: os.path.abspath(os.path.join(folder, x)) 
-        config = path('config/transit.xml')
+        config = path('tmp/config_transit.xml')
         osm_network = path('tmp/network.osm')
         xml_network = path('tmp/network.xml')
 
@@ -153,7 +153,7 @@ class Config:
 
         modes = set(mode for submodes in subnetworks.values() for mode in submodes)
         modes = ','.join(modes)
-        config = path('config/map.xml')
+        config = path('tmp/config_map.xml')
         output_schedule = path('input/transitSchedule.xml')
         input_network = path('tmp/network.xml')
         input_schedule = path('tmp/schedule.xml')

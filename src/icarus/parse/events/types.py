@@ -25,13 +25,26 @@ class LegMode(Enum):
     WALK = 'walk'
     PT = 'pt'
 
+    FAKENETWALK = 'fakenetwalk'
+    FAKECAR = 'fakecar'
+    FAKEBIKE = 'fakebike'
+    FAKEPT = 'fakept'
     FAKEMODE = 'fakemode'
 
     def transit(self):
         return self in (self.PT, self.WALK)
 
-    def virtual(self):
-        return self == self.FAKEMODE
+    def translate(self):
+        trans = self
+        if self == self.FAKENETWALK:
+            trans = self.NETWALK
+        elif self == self.FAKECAR:
+            trans = self.CAR
+        elif self == self.FAKEBIKE:
+            trans = self.BIKE
+        elif trans == self.FAKEPT:
+            trans = self.PT
+        return trans
 
     def string(self):
         string = None

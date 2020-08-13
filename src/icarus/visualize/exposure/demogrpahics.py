@@ -1,4 +1,5 @@
 
+import os
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ from argparse import ArgumentParser
 from icarus.util.sqlite import SqliteUtil
 
 
-def plot_income(database: SqliteUtil):
+def plot_income(database: SqliteUtil, savepath: str):
     query = '''
         SELECT
             households.hhIncomeDollar,
@@ -19,7 +20,8 @@ def plot_income(database: SqliteUtil):
         ON households.hhid = agents.household_id
         INNER JOIN output_agents
         ON agents.agent_id = output_agents.agent_id
-        WHERE households.hhIncomeDollar < 500000;
+        WHERE households.hhIncomeDollar < 500000
+        AND output_agents.abort = 0;
     '''
 
     database.cursor.execute(query)
@@ -40,7 +42,7 @@ def plot_income(database: SqliteUtil):
 
 
     data = pd.DataFrame(data, 
-        columns=('household income (USD)', 'average exposure (°C·sec)'))
+        columns=('household income (USD)', 'average exposure (°C·min)'))
     axes = sns.barplot(
         x=data['household income (USD)'], 
         y=data['average exposure (°C·min)']
@@ -54,11 +56,12 @@ def plot_income(database: SqliteUtil):
             label.set_visible(False)
 
     plot = axes.get_figure()
-    plot.savefig('result/barplots/income_exposure.png', bbox_inches='tight')
+    plt.tight_layout()
+    plot.savefig(savepath, bbox_inches='tight')
     plot.clf()
 
 
-def plot_age(database: SqliteUtil):
+def plot_age(database: SqliteUtil, savepath: str):
     query = '''
         SELECT
             agents.agent_id,
@@ -69,7 +72,8 @@ def plot_age(database: SqliteUtil):
         ON persons.hhid = agents.household_id
         AND persons.pnum = agents.household_idx
         INNER JOIN output_agents
-        ON agents.agent_id = output_agents.agent_id;
+        ON agents.agent_id = output_agents.agent_id
+        WHERE output_agents.abort = 0;
     '''
 
     database.cursor.execute(query)
@@ -88,7 +92,7 @@ def plot_age(database: SqliteUtil):
     for age, (total, count) in total.items():
         data.append((age, total / count))
     
-    data = pd.DataFrame(data, columns=('age (years)', 'average exposure (°C·sec)'))
+    data = pd.DataFrame(data, columns=('age (years)', 'average exposure (°C·min)'))
     axes = sns.barplot(
         x=data['age (years)'], 
         y=data['average exposure (°C·min)']
@@ -96,11 +100,12 @@ def plot_age(database: SqliteUtil):
     axes.set_title('Exposure By Age')
 
     plot = axes.get_figure()
-    plot.savefig('result/barplots/age_exposure.png', bbox_inches='tight')
+    plt.tight_layout()
+    plot.savefig(savepath, bbox_inches='tight')
     plot.clf()
 
 
-def plot_all(database: SqliteUtil):
+def plot_all(database: SqliteUtil, savepath: str):
     log.info('Plotting exposure by demographics.')
     log.info('Fetching agent data.')
     query = '''
@@ -118,7 +123,8 @@ def plot_all(database: SqliteUtil):
         ON persons.hhid = agents.household_id
         AND persons.pnum = agents.household_idx
         INNER JOIN output_agents
-        ON agents.agent_id = output_agents.agent_id;
+        ON agents.agent_id = output_agents.agent_id
+        WHERE output_agents.abort = 0;
     '''
     database.cursor.execute(query)
     result = database.fetch_rows()
@@ -184,23 +190,24 @@ def plot_all(database: SqliteUtil):
     fig, axes = plt.subplots(1, 4, 'none', 'all')
     fig.set_size_inches(14, 5)
 
-    sns.boxplot(x='age', y='exposure', ax=axes[0], data=df, fliersize=0, 
+    sns.boxplot(x='age', y='exposure', ax=axes[0], data=df, fliersize=0,
         order=('<20', '20-30', '30-60', '>60'))
-    axes[0].set_ylim(-1000, 40000)
+    axes[0].set_ylim(42750, 43500)
     sns.boxplot(x='income', y='exposure', ax=axes[1], data=df, fliersize=0,
         order=('<30k', '30-60k', '60-120k', '>120k'))
-    axes[1].set_ylim(-1000, 40000)
+    axes[1].set_ylim(42750, 43500)
     axes[1].set_ylabel('')
     sns.boxplot(x='person type', y='exposure', ax=axes[2], data=df, fliersize=0)
-    axes[2].set_ylim(-1000, 40000)
+    axes[2].set_ylim(42750, 43500)
     axes[2].set_ylabel('')
     sns.boxplot(x='education type', y='exposure', ax=axes[3], data=df, fliersize=0)
-    axes[3].set_ylim(-1000, 40000)
+    axes[3].set_ylim(42750, 43500)
     axes[3].set_ylabel('')
 
     log.info('Combining and saving figures.')
-    fig.suptitle('Exposure Distribution by Demographics')
-    fig.savefig('result/boxplots/exposure_by_demographics.png', bbox_inches='tight')
+    fig.suptitle('Exposure Distribution by Demographics', y=1)
+    plt.tight_layout()
+    fig.savefig(savepath, bbox_inches='tight')
     plt.clf()
 
 
@@ -227,11 +234,18 @@ def main():
         handlers=handlers
     )
 
-    database = SqliteUtil('database.db', readonly=True)
-    log.basicConfig()
-    # plot_age(database)
-    # plot_income(database)
-    plot_all(database)
+    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
+
+    database = SqliteUtil(path('database.db'), readonly=True)
+
+    os.makedirs(path('result/exposure/'), exist_ok=True)
+
+    savepath = path('result/exposure/age.png')
+    plot_age(database, savepath)
+    savepath = path('result/exposure/income.png')
+    plot_income(database, savepath)
+    savepath = path('result/exposure/demographics.png')
+    plot_all(database, savepath)
 
 
 if __name__ == '__main__':

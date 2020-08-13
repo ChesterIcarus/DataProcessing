@@ -89,13 +89,30 @@ def null_count(database: SqliteUtil, table: str, col: str):
     return null, nnull
 
 
-# def complete(database: SqliteUtil):
-#     null, nnull = null_count(database, 'links', 'mrt_temperature')
-#     null, nnull = null_count(database, 'parcels', 'mrt_temperature')
+def complete(database: SqliteUtil):
+    complete = False
+    present = database.table_exists('mrt_temperatures')
+    _, nnull = null_count(database, 'links', 'mrt_temperature')
+    if present:
+        log.warning('Table mrt_temperatures already exists.')
+        complete = True
+    if nnull:
+        log.warning(f'{nnull} links already have temperature profiles.')
+        complete = True
+
+    return complete
 
 
-# def ready():
-#     pass
+def ready(database: SqliteUtil):
+    ready = True
+    tables = set(('links', 'nodes'))
+    present = set(database.table_exists(*tables))
+    missing = tables - present
+    for table in missing:
+        log.warning(f'Table {table} is missing.')
+        ready = False
+
+    return ready
 
 
 def xy(point: str) -> tuple:
@@ -356,22 +373,51 @@ def parse_mrt(database: SqliteUtil, path: str, src_epsg: int, prj_epsg: int,
 
 
 def main():
-    parser = ArgumentParser('mrt temperature parser', add_help=False)
+    desc = (
+        'Parse the Maricopa MRT temperature data. This process will first '
+        'parse one file to extract the temperature locations, map each '
+        'link to a set of temperature locations and build temperature '
+        'profiles. Then the remaining data will parsed and averaged for '
+        'each temperature profile. There will only be as many profiles as '
+        'links and likely at least half as many.'
+    )
+    parser = ArgumentParser('icarus.parse.mrt', description=desc, add_help=False)
     
-    parser.add_argument('--help', action='help', default=SUPPRESS,
+    general = parser.add_argument_group('general options')
+    general.add_argument('--help', action='help', default=SUPPRESS,
         help='show this help menu and exit process')
-    parser.add_argument('--dir', type=str, dest='dir', default='.',
-        help='path to directory containing Icarus run data')
-    parser.add_argument('--log', type=str, dest='log', default=None,
-        help='path to file to save the process log; not saved by default')
-    parser.add_argument('--level', type=str, dest='level', default='info',
+    general.add_argument('--dir', type=str, dest='dir', default='.',
+        help='path to simulation data; default is current working directory')
+    general.add_argument('--log', type=str, dest='log', default=None,
+        help='location to save additional logfiles')
+    general.add_argument('--level', type=str, dest='level', default='info',
         choices=('notset', 'debug', 'info', 'warning', 'error', 'critical'),
-        help='verbosity of the process log')
+        help='level of verbosity to print log messages')
+    general.add_argument('--force', action='store_true', dest='force', 
+        default=False, help='skip prompts for deleting files/tables')
 
+    configuration = parser.add_argument_group('configuration options')
+    configuration.add_argument('--source-epsg', type=int, dest='src_epsg', 
+        default=4326, help='epsg projection the mrt data is in')
+    configuration.add_argument('--project-epsg', type=int, dest='prj_epsg', 
+        default=2223, help='epsg projection to convert the mrt data to')
+    configuration.add_argument('--bounds', type=float, dest='bounds', default=50,
+        help='range around each link to scan for mrt points')
+    configuration.add_argument('--steps', type=int, dest='steps', default=96,
+        help='number of temperature readings in a 24-hour period ')
+        
     args = parser.parse_args()
+
+    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
+    os.makedirs(path('logs'), exist_ok=True)
+    homepath = path('')
+    logpath = path('logs/parse_mrt.log')
+    dbpath = path('database.db')
+    configpath = path('config.json')
 
     handlers = []
     handlers.append(log.StreamHandler())
+    handlers.append(log.FileHandler(logpath))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
     log.basicConfig(
@@ -380,30 +426,39 @@ def main():
         handlers=handlers
     )
 
-    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
-    home = path('')
+    log.info('Running mrt parsing module.')
+    log.info(f'Loading data from {homepath}.')
+    log.info('Verifying process metadata/conditions.')
 
-    log.info('Running mrt temperature parsing tool.')
-    log.info(f'Loading run data from {home}.')
+    database = SqliteUtil(dbpath)
+    config = ConfigUtil.load_config(configpath)
 
-    config = ConfigUtil.load_config(path('config.json'))
-    database = SqliteUtil(path('database.db'))
+    mrtpath = config['network']['exposure']['mrt_dir']
 
-    path = config['network']['exposure']['mrt_dir']
+    if not ready(database):
+        log.error('Process dependencies not met; see warnings and '
+            'documentation for more details.')
+        exit(1)
+    if complete(database) and not args.force:
+        log.error('Some or all of this process is already complete.')
+        log.error('Would you like to continue? [Y/n]')
+        if input().lower() not in ('y', 'yes', 'yeet'):
+            exit()
 
     try:
         log.info('Starting mrt temperature parsing.')
         parse_mrt(
             database, 
-            path, 
-            src_epsg=4326,
-            prj_epsg=2223, 
-            bounds=50,
-            steps=96
+            mrtpath, 
+            src_epsg=args.src_epsg,
+            prj_epsg=args.prj_epsg, 
+            bounds=args.bounds,
+            steps=args.steps
         )
     except:
         log.exception('Critical error while running mrt temperature '
             'parsing; cleaning up and terminating.')
+        exit(1)
 
 
 if __name__ == '__main__':

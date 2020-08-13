@@ -1,6 +1,7 @@
 # settings
 .vscode
 .ropeproject
+.idea
 
 # packaging residue
 *.egg-info

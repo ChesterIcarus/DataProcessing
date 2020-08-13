@@ -7,14 +7,16 @@ from icarus.analyze.exposure.link import Link
 
 
 class Leg:
-    __slots__= ('id', 'mode', 'start', 'end', 'events', 'exposure')
+    __slots__= ('id', 'mode', 'start', 'end', 'events', 'exposure', 'abort')
 
-    def __init__(self, uuid: str, mode: LegMode, start: int, end: int):
+    def __init__(self, uuid: str, mode: LegMode, start: int, 
+            end: int, abort: int):
         self.id = uuid
         self.mode = mode
         self.start = start
         self.end = end
         self.events: List[Event] = []
+        self.abort = abort
         self.exposure = None
 
 
@@ -23,19 +25,25 @@ class Leg:
 
     
     def calculate_exposure(self, link: Link) -> float:
+        self.exposure = 0
         if self.mode in (LegMode.BIKE, LegMode.WALK):
             if len(self.events):
                 self.exposure = 0
                 for event in self.events:
                     self.exposure += event.calculate_exposure()
-            else:
+            elif not self.abort:
                 self.exposure = link.get_exposure(self.start, self.end, False)
-        else:
+        elif not self.abort:
             self.exposure = 25.5 * (self.end - self.start)
+
         return self.exposure
 
     
     def export(self, agent: int, idx: int) -> tuple:
+        duration = None
+        if not self.abort:
+            duration = self.end - self.start
+
         return (
             self.id,
             agent,
@@ -43,6 +51,7 @@ class Leg:
             self.mode.value,
             self.start,
             self.end,
-            self.end - self.start,
+            duration,
+            self.abort,
             self.exposure 
         )

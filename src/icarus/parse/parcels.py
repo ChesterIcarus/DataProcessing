@@ -4,7 +4,7 @@ import csv
 import shapefile
 import logging as log
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from typing import Dict, Iterable, Tuple
 from pyproj.transformer import Transformer
 from rtree.index import Index
@@ -129,7 +129,8 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
 
     log.info('Parsing parcel boudaries from shapefile.')
     parser = shapefile.Reader(parcel_file)
-    iter_boundaries = counter(iter(parser), 'Parsing parcel boundary %s.')
+    iter_boundaries = counter(iter(parser), 'Parsing parcel boundary %s.', 
+            level=log.DEBUG)
     for parcel in iter_boundaries:
         if len(parcel.shape.points):
             apn = parcel.record['APN']
@@ -147,10 +148,11 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
     
     log.info('Parsing residential parcels from database file.')
     parser = shapefile.Reader(residence_file)
-    iter_parcels = counter(parser.iterRecords(), 'Parsing residential parcel %s.')
+    iter_parcels = counter(parser.iterRecords(), 'Parsing residential parcel %s.', 
+            level=log.DEBUG)
     for record in iter_parcels:
         apn = record['APN']
-        if apn in boundaries and apn not in apn:
+        if apn in boundaries and apn not in apns:
             cool = True
             polygon = boundaries[apn]
             parcel = Parcel(apn, 'residential', cool, polygon)
@@ -160,7 +162,8 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
     
     log.info('Parsing comercial parcels from database file.')
     parser = shapefile.Reader(commerce_file)
-    iter_parcels = counter(parser.iterRecords(), 'Parsing commercial parcel %s.')
+    iter_parcels = counter(parser.iterRecords(), 'Parsing commercial parcel %s.', 
+            level=log.DEBUG)
     for record in iter_parcels:
         apn = record['APN']
         if apn in boundaries and apn not in apns:
@@ -174,7 +177,8 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
 
     log.info('Parsing extraneous parcels from shapefile.')
     other = set(boundaries.keys()) - apns
-    other = counter(other, 'Parsing extraneous parcel %s.')
+    other = counter(other, 'Parsing extraneous parcel %s.', 
+            level=log.DEBUG)
     for apn in other:
         polygon = boundaries[apn]
         parcel = Parcel(apn, 'other', True, polygon)
@@ -192,7 +196,8 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
     regions = load_regions(database)
 
     log.info('Scanning regions and mapping mazs to parcels.')
-    iter_regions = counter(regions, 'Sacnning region %s.')
+    iter_regions = counter(regions, 'Sacnning region %s.', 
+            level=log.DEBUG)
     for region in iter_regions:
         apn = f'maz-{region.maz}'
         parcel = Parcel(apn, 'default', True, region.polygon)
@@ -231,20 +236,37 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
 
 
 def main():
-    parser = ArgumentParser('parcel parser')
-    
-    parser.add_argument('--dir', type=str, dest='dir', default='.',
-        help='path to directory containing Icarus run data')
-    parser.add_argument('--log', type=str, dest='log', default=None,
-        help='path to file to save the process log; not saved by default')
-    parser.add_argument('--level', type=str, dest='level', default='info',
+    desc = (
+        ''
+    )
+    parser = ArgumentParser('icarus.parse.parcels', 
+            description=desc, add_help=False)
+
+    general = parser.add_argument_group('general options')
+    general.add_argument('--help', action='help', default=SUPPRESS,
+        help='show this help menu and exit process')
+    general.add_argument('--dir', type=str, dest='dir', default='.',
+        help='path to simulation data; default is current working directory')
+    general.add_argument('--log', type=str, dest='log', default=None,
+        help='location to save additional logfiles')
+    general.add_argument('--level', type=str, dest='level', default='info',
         choices=('notset', 'debug', 'info', 'warning', 'error', 'critical'),
-        help='verbosity of the process log')
+        help='level of verbosity to print log messages')
+    general.add_argument('--force', action='store_true', dest='force', 
+        default=False, help='skip prompts for deleting files/tables')
 
     args = parser.parse_args()
 
+    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
+    os.makedirs(path('logs'), exist_ok=True)
+    homepath = path('')
+    logpath = path('logs/parse_parcels.log')
+    dbpath = path('database.db')
+    configpath = path('config.json')
+
     handlers = []
     handlers.append(log.StreamHandler())
+    handlers.append(log.FileHandler(logpath))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
     log.basicConfig(
@@ -253,14 +275,12 @@ def main():
         handlers=handlers
     )
 
-    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
-    home = path('')
+    log.info('Running parcels parsing module.')
+    log.info(f'Loading data from {homepath}.')
+    log.info('Verifying process metadata/conditions.')
 
-    log.info('Running parcels parsing tool.')
-    log.info(f'Loading run data from {home}.')
-
-    config = ConfigUtil.load_config(path('config.json'))
-    database = SqliteUtil(path('database.db'))
+    config = ConfigUtil.load_config(configpath)
+    database = SqliteUtil(dbpath)
 
     residence_file = config['network']['parcels']['residence_file']
     commerce_file = config['network']['parcels']['commerce_file']
@@ -269,18 +289,12 @@ def main():
 
     if not ready(database, residence_file, commerce_file, parcel_file):
         log.error('Process dependencies not met; see warnings and '
-            'docuemntation for more details.')
+            'documentation for more details.')
         exit(1)
-    if complete(database):
-        log.info('All or some of this process is already complete. '
-            ' Would you like to proceed? [Y/n]')
-        valid = ('y', 'n', 'yes', 'no', 'yee', 'naw')
-        response = input().lower()
-        while response not in valid:
-            print('Try again; would you like to proceed? [Y/n]')
-            response = input().lower()
-        if response in ('n', 'no', 'naw'):
-            log.info('User chose to terminate process.')
+    if complete(database) and not args.force:
+        log.error('Some or all of this process is already complete.')
+        log.error('Would you like to continue? [Y/n]')
+        if input().lower() not in ('y', 'yes', 'yeet'):
             exit()
 
     try:

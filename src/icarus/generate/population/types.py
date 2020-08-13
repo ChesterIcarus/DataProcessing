@@ -53,7 +53,8 @@ class ActivityType(IntEnum):
             self.SCHOOL_ESCORT,
             self.PURE_ESCORT,
             self.RIDESHARE_ESCORT,
-            self.OTHER_ESCORT   )
+            self.OTHER_ESCORT
+        )
 
 
 class Mode(IntEnum):
@@ -79,7 +80,8 @@ class Mode(IntEnum):
             self.CONV_TRANS_PNR,
             self.PREM_TRANS_WALK,
             self.PREM_TRANS_KNR,
-            self.PREM_TRANS_PNR )
+            self.PREM_TRANS_PNR
+        )
 
     def vehicle(self) -> bool:
         return self in (
@@ -88,7 +90,8 @@ class Mode(IntEnum):
             self.HOV3,
             self.PASSENGER,
             self.TAXI,
-            self.SCHOOL_BUS )
+            self.SCHOOL_BUS 
+        )
 
     def route_mode(self) -> RouteMode:
         route_mode = None

@@ -2,29 +2,34 @@
 import os
 import logging as log
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from xml.etree.ElementTree import iterparse
 from pyproj.transformer import Transformer
 
-from icarus.util.file import multiopen, exists
+from icarus.util.file import multiopen
 from icarus.util.config import ConfigUtil
 from icarus.util.sqlite import SqliteUtil
 
 
 def ready(networkpath: str):
-    present = exists(networkpath)
+    ready = True
+    present = os.path.exists(networkpath)
     if not present:
-        log.info(f'Could not find file {networkpath}.')
-    return present
+        log.warning(f'Could not open file {networkpath}.')
+        ready = False
+
+    return ready
 
 
 def complete(database: SqliteUtil):
+    complete = False
     tables = ('nodes', 'links')
-    exists = database.table_exists(*tables)
-    if len(exists):
-        present = ', '.join(exists)
-        log.info(f'Found tables {present} already in database.')
-    return len(exists) > 0
+    present = database.table_exists(*tables)
+    for table in present:
+        log.warning(f'Table {table} already exists.')
+        complete = True
+
+    return complete
 
 
 def create_tables(database: SqliteUtil):
@@ -107,7 +112,7 @@ def parse_roads(database: SqliteUtil, networkpath: str,
                 root.clear()
             elif elem.tag == 'links':
                 if count != n << 1:
-                    log.info(f'Parsing node {count}.')
+                    log.debug(f'Parsing node {count}.')
                 log.info('Parsing links from network file.')
                 count, n = 0, 1
                 root.clear()
@@ -125,7 +130,7 @@ def parse_roads(database: SqliteUtil, networkpath: str,
                 ))
                 count += 1
                 if count == n:
-                    log.info(f'Parsing node {count}.')
+                    log.debug(f'Parsing node {count}.')
                     n <<= 1
                 if count % 100000 == 0:
                     root.clear()
@@ -148,13 +153,13 @@ def parse_roads(database: SqliteUtil, networkpath: str,
                 ))
                 count += 1
                 if count == n:
-                    log.info(f'Parsing link {count}.')
+                    log.debug(f'Parsing link {count}.')
                     n <<= 1
                 if count % 100000 == 0:
                     root.clear()
 
     if count != n << 1:
-        log.info(f'Parsing link {count}.')
+        log.debug(f'Parsing link {count}.')
 
     network.close()
 
@@ -168,20 +173,36 @@ def parse_roads(database: SqliteUtil, networkpath: str,
 
 
 def main():
-    parser = ArgumentParser('road network parser')
-    
-    parser.add_argument('--dir', type=str, dest='dir', default='.',
-        help='path to directory containing Icarus run data')
-    parser.add_argument('--log', type=str, dest='log', default=None,
-        help='path to file to save the process log; not saved by default')
-    parser.add_argument('--level', type=str, dest='level', default='info',
+    desc = (
+        ''
+    )
+    parser = ArgumentParser('icarus.parse.roads', description=desc, add_help=False)
+
+    general = parser.add_argument_group('general options')
+    general.add_argument('--help', action='help', default=SUPPRESS,
+        help='show this help menu and exit process')
+    general.add_argument('--dir', type=str, dest='dir', default='.',
+        help='path to simulation data; default is current working directory')
+    general.add_argument('--log', type=str, dest='log', default=None,
+        help='location to save additional logfiles')
+    general.add_argument('--level', type=str, dest='level', default='info',
         choices=('notset', 'debug', 'info', 'warning', 'error', 'critical'),
-        help='verbosity of the process log')
+        help='level of verbosity to print log messages')
+    general.add_argument('--force', action='store_true', dest='force', 
+        default=False, help='skip prompts for deleting files/tables')
 
     args = parser.parse_args()
 
+    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
+    os.makedirs(path('logs'), exist_ok=True)
+    homepath = path('')
+    logpath = path('logs/parse_roads.log')
+    dbpath = path('database.db')
+    networkpath = path('input/network.xml.gz')
+
     handlers = []
     handlers.append(log.StreamHandler())
+    handlers.append(log.FileHandler(logpath))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
     log.basicConfig(
@@ -190,24 +211,20 @@ def main():
         handlers=handlers
     )
 
-    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
-    home = path('')
+    log.info('Running roads parsing module.')
+    log.info(f'Loading data from {homepath}.')
+    log.info('Verifying process metadata/conditions.')
 
-    log.info('Running roads parsing tool.')
-    log.info(f'Loading run data from {home}.')
-
-    database = SqliteUtil(path('database.db'))
-    networkpath = path('input/network.xml.gz')
+    database = SqliteUtil(dbpath)
 
     if not ready(networkpath):
-        log.warning('Dependent data not parsed or generated.')
-        log.warning('Roads parsing dependencies include network generation as well '
-            'as exposure and regions parsing.')
+        log.error('Process dependencies not met; see warnings and '
+            'documentation for more details.')
         exit(1)
-    elif complete(database):
-        log.warning('Roads already parsed. Would you like to replace it? [Y/n]')
+    if complete(database) and not args.force:
+        log.error('Some or all of this process is already complete.')
+        log.error('Would you like to continue? [Y/n]')
         if input().lower() not in ('y', 'yes', 'yeet'):
-            log.info('User chose to keep existing roads; exiting parsing tool.')
             exit()
     
     try:

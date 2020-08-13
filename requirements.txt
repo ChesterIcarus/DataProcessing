@@ -16,3 +16,4 @@ contextily
 descartes
 statsmodels
 ray
+matplotlib

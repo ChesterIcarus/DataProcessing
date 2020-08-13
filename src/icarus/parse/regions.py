@@ -3,7 +3,7 @@ import os
 import shapefile
 import logging as log
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from rtree.index import Index
 from pyproj import Transformer
 from shapely.geometry import Polygon, Point
@@ -103,34 +103,36 @@ def load_nodes(database: SqliteUtil):
     return nodes
 
 
-def parse_regions(database: SqliteUtil, regions_file: str, src_epsg: int, 
-        prj_epsg: int):
-
+def parse_regions(database: SqliteUtil, regions_file: str, prj_crs: str):
     log.info('Allocating tables for regions.')
     create_tables(database)
 
-    transformer = Transformer.from_crs(f'epsg:{src_epsg}', 
-        f'epsg:{prj_epsg}', always_xy=True, skip_equivalent=True)
-    project = transformer.transform
+    prjpath = os.path.splitext(regions_file)[0] + '.prj'
+    with open(prjpath, 'r') as prjfile:
+        src_crs = prjfile.read()
 
     log.info('Loading network nodes.')
     nodes = load_nodes(database)
-
-    log.info('Building spatial index from nodes.')
 
     def load():
         for idx, node in nodes.items():
             pt = node.point
             yield (idx, (pt.x, pt.y, pt.x, pt.y), None)
 
+    log.info('Building spatial index from nodes.')
     index = Index(load())
+
+    transformer = Transformer.from_crs(src_crs, prj_crs,
+        always_xy=True, skip_equivalent=True)
+    project = transformer.transform
 
     log.info('Parsing regions from shapefile.')
     parser = shapefile.Reader(regions_file)
-    iter_regions = counter(iter(parser), 'Parsing region %s.')
+    iter_regions = counter(iter(parser), 'Parsing region %s.', level=log.DEBUG)
+
     regions = []
     for item in iter_regions:
-        maz = item.record.MAZ_ID_10
+        maz = item.record.ID
         points = (project(*point) for point in item.shape.points)
         polygon = Polygon(points)
         result = index.intersection(polygon.bounds)
@@ -146,13 +148,20 @@ def parse_regions(database: SqliteUtil, regions_file: str, src_epsg: int,
         
         regions.append((
             maz,
-            item.record.TAZ_2015,
-            item.record.Sq_miles,
+            item.record.TAZ_2019,
+            item.record.AREA,
             dumps(polygon.centroid),
             dumps(polygon)
         ))
 
     parser.close()
+
+    null = sum((1 for node in nodes.values() if node.maz is None))
+    total = len(nodes)
+
+    if null > 0:
+        perc = round(null / total * 100, 2)
+        log.warning(f'Found {perc}% ({null}) nodes not assigned an MAZ.')
     
     log.info('Writing parsed regions to database.')
     database.insert_values('regions', regions, 5)
@@ -177,20 +186,37 @@ def parse_regions(database: SqliteUtil, regions_file: str, src_epsg: int,
 
 
 def main():
-    parser = ArgumentParser('daymet air temperature parser')
-    
-    parser.add_argument('--dir', type=str, dest='dir', default='.',
-        help='path to directory containing Icarus run data')
-    parser.add_argument('--log', type=str, dest='log', default=None,
-        help='path to file to save the process log; not saved by default')
-    parser.add_argument('--level', type=str, dest='level', default='info',
+    desc = (
+        'Parse regions from the city zoing data. '
+    )
+    parser = ArgumentParser('icarus.parse.regions', description=desc, 
+        add_help=False)
+
+    general = parser.add_argument_group('general options')
+    general.add_argument('--help', action='help', default=SUPPRESS,
+        help='show this help menu and exit process')
+    general.add_argument('--dir', type=str, dest='dir', default='.',
+        help='path to simulation data; default is current working directory')
+    general.add_argument('--log', type=str, dest='log', default=None,
+        help='location to save additional logfiles')
+    general.add_argument('--level', type=str, dest='level', default='info',
         choices=('notset', 'debug', 'info', 'warning', 'error', 'critical'),
-        help='verbosity of the process log')
+        help='level of verbosity to print log messages')
+    general.add_argument('--force', action='store_true', dest='force', 
+        default=False, help='skip prompts for deleting files/tables')
 
     args = parser.parse_args()
 
+    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
+    os.makedirs(path('logs'), exist_ok=True)
+    homepath = path('')
+    logpath = path('logs/parse_regions.log')
+    dbpath = path('database.db')
+    configpath = path('config.json')
+
     handlers = []
     handlers.append(log.StreamHandler())
+    handlers.append(log.FileHandler(logpath))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
     log.basicConfig(
@@ -199,36 +225,28 @@ def main():
         handlers=handlers
     )
 
-    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
-    home = path('')
+    log.info('Running regions parsing module.')
+    log.info(f'Loading data from {homepath}.')
+    log.info('Verifying process metadata/conditions.')
 
-    config = ConfigUtil.load_config(path('config.json'))
-    database = SqliteUtil(path('database.db'))
+    config = ConfigUtil.load_config(configpath)
+    database = SqliteUtil(dbpath)
 
     regions_file = config['network']['regions']['region_file']
-
-    log.info('Running regions parsing tool.')
-    log.info(f'Loading run data from {home}.')
 
     if not ready(database, regions_file):
         log.error('Process dependencies not met; see warnings and '
             'documentation for more details.')
         exit(1)
-    if complete(database):
-        log.info('All or some of this process is already complete. '
-            ' Would you like to proceed? [Y/n]')
-        valid = ('y', 'n', 'yes', 'no', 'yee', 'naw')
-        response = input().lower()
-        while response not in valid:
-            print('Try again; would you like to proceed? [Y/n]')
-            response = input().lower()
-        if response in ('n', 'no', 'naw'):
-            log.info('User chose to terminate process.')
+    if complete(database) and not args.force:
+        log.error('Some or all of this process is already complete.')
+        log.error('Would you like to continue? [Y/n]')
+        if input().lower() not in ('y', 'yes', 'yeet'):
             exit()
 
     try:
         log.info('Starting regions parsing.')
-        parse_regions(database, regions_file, 2223, 2223)
+        parse_regions(database, regions_file, 'epsg:2223')
     except:
         log.exception('Critical error while parsing regions; '
             'terminating process and exiting.')

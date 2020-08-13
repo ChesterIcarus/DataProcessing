@@ -174,6 +174,7 @@ class Agent:
 
 
     def start_leg(self, time: int, link: Link, leg_mode: LegMode):
+        leg_mode = leg_mode.translate()
         leg = Leg(leg_mode)
         leg.start(time, link)
 
@@ -185,13 +186,14 @@ class Agent:
 
 
     def end_leg(self, time: int, link: Link, leg_mode: LegMode):
+        leg_mode = leg_mode.translate()
         leg = self.active_leg
         route = None
         if leg.travelled:
             route = self.get_route(leg_mode, leg.start_link, link)
         leg.end(time, link, route)
 
-        if leg_mode.virtual():
+        if leg_mode == LegMode.FAKEMODE:
             if self.active_virtual is None:
                 self.active_virtual = leg
             else:

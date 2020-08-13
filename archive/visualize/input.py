@@ -8,7 +8,7 @@ import geopandas as gpd
 import contextily as ctx
 import matplotlib.pyplot as plt
 
-from typing import List
+from typing import List, Callable
 from shapely.wkt import loads
 from collections import defaultdict
 from argparse import ArgumentParser
@@ -134,9 +134,9 @@ def map_removed_trips_by_region(database: SqliteUtil, savepaths: str,
             nrows_ncols=(2,2),
             axes_pad=0.40,
             share_all=True,
-            cbar_location="right",
-            cbar_mode="single",
-            cbar_size="2%",
+            cbar_location='right',
+            cbar_mode='single',
+            cbar_size='2%',
             cbar_pad=0.25,
         )
 
@@ -163,6 +163,131 @@ def map_removed_trips_by_region(database: SqliteUtil, savepaths: str,
         plt.clf()
 
 
+def plot_demographics_all(database: SqliteUtil, path: Callable[[str], str]):
+    log.info('Beginning plotting of all input population demographics.')
+
+    log.info('Fetching input population information.')
+    query = ''' 
+        SELECT
+            persons.age,
+            persons.persType,
+            persons.educLevel,
+            persons.industry,
+            persons.gender,
+            households.hhIncomeDollar
+        FROM persons
+        INNER JOIN households
+        ON households.hhid = persons.hhid;
+    '''
+    database.cursor.execute(query)
+    result = database.fetch_rows()
+    
+    log.info('Building dataframe.')
+    cols = ('age', 'person type', 'education', 'industry', 'gender', 'income')
+    df = pd.DataFrame(result, columns=cols)
+    del result
+
+    log.info('Plotting age distribution.')
+    ax = sns.distplot(df['age'], hist=False, color='red', 
+        kde_kws={'shade': True})
+    ax.set_xlabel('age')
+    ax.set_ylabel('proportion of persons')
+    ax.set_title('input age distribution')
+    savepath = path('result/input/demographics_age.png')
+    fig = ax.get_figure()
+    fig.savefig(savepath, bbox_inches='tight')
+    plt.clf()
+
+    log.info('Plotting income distribution.')
+    ax = sns.distplot(df.loc[df['income'] < 5e5]['income'],
+        hist=False, color='blue', kde_kws={'shade': True})
+    ax.set_xlabel('income')
+    ax.set_ylabel('proportion of persons')
+    ax.set_title('input income distribution')
+    savepath = path('result/input/demographics_income.png')
+    fig = ax.get_figure()
+    fig.savefig(savepath, bbox_inches='tight')
+    plt.clf()
+
+    log.info('Plotting education distribution.')
+    series = df['education'].value_counts().sort_index()
+    values = np.array(series.index.array)
+    total = sum(series.array)
+    apply = lambda x: x / total 
+    proportion = np.array(tuple(map(apply, series.array)))
+    ax = sns.barplot(x=values, y=proportion, color='green')
+    ax.set_xlabel('education')
+    ax.set_ylabel('proportion of persons')
+    ax.set_title('input education distribution')
+    savepath = path('result/input/demographics_education.png')
+    fig = ax.get_figure()
+    fig.savefig(savepath, bbox_inches='tight')
+    plt.clf()
+    del values, total, apply, proportion
+    
+    log.info('Adding person type distribution.')
+    series = df['person type'].value_counts().sort_index()
+    values = np.array(series.index.array)
+    total = sum(series.array)
+    apply = lambda x: x / total 
+    proportion = np.array(tuple(map(apply, series.array)))
+    ax = sns.barplot(x=values, y=proportion, color='darkviolet')
+    ax.set_xlabel('person type')
+    ax.set_ylabel('proportion of persons')
+    ax.set_title('input person type distribution')
+    savepath = path('result/input/demographics_persontype.png')
+    fig = ax.get_figure()
+    fig.savefig(savepath, bbox_inches='tight')
+    plt.clf()
+    del values, total, apply, proportion
+
+    log.info('Plotting joint plot.')
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10, 6))
+    
+    log.info('Adding age distribution.')
+    sns.distplot(df['age'], hist=False, color='red', 
+        kde_kws={'shade': True}, ax=ax1)
+    
+    log.info('Addding income distribution.')
+    sns.distplot(df.loc[df['income'] < 5e5]['income'],
+        hist=False, color='blue', kde_kws={'shade': True}, ax=ax2)
+
+    log.info('Adding education distribution.')
+    series = df['education'].value_counts().sort_index()
+    values = np.array(series.index.array)
+    total = sum(series.array)
+    apply = lambda x: x / total 
+    proportion = np.array(tuple(map(apply, series.array)))
+    sns.barplot(x=values, y=proportion, color='green', ax=ax3)
+    del values, total, apply, proportion
+
+    log.info('Adding person type distribution.')
+    series = df['person type'].value_counts().sort_index()
+    values = np.array(series.index.array)
+    total = sum(series.array)
+    apply = lambda x: x / total 
+    proportion = np.array(tuple(map(apply, series.array)))
+    sns.barplot(x=values, y=proportion, color='darkviolet', ax=ax4)
+    del values, total, apply, proportion
+
+    ax1.set_xlabel('age')
+    ax2.set_xlabel('income')
+    ax3.set_xlabel('education level')
+    ax4.set_xlabel('person type')
+
+    fig.add_subplot(111, frameon=False)
+    plt.tick_params(labelcolor='none', top=False, 
+        bottom=False, left=False, right=False)
+    plt.grid(False)
+    plt.ylabel('proportion of persons', labelpad=20)
+    plt.tight_layout()
+
+    fig.suptitle('input population demographics', y=1)
+    savepath = path('result/input/demographics_all.png')
+    fig.savefig(savepath, bbox_inches='tight')
+    plt.clf()
+
+
 def plot_removed_demographics(database: SqliteUtil, savepath: str):
     log.info('Graphing generated population demographics.')
     log.info('Fetching abm information.')
@@ -171,8 +296,6 @@ def plot_removed_demographics(database: SqliteUtil, savepath: str):
         SELECT
             persons.age,
             households.hhIncomeDollar,
-            persons.persType,
-            persons.educLevel,   
             agents.agent_id IS NOT NULL AS kept
         FROM persons
         INNER JOIN households
@@ -185,36 +308,34 @@ def plot_removed_demographics(database: SqliteUtil, savepath: str):
     result = database.fetch_rows()
 
     log.info('Building dataframes.')
-    cols = ('age', 'income', 'person type', 'education', 'kept')
+    cols = ('age', 'income', 'kept')
     df = pd.DataFrame(result, columns=cols)
 
-    fig, axes = plt.subplots(2, 2)
+    fig, (ax1, ax2) = plt.subplots(1, 2)
     
     log.info('Plotting age distribution.')
     sns.distplot(df.loc[df['kept'] == 1]['age'], hist=False, color='b', 
-        kde_kws={'shade': True}, ax=axes[0,0])
-    sns.distplot(df.loc[df['kept'] == 0]['age'], hist=False, color='r', 
-        kde_kws={'shade': True}, ax=axes[0,0])
+        kde_kws={'shade': True}, ax=ax1, label='input')
+    sns.distplot(df['age'], hist=False, color='g', 
+        kde_kws={'shade': True}, ax=ax1, label='ABM')
     
     log.info('Plotting income distribution.')
     sns.distplot(df.loc[(df['kept'] == 1) & (df['income'] < 5e5)]['income'], 
-        hist=False, color='b', kde_kws={'shade': True}, ax=axes[0,1])
-    sns.distplot(df.loc[(df['kept'] == 0) & (df['income'] < 5e5)]['income'], 
-        hist=False, color='r',  kde_kws={'shade': True}, ax=axes[0,1])
+        hist=False, color='b', kde_kws={'shade': True}, ax=ax2, label='input')
+    sns.distplot(df.loc[df['income'] < 5e5]['income'],
+        hist=False, color='g', kde_kws={'shade': True}, ax=ax2, label='ABM')
 
-    log.info('Plotting person type distribution.')
-    sns.distplot(df.loc[df['kept'] == 1]['person type'], hist=True, color='b', 
-        ax=axes[1,0], kde=True)
-    sns.distplot(df.loc[df['kept'] == 0]['person type'], hist=True, color='r', 
-        ax=axes[1,0], kde=True)
-
-    log.info('Plotting education level distribution.')
-    sns.distplot(df.loc[df['kept'] == 1]['education'], hist=True, color='b', 
-        ax=axes[1,1], kde=True)
-    sns.distplot(df.loc[df['kept'] == 0]['education'], hist=True, color='r', 
-        ax=axes[1,1], kde=True)
+    log.info('Plotting ')
     
     log.info('Saving figure.')
+    fig.add_subplot(111, frameon=False)
+    plt.tick_params(labelcolor='none', top=False, bottom=False,
+        left=False, right=False)
+    plt.grid(False)
+    plt.ylabel('proportion of population', labelpad=15)
+    plt.tight_layout()
+
+    fig.suptitle('distribution of demographics', y=1)
     fig.savefig(savepath, bbox_inches='tight')
     plt.clf()
 
@@ -353,11 +474,12 @@ if __name__ == '__main__':
     path = lambda x: os.path.abspath(os.path.join(args.dir, x))
     os.makedirs(path('result/maps/'), exist_ok=True)
     os.makedirs(path('result/boxplots/'), exist_ok=True)
+    os.makedirs(path('result/input/'), exist_ok=True)
     database = SqliteUtil(path('database.db'), readonly=True)
 
     savepaths = [
-        path('result/maps/filtered_trips_by_mode_tempe.png'),
-        path('result/maps/filtered_trips_by_mode_phoenix.png')
+        path('result/input/filtered_trips_by_mode_tempe.png'),
+        path('result/input/filtered_trips_by_mode_phoenix.png')
     ]
     bounds = [
         [ 681285.59126194, 868244.11666725, 710778.10020630, 888780.96744007 ],
@@ -365,9 +487,11 @@ if __name__ == '__main__':
     ]
     map_removed_trips_by_region(database, savepaths, bounds)
 
-    savepath = path('result/boxplots/filtered_demographics.png')
-    plot_removed_demographics(database, savepath)
+    # savepath = path('result/boxplots/filtered_demographics.png')
+    # plot_removed_demographics(database, savepath)
 
-    savepath = path('result/barplots/lower_bound_speed.png')
+    plot_demographics_all(database, path)
+
+    savepath = path('result/input/lower_bound_speed.png')
     plot_lowerbound_speeds(database, savepath)
 

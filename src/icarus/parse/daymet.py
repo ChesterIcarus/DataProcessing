@@ -2,7 +2,7 @@
 import os
 import logging as log
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from typing import List, Callable
 from netCDF4 import Dataset             # pylint: disable=no-name-in-module
 from pyproj import Transformer
@@ -365,20 +365,36 @@ def parse_temperatures(database: SqliteUtil, tmin_files: List[str],
 
 
 def main():
-    parser = ArgumentParser('daymet air temperature parser')
-    
-    parser.add_argument('--dir', type=str, dest='dir', default='.',
-        help='path to directory containing Icarus run data')
-    parser.add_argument('--log', type=str, dest='log', default=None,
-        help='path to file to save the process log; not saved by default')
-    parser.add_argument('--level', type=str, dest='level', default='info',
+    desc = (
+        ''
+    )
+    parser = ArgumentParser('icarus.parse.daymet', description=desc, add_help=False)
+
+    general = parser.add_argument_group('general options')
+    general.add_argument('--help', action='help', default=SUPPRESS,
+        help='show this help menu and exit process')
+    general.add_argument('--dir', type=str, dest='dir', default='.',
+        help='path to simulation data; default is current working directory')
+    general.add_argument('--log', type=str, dest='log', default=None,
+        help='location to save additional logfiles')
+    general.add_argument('--level', type=str, dest='level', default='info',
         choices=('notset', 'debug', 'info', 'warning', 'error', 'critical'),
-        help='verbosity of the process log')
+        help='level of verbosity to print log messages')
+    general.add_argument('--force', action='store_true', dest='force', 
+        default=False, help='skip prompts for deleting files/tables')
 
     args = parser.parse_args()
 
+    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
+    os.makedirs(path('logs'), exist_ok=True)
+    homepath = path('')
+    logpath = path('logs/parse_daymet.log')
+    dbpath = path('database.db')
+    configpath = path('config.json')
+
     handlers = []
     handlers.append(log.StreamHandler())
+    handlers.append(log.FileHandler(logpath))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
     log.basicConfig(
@@ -387,34 +403,26 @@ def main():
         handlers=handlers
     )
 
-    path = lambda x: os.path.abspath(os.path.join(args.dir, x))
-    home = path('')
+    log.info('Running daymet parsing module.')
+    log.info(f'Loading data from {homepath}.')
+    log.info('Verifying process metadata/conditions.')
 
-    config = ConfigUtil.load_config(path('config.json'))
-    database = SqliteUtil(path('database.db'))
+    config = ConfigUtil.load_config(configpath)
+    database = SqliteUtil(dbpath)
 
     tmin_files = config['network']['exposure']['tmin_files']
     tmax_files = config['network']['exposure']['tmax_files']
     day = config['network']['exposure']['day']
     steps = config['network']['exposure']['steps']
 
-    log.info('Running roads parsing tool.')
-    log.info(f'Loading run data from {home}.')
-
     if not ready(database, tmin_files, tmax_files):
         log.error('Process dependencies not met; see warnings and '
-            'docuemntation for more details.')
+            'documentation for more details.')
         exit(1)
-    if complete(database):
-        log.info('All or some of this process is already complete. '
-            ' Would you like to proceed? [Y/n]')
-        valid = ('y', 'n', 'yes', 'no', 'yee', 'naw')
-        response = input().lower()
-        while response not in valid:
-            print('Try again; would you like to proceed? [Y/n]')
-            response = input().lower()
-        if response in ('n', 'no', 'naw'):
-            log.info('User chose to terminate process.')
+    if complete(database) and not args.force:
+        log.error('Some or all of this process is already complete.')
+        log.error('Would you like to continue? [Y/n]')
+        if input().lower() not in ('y', 'yes', 'yeet'):
             exit()
 
     try:

@@ -177,9 +177,9 @@ class Exposure:
             legs = self.population.export_legs()
             events = self.population.export_events()
 
-            self.database.insert_values('temp_agents', agents, 3)
-            self.database.insert_values('temp_activities', activities, 9)
-            self.database.insert_values('temp_legs', legs, 8)
+            self.database.insert_values('temp_agents', agents, 4)
+            self.database.insert_values('temp_activities', activities, 10)
+            self.database.insert_values('temp_legs', legs, 9)
             self.database.insert_values('temp_events', events, 8)
             self.database.connection.commit()
 
