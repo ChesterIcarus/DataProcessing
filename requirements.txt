@@ -17,3 +17,4 @@ descartes
 statsmodels
 ray
 matplotlib
+apsw

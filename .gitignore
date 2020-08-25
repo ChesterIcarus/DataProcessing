@@ -10,6 +10,3 @@ dist
 
 # script cache
 __pycache__
-
-# temporary directories
-temp
