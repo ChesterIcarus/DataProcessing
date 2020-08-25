@@ -14,14 +14,12 @@ def plot_income(database: SqliteUtil, savepath: str):
     query = '''
         SELECT
             households.hhIncomeDollar,
-            output_agents.exposure / 60
+            agents.exposure / 60
         FROM households
         INNER JOIN agents
         ON households.hhid = agents.household_id
-        INNER JOIN output_agents
-        ON agents.agent_id = output_agents.agent_id
         WHERE households.hhIncomeDollar < 500000
-        AND output_agents.abort = 0;
+        AND agents.abort = 0;
     '''
 
     database.cursor.execute(query)
@@ -66,14 +64,12 @@ def plot_age(database: SqliteUtil, savepath: str):
         SELECT
             agents.agent_id,
             persons.age,
-            output_agents.exposure / 60
+            agents.exposure / 60
         FROM persons
         INNER JOIN agents
         ON persons.hhid = agents.household_id
         AND persons.pnum = agents.household_idx
-        INNER JOIN output_agents
-        ON agents.agent_id = output_agents.agent_id
-        WHERE output_agents.abort = 0;
+        WHERE agents.abort = 0;
     '''
 
     database.cursor.execute(query)
@@ -115,16 +111,14 @@ def plot_all(database: SqliteUtil, savepath: str):
             persons.age,
             persons.persType,
             persons.educLevel,
-            output_agents.exposure / 60
+            agents.exposure / 60
         FROM persons
         INNER JOIN households
         ON households.hhid = agents.household_id
         INNER JOIN agents
         ON persons.hhid = agents.household_id
         AND persons.pnum = agents.household_idx
-        INNER JOIN output_agents
-        ON agents.agent_id = output_agents.agent_id
-        WHERE output_agents.abort = 0;
+        WHERE agents.abort = 0;
     '''
     database.cursor.execute(query)
     result = database.fetch_rows()
@@ -238,13 +232,13 @@ def main():
 
     database = SqliteUtil(path('database.db'), readonly=True)
 
-    os.makedirs(path('result/exposure/'), exist_ok=True)
+    os.makedirs(path('visuals/exposure/'), exist_ok=True)
 
-    savepath = path('result/exposure/age.png')
+    savepath = path('visuals/exposure/age.png')
     plot_age(database, savepath)
-    savepath = path('result/exposure/income.png')
+    savepath = path('visuals/exposure/income.png')
     plot_income(database, savepath)
-    savepath = path('result/exposure/demographics.png')
+    savepath = path('visuals/exposure/demographics.png')
     plot_all(database, savepath)
 
 
