@@ -1,0 +1,326 @@
+
+project icarus {
+    database_type: 'sqlite'
+    note: '''
+        # Icarus Database
+
+        The following database contains information used in the construction,
+        parsing and analysis of an icarus simulation. Since both icarus and
+        this hosting service are still very new, this schema is prone to 
+        future changes.
+    '''
+}
+
+table households {
+    hhid                mediumint
+    hhidAcrossSample    mediumint
+    pumsSerialNo        float
+    homeTaz             mediumint
+    homeMaz             mediumint
+    hhsize              tinyint
+    numFtWorkers        tinyint
+    numPtWorkers        tinyint
+    numUnivStuds        tinyint
+    numNonWorkers       tinyint
+    numRetired          tinyint
+    numDrivAgeStuds     tinyint
+    numPreDrivStuds     tinyint
+    numPreschool        tinyint
+    hhIncomeDollar      mediumint
+    hhNumAutos          tinyint
+    dwellingType        tinyint
+    ifAvHousehold       tinyint
+
+    note: 'abm households table, parsed without alteration'
+
+    indexes {
+        hhid [name: 'households_household']
+    }
+}
+
+table persons {
+    hhid                    mediumint
+    pnum                    mediumint
+    pumsSerialNo            float
+    persType                tinyint
+    personTypeDetailed      tinyint
+    age                     tinyint
+    gender                  tinyint
+    industry                tinyint
+    schlGrade               tinyint
+    educLevel               tinyint
+    workPlaceType           tinyint
+    workPlaceTaz            mediumint
+    workPlaceMaz            mediumint
+    schoolType              tinyint
+    schoolTaz               mediumint
+    schoolMaz               mediumint
+    campusBusinessTaz       mediumint
+    campusBusinessMaz       mediumint
+    usualCarID              tinyint
+    dailyActivityPattern    tinyint
+    specEvtParticipant      tinyint
+    jointTour1Role          tinyint
+    jointTour2Role          tinyint
+    obPeChauffBund1         tinyint
+    obPeChauffBund2         tinyint
+    obPeChauffBund3         tinyint
+    obRsChauffBund          tinyint
+    obPePassBund            tinyint
+    obRsPassBund            tinyint
+    ibPeChauffBund1         tinyint
+    ibPeChauffBund2         tinyint
+    ibPeChauffBund3         tinyint
+    ibRsChauffBund          tinyint
+    ibPePassBund            tinyint
+    ibRsPassBund            tinyint
+    studentDorm             tinyint
+    studentRent             tinyint
+    activityString          varchar
+    transitPass             tinyint
+
+    note: 'abm persons table, parsed without alteration'
+
+    indexes {
+        (hhid, pnum) [name: 'persons_person']
+    }
+}
+
+ref: persons.hhid > households.hhid
+
+table trips {
+    hhid_uniqueid   int
+    uniqueid        mediumint
+    hhid            mediumint
+    pnum            tinyint
+    personTripNum   tinyint
+    jointTripRole   tinyint
+    party           varchar
+    origTaz         mediumint
+    origMaz         mediumint
+    destTaz         mediumint
+    destMaz         mediumint
+    origPurp        mediumint
+    destPurp        mediumint
+    mode            tinyint
+    vehId           tinyint
+    isamAdjDepMin   float
+    isamAdjArrMin   float
+    isamAdjDurMin   float
+
+    note: 'abm trips table, parsed without alteration'
+
+    indexes {
+        (hhid, pnum, personTripNum) [name: 'trips_trip']
+    }
+}
+
+ref: trips.hhid > households.hhid
+ref: trips.pnum > persons.pnum
+ref: trips.origMaz > regions.maz
+ref: trips.destMaz > regions.maz
+
+
+table agents {
+    agent_id        mediumint   [note: 'unique id of agent']
+    household_id    mediumint   [note: 'household id of agent']
+    household_idx   tinyint     [note: 'unique id of agent within household']
+    uses_vehicle    tinyint     [note: 'if 1, agent uses a vehicle leg']
+    uses_walk       tinyint     [note: 'if 1, agent uses a walk leg']
+    uses_bike       tinyint     [note: 'if 1, agent uses a bike leg']
+    uses_transit    tinyint     [note: 'if 1, agent uses a transit leg']
+    uses_party      tinyint     [note: 'if 1, agent uses a leg with a party']
+    abort           tinyint     [note: 'if 1, agent failed in simulation']
+    exposure        float       [note: 'total exposure in degree seconds celcius']
+
+    note: 'parsed, filtered and analyzed version of persons; updated after simulation output and exposure analysis'
+
+    indexes {
+        agent_id [name: 'agents_agent']
+        (household_id, household_idx) [name: 'agents_household']
+    }
+}
+
+ref: agents.household_id > households.hhid
+ref: agents.household_idx > persons.pnum
+
+table activities {
+    activity_id     int         [note: 'unique id of activity']
+    agent_id        mediumint   [note: 'agent id of activity']
+    agent_idx       tinyint     [note: 'sequence number of activity for agent']
+    type            varchar     [note: 'the type of activity; see abm documentation']
+    apn             varchar     [note: 'parcel id of activity']
+    group           mediumint   [note: 'apn assignment group id']
+    abm_start       mediumint   [note: 'abm activity start time in seconds from 4:00']
+    abm_end         mediumint   [note: 'abm activity end time in seconds from 4:00']
+    sim_start       mediumint   [note: 'simulated activity start time in seconds from 4:00']
+    sim_end         mediumint   [note: 'simulated activity end time in seconds from 4:00']
+    abort           tinyint     [note: 'if 1, leg caused agent to fail in simulation']
+    exposure        float       [note: 'exposure of activity in degree seconds celcius']
+
+    note: 'activities extracted and assigned parcels from abm trips; updated after simulation and exposure analysis'
+
+    indexes {
+        activity_id [name: 'activities_activity']
+        (agent_id, agent_idx) [name: 'activities_agent']
+        apn [name: 'activities_apn']
+    }
+}
+
+ref: activities.agent_id > agents.agent_id
+ref: activities.apn > parcels.apn
+
+table legs {
+    leg_id          int         [note: 'unique id of activity']
+    agent_id        mediumint   [note: 'agent id of leg']
+    agent_idx       tinyint     [note: 'sequence number of leg for agent']
+    mode            varchar     [note: 'the mode of travel: walk, bike, car, etc.']
+    party           mediumint   [note: 'apn assingment perty id']
+    abm_start       mediumint   [note: 'leg start time as described in abm']
+    abm_end         mediumint   [note: 'leg end time as described in abm']
+    sim_start       mediumint   [note: 'leg start time as described in simulation']
+    sim_end         mediumint   [note: 'leg end time as described in simulation']
+    abort           tinyint     [note: 'if 1, activity caused agent to fail in simulation']
+    exposure        float       [note: 'exposure of leg in degree seconds celcius']
+
+    note: 'legs extracted and assigned parcels from abm trips; updated after simulation and exposure analysis'
+
+    indexes {
+        leg_id [name: 'legs_leg']
+        (agent_id, agent_idx) [name: 'legs_agent']
+    }
+}
+
+ref: legs.agent_id > agents.agent_id
+
+table parcels {
+    apn             varchar     [note: 'unique id of parcel']
+    maz             tinyint     [note: 'region id of the parcel']
+    type            varchar     [note: 'the type of parcel: commercial, residential, etc.']
+    cooling         tinyint     [note: 'if 1, parcel likely has cooling available']
+    air_temperature int         [note: 'id of the air temperature profile of the parcel']
+    mrt_temperature int         [note: 'id of the mrt temperature profile of the parcel']
+    center          varchar     [note: 'wtk point in epsg:2223 of the centroid of the parcel']
+    region          text        [note: 'wtk polygon in epsg:2223 of the perimeter of the parcel']
+
+    note: 'parcels parsed from county data; updated with temperature profiles and region info'
+
+    indexes {
+        apn [name: 'parcels_parcel']
+        maz [name: 'parcels_region']
+        air_temperature [name: 'parcels_air_temperature']
+        mrt_temperature [name: 'parcels_mrt_temperature']
+    }
+}
+
+ref: parcels.maz > regions.maz
+ref: parcels.air_temperature > air_temperatures.temperature_id
+ref: parcels.mrt_temperature > mrt_temperatures.temperature_id
+
+table links {
+    link_id         varchar     [note: 'unique id of link']
+    source_node     varchar     [note: 'node id of source node']
+    terminal_node   varchar     [note: 'node id of terminal node']
+    length          float       [note: 'length of link in feet']
+    freespeed       float       [note: 'freespeed of link meters per second']
+    capacity        float       [note: 'capacity of link']
+    permlanes       float       [note: 'number of lanes of link']
+    oneway          tinyint     [note: 'if 1, the link is oneway (directional)']
+    modes           varchar     [note: 'stringified list of modes allowed on link']
+    air_temperature int         [note: 'id of the air temperature profile of the link']
+    mrt_temperature int         [note: 'id of the mrt temperature profile of the link']
+    exposure        float       [note: 'total exposure experienced on this link (networked modes only)']
+
+    note: 'links extracted from network file; updated with temperature profiles and after exposure analysis'
+
+    indexes {
+        link_id [name: 'links_link']
+        source_node [name: 'links_node1']
+        terminal_node [name: 'links_node2']
+        air_temperature [name: 'links_air_temperature']
+        mrt_temperature [name: 'links_mrt_temperature']
+    }
+}
+
+ref: links.source_node > nodes.node_id
+ref: links.terminal_node > nodes.node_id
+ref: links.air_temperature > air_temperatures.temperature_id
+ref: links.mrt_temperature > mrt_temperatures.temperature_id
+
+table nodes {
+    node_id         varchar     [note: 'unique id of node']
+    maz             mediumint   [note: 'id of region that surrounds the node']
+    point           varchar     [note: 'wtk point in epsg:2223 of the node']
+
+    note: 'nodes extracted from network file; updated with region data'
+
+    indexes {
+        node_id [name: 'nodes_node']
+        maz [name: 'nodes_region']
+    }
+}
+
+ref: nodes.maz > regions.maz 
+
+table regions {
+    maz             mediumint   [note: 'unique id of the region']
+    taz             mediumint   [note: 'id of the larger encompassing region']
+    area            float       [note: 'area of the region in sqaure miles']
+    center          varchar     [note: 'wtk point in epsg:2223 of the centroid of the region']
+    region          text        [note: 'wtk polygon in epsg:2223 of the perimeter of the region']
+
+    note: 'regions extracted from Maricopa MAZ region data'
+
+    indexes {
+        maz [name: 'regions_region']        
+    }
+}
+
+table air_temperatures {
+    temperature_id  mediumint
+    temperature_idx mediumint
+    time            mediumint
+    temperature     float
+
+    note: 'air temperature profiles as extracted from daymet and joined with network'
+
+    indexes {
+        (temperature_id, temperature_idx) [name: 'air_temperatures_temperature']
+    }
+}
+
+table mrt_temperatures {
+    temperature_id  mediumint
+    temperature_idx mediumint
+    time            mediumint
+    mrt             float
+    pet             float
+    utci            float
+
+    note: 'mrt temperature profiles as extracted from mrt project and joined with network'
+
+    indexes {
+        (temperature_id, temperature_idx) [name: 'mrt_temperatures_temperature']
+    }
+}
+
+table events {
+    event_id        int
+    leg_id          int
+    leg_idx         tinyint
+    link_id         varchar
+    sim_start       mediumint
+    sim_end         mediumint
+    exposure        float
+
+    note: 'events parsed from networked modes in simulation output'
+
+    indexes {
+        event_id [name: 'events_event']
+        link_id [name: 'events_link']
+        (leg_id, leg_idx) [name: 'events_leg']
+    }
+}
+
+ref: events.leg_id > legs.leg_id
+ref: events.link_id > links.link_id
