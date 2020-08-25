@@ -24,14 +24,14 @@ class Population:
     def fetch_events(self):
         query = f'''
             SELECT
-                output_events.event_id,
-                output_legs.agent_id,
-                output_legs.agent_idx,
-                output_events.link_id,
-                output_events.start,
-                output_events.end
-            FROM output_events
-            INNER JOIN output_legs
+                events.event_id,
+                legs.agent_id,
+                legs.agent_idx,
+                events.link_id,
+                events.sim_start,
+                events.sim_end
+            FROM events
+            INNER JOIN legs
             USING(leg_id)
             INNER JOIN {self.table}
             USING(agent_id)
@@ -50,10 +50,10 @@ class Population:
                 agent_id,
                 agent_idx,
                 mode,
-                start,
-                end,
+                sim_start,
+                sim_end,
                 abort
-            FROM output_legs
+            FROM legs
             INNER JOIN {self.table}
             USING(agent_id);
         '''
@@ -64,20 +64,15 @@ class Population:
     def fetch_activities(self):
         query = f'''
             SELECT
-                output_activities.activity_id,
-                output_activities.agent_id,
-                output_activities.agent_idx,
-                output_activities.type,
-                output_activities.link_id,
-                output_activities.start,
-                output_activities.end,
-                output_activities.abort,
+                activities.activity_id,
+                activities.agent_id,
+                activities.sim_start,
+                activities.sim_end,
+                activities.abort,
                 activities.apn
-            FROM output_activities
+            FROM activities
             INNER JOIN {self.table}
-            USING(agent_id)
-            INNER JOIN activities
-            USING(activity_id);
+            USING(agent_id);
         '''
         self.database.cursor.execute(query)
         return self.database.fetch_rows()
@@ -88,7 +83,7 @@ class Population:
             SELECT 
                 agent_id,
                 abort
-            FROM output_agents
+            FROM agents
             INNER JOIN {self.table}
             USING(agent_id);
         '''
@@ -119,12 +114,9 @@ class Population:
         log.debug('Loading activities.')
         activities = self.fetch_activities()
         activities = counter(activities, 'Loading activity %s.', level=log.DEBUG)
-        for activity_id, agent_id, _, kind, link_id, start, \
-                end, abort, apn in activities:
+        for activity_id, agent_id, start, end, abort, apn in activities:
             parcel = self.network.parcels[apn]
-            link = self.network.links[link_id]
-            activity = Activity(activity_id, ActivityType(kind), 
-                parcel, start, end, link, abort)
+            activity = Activity(activity_id, parcel, start, end, abort)
             self.agents[agent_id].add_activity(activity)
 
 
@@ -142,7 +134,7 @@ class Population:
         query = f'''
             CREATE TABLE {self.table} AS 
             SELECT agent_id 
-            FROM output_agents
+            FROM agents
             WHERE agent_id in {tuple(agents)};
         '''
         self.database.cursor.execute(query)

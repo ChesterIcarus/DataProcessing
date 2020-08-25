@@ -6,6 +6,7 @@ from typing import Tuple, List
 from icarus.parse.events.activity import Activity
 from icarus.parse.events.leg import Leg
 from icarus.parse.events.event import Event
+from icarus.parse.events.route import Route
 from icarus.parse.events.link import Link
 from icarus.parse.events.types import ActivityType, LegMode    
 
@@ -14,11 +15,11 @@ class Agent:
     __slots__ = ('id', 'activities', 'legs', 'routes', 'active_activity', 'act_count',
             'active_leg', 'active_transit', 'active_virtual', 'leg_count', 'abort')
     
-    def __init__(self, uuid):
+    def __init__(self, uuid: str):
         self.id = uuid
         self.activities: List[Activity] = []
         self.legs: List[Leg] = []
-        self.routes = {}
+        self.routes: List[Route] = []
         self.leg_count = 0
         self.act_count = 0
 
@@ -49,35 +50,14 @@ class Agent:
     def export_activities(self):
         activities = []
         for idx, activity in enumerate(self.activities, start=self.act_count):
-            duration = None
-            if not activity.abort:
-                duration = activity.end_time - activity.start_time
             dump = (
-                Activity.activities[self.id][idx],
-                self.id,
+                int(self.id),
                 idx,
-                activity.activity_type.name.lower(),
-                activity.link.id,
                 activity.start_time,
                 activity.end_time,
-                duration,
-                int(activity.abort),
-                None
+                int(activity.abort)
             )
             activities.append(dump)
-
-        # activities = tuple((
-        #     Activity.activities[self.id][idx],
-        #     self.id,
-        #     idx,
-        #     activity.activity_type.name.lower(),
-        #     activity.link.id,
-        #     activity.start_time,
-        #     activity.end_time,
-        #     activity.end_time - activity.start_time,
-        #     int(activity.abort),
-        #     None
-        # ) for idx, activity in enumerate(self.activities, start=self.act_count))
 
         self.act_count += len(self.activities)
         self.activities = []
@@ -88,33 +68,14 @@ class Agent:
     def export_legs(self):
         legs = []
         for idx, leg in enumerate(self.legs, start=self.leg_count):
-            duration = None
-            if not leg.abort:
-                duration = leg.end_time - leg.start_time
             dump = (
-                Leg.legs[self.id][idx],
-                self.id,
+                int(self.id),
                 idx,
-                leg.mode.string(),
                 leg.start_time,
                 leg.end_time,
-                duration,
-                int(leg.abort),
-                None    
+                leg.abort
             )
             legs.append(dump)
-
-        # legs =  tuple((
-        #     Leg.legs[self.id][idx],
-        #     self.id,
-        #     idx,
-        #     leg.mode.string(),
-        #     leg.start_time,
-        #     leg.end_time,
-        #     duration,
-        #     int(leg.abort),
-        #     None
-        # ) for idx, leg in enumerate(self.legs, start=self.leg_count))
 
         self.leg_count += len(self.legs)
         self.legs = []
@@ -163,10 +124,6 @@ class Agent:
 
         if activity_type.virtual():
             self.active_virtual.end_time = time
-        # elif activity_type.transit():
-        #     event = Event(link, self.active_activity.start_time, time)
-        #     self.active_transit.end_time = time
-        #     self.active_transit.events.append(event)
         else:
             self.activities.append(self.active_activity)
 
@@ -189,8 +146,13 @@ class Agent:
         leg_mode = leg_mode.translate()
         leg = self.active_leg
         route = None
-        if leg.travelled:
-            route = self.get_route(leg_mode, leg.start_link, link)
+        if leg_mode in (LegMode.BIKE, LegMode.WALK, LegMode.NETWALK):
+            try:
+                route = self.routes.pop(0)
+                assert leg.mode == route.mode
+            except Exception as err:
+                log.exception('Critical error:')
+                breakpoint()
         leg.end(time, link, route)
 
         if leg_mode == LegMode.FAKEMODE:
@@ -200,13 +162,6 @@ class Agent:
                 self.active_virtual.end_link = link
                 self.active_virtual.end_time = time
                 self.active_virtual.events.extend(leg.events)
-        # elif leg_mode.transit():
-        #     if self.active_transit is None:
-        #         self.active_transit = leg
-        #     else:
-        #         self.active_transit.end_link = link
-        #         self.active_transit.end_time = time
-        #         self.active_transit.events.extend(leg.events)
         elif self.active_virtual is not None:
             self.active_virtual.end_link = link
             self.active_virtual.end_time = time

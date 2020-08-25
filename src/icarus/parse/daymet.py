@@ -366,7 +366,10 @@ def parse_temperatures(database: SqliteUtil, tmin_files: List[str],
 
 def main():
     desc = (
-        ''
+        'Parse daymet temperature data and join it with network '
+        'features. This entails the creation of temperature profiles with '
+        'diurnal temperature estimations wich are then assigned to every '
+        'road and parcel in the network.'
     )
     parser = ArgumentParser('icarus.parse.daymet', description=desc, add_help=False)
 
@@ -394,11 +397,15 @@ def main():
 
     handlers = []
     handlers.append(log.StreamHandler())
-    handlers.append(log.FileHandler(logpath))
+    handlers.append(log.FileHandler(logpath, 'w'))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
+    if args.level == 'debug':
+        frmt = '%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s'
+    else:
+        frmt = '%(asctime)s %(levelname)s %(message)s'
     log.basicConfig(
-        format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s',
+        format=frmt,
         level=getattr(log, args.level.upper()),
         handlers=handlers
     )

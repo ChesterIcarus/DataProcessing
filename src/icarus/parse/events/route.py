@@ -6,12 +6,9 @@ from icarus.parse.events.event import Event
 from icarus.parse.events.types import LegMode
 
 class Route:
-    __slots__= ('start_link', 'end_link', 'path', 'distance', 'mode')
+    __slots__= ('path', 'distance', 'mode')
 
-    def __init__(self, start_link: Link, end_link: Link, path: List[Link], 
-            distance: float, mode: LegMode):
-        self.start_link = start_link
-        self.end_link = end_link
+    def __init__(self, path: List[Link], distance: float, mode: LegMode):
         self.path = path
         self.distance = distance
         self.mode = mode

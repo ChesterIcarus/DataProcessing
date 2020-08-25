@@ -39,7 +39,7 @@ def create_tables(database: SqliteUtil):
             uniqueid SMALLINT UNSIGNED,
             hhid MEDIUMINT UNSIGNED,
             pnum TINYINT UNSIGNED,
-            personTripNum TINYINT UNISGNED,
+            personTripNum TINYINT UNSIGNED,
             jointTripRole TINYINT UNSIGNED,
             party VARCHAR(255),
             origTaz SMALLINT UNSIGNED,
@@ -63,7 +63,7 @@ def create_tables(database: SqliteUtil):
             pumsSerialNo FLOAT,
             homeTaz SMALLLINT UNSIGNED,
             homeMaz SMALLINT UNSIGNED,
-            hhsize TINYINT UNSINGED,
+            hhsize TINYINT UNSIGNED,
             numFtWorkers TINYINT UNSIGNED,
             numPtWorkers TINYINT UNSIGNED,
             numUnivStuds TINYINT UNSIGNED,
@@ -75,7 +75,7 @@ def create_tables(database: SqliteUtil):
             hhIncomeDollar MEDIUMINT UNSIGNED,
             hhNumAutos TINYINT UNSIGNED,
             dwellingType TINYINT UNSIGNED,
-            ifAvHousehold TINYINT UNSIGED
+            ifAvHousehold TINYINT UNSIGNED
         );
     '''
     database.cursor.execute(query)
@@ -92,11 +92,11 @@ def create_tables(database: SqliteUtil):
             schlGrade TINYINT UNSIGNED,
             educLevel TINYINT UNSIGNED,
             workPlaceType TINYINT UNSIGNED,
-            workPlaceTaz SMALLINT UNISNGED,
-            workPlaceMaz SMALLINT UNISNGED,
+            workPlaceTaz SMALLINT SIGNGED,
+            workPlaceMaz SMALLINT SIGNGED,
             schoolType TINYINT UNSIGNED,
             schoolTaz SMALLINT UNSIGNED,
-            schoolMaz SMALLINT UNISGNED,
+            schoolMaz SMALLINT UNSIGNED,
             campusBusinessTaz SMALLINT UNSIGNED,
             campusBusinessMaz SMALLINT UNSIGNED,
             usualCarID TINYINT UNSIGNED,
@@ -264,7 +264,7 @@ def main():
 
     handlers = []
     handlers.append(log.StreamHandler())
-    handlers.append(log.FileHandler(logpath))
+    handlers.append(log.FileHandler(logpath, 'w'))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
     if args.level == 'debug':

@@ -93,12 +93,14 @@ class Household:
                 agent.id,
                 self.id,
                 agent_id,
-                agent.size(),
                 agent.uses_vehicle(),
                 agent.uses_walk(),
                 agent.uses_bike(),
                 agent.uses_transit(),
-                agent.uses_party())
+                agent.uses_party(),
+                None,
+                None
+            )
 
     
     def export_activities(self):
@@ -147,10 +149,7 @@ class Household:
         if self.maz is None:
             self.maz = trip.origin_maz
 
-        try:
-            agent.parse_trip(trip, vehicle, party)
-        except Exception:
-            breakpoint()
+        agent.parse_trip(trip, vehicle, party)
 
     
     def assign_parcels(self, network):

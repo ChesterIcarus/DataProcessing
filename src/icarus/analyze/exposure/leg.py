@@ -1,9 +1,11 @@
 
+import logging as log
 from typing import List
 
 from icarus.analyze.exposure.types import LegMode
 from icarus.analyze.exposure.event import Event
 from icarus.analyze.exposure.link import Link
+from icarus.analyze.exposure.parcel import Parcel
 
 
 class Leg:
@@ -24,34 +26,22 @@ class Leg:
         self.events.append(event)
 
     
-    def calculate_exposure(self, link: Link) -> float:
+    def calculate_exposure(self) -> float:
         self.exposure = 0
-        if self.mode in (LegMode.BIKE, LegMode.WALK):
-            if len(self.events):
-                self.exposure = 0
-                for event in self.events:
-                    self.exposure += event.calculate_exposure()
-            elif not self.abort:
-                self.exposure = link.get_exposure(self.start, self.end, False)
-        elif not self.abort:
-            self.exposure = 25.5 * (self.end - self.start)
+        if self.end - self.start:
+            if self.mode in (LegMode.BIKE, LegMode.WALK):
+                if len(self.events):
+                    self.exposure = 0
+                    for event in self.events:
+                        self.exposure += event.calculate_exposure()
+                else:
+                    log.error('Unexpected leg without any events.')
+                    breakpoint()
+            else:
+                self.exposure = 25.5 * (self.end - self.start)
 
         return self.exposure
 
     
     def export(self, agent: int, idx: int) -> tuple:
-        duration = None
-        if not self.abort:
-            duration = self.end - self.start
-
-        return (
-            self.id,
-            agent,
-            idx,
-            self.mode.value,
-            self.start,
-            self.end,
-            duration,
-            self.abort,
-            self.exposure 
-        )
+        return self.exposure, self.id

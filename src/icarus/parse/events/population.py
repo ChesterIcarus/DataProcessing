@@ -96,9 +96,7 @@ class Population:
             if str(agent.id).isdigit():
                 yield (
                     agent.id,
-                    agent.size(),
-                    int(agent.abort),
-                    None 
+                    int(agent.abort)
                 )
     
 
@@ -135,7 +133,6 @@ class Population:
     def cleanup(self, time):
         for agent in self.agents.values():
             if agent.active_activity is not None:
-                if agent.active_activity.activity_type == ActivityType.HOME:
-                    agent.end_activity(time, link = None, 
-                        activity_type = ActivityType.HOME)
+                agent.end_activity(time, link = None, 
+                        activity_type = agent.active_activity.activity_type)
 

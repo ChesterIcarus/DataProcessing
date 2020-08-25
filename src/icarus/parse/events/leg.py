@@ -8,8 +8,6 @@ from icarus.parse.events.event import Event
 
 
 class Leg:
-    legs: Dict[str, List]
-
     __slots__ = ('mode', 'start_time', 'start_link', 'end_time', 
             'end_link', 'events', 'travelled', 'abort')
 
@@ -45,13 +43,12 @@ class Leg:
     def export_events(self, agent_id: str, leg_idx: int):
         events = tuple((
             event.id,
-            Leg.legs[agent_id][leg_idx],
+            int(agent_id),
+            leg_idx,
             idx,
             event.link.id,
             event.start,
-            event.end,
-            event.end - event.start,
-            None
+            event.end
         ) for idx, event in enumerate(self.events))
         self.events = []
         return events

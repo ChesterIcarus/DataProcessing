@@ -62,12 +62,13 @@ class Network:
 
     def load_parcels(self):
         parcels = self.fetch_parcels()
+        parcels = counter(parcels, 'Loading parcel %s.', level=log.DEBUG)
         self.residential_parcels = defaultdict(lambda x: [])
         self.commercial_parcels = defaultdict(lambda x: [])
         self.default_parcels = {}
         self.other_parcels = defaultdict(lambda x: [])
 
-        for apn, maz, kind in counter(parcels, 'Loading parcel %s.'):
+        for apn, maz, kind in parcels:
             if kind == 'residential':
                 self.residential_parcels[maz].append(Parcel(apn))
             elif kind == 'commercial':
@@ -86,9 +87,10 @@ class Network:
 
 
     def load_regions(self):
-        regions = self.fetch_regions()
         self.regions = {}
-        for maz, polygon in counter(regions, 'Loading region %s.'):
+        regions = self.fetch_regions()
+        regions = counter(regions, 'Loading region %s.', level=log.DEBUG)
+        for maz, polygon in regions:
             self.regions[maz] = Region(polygon)
         return regions
 

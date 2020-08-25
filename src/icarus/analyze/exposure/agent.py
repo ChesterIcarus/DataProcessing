@@ -33,16 +33,10 @@ class Agent:
         self.exposure = 0
         for activity in self.activities:
             self.exposure += activity.calculate_exposure()
-        for idx, leg in enumerate(self.legs):
-            link = self.activities[idx].link
-            self.exposure += leg.calculate_exposure(link)
+        for leg in self.legs:
+            self.exposure += leg.calculate_exposure()
         return self.exposure
 
     
     def export(self):
-        return (
-            self.id,
-            len(self.activities) + len(self.legs),
-            self.abort,
-            self.exposure
-        )
+        return self.exposure, self.id

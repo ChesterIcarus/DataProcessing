@@ -30,8 +30,8 @@ def fetch_activities(database: SqliteUtil, min_agent: int, max_agent: int):
             activities.agent_id,
             activities.agent_idx,
             activities.type,
-            activities.start,
-            activities.end,
+            activities.abm_start,
+            activities.abm_end,
             parcels.center
         FROM activities
         INNER JOIN parcels
@@ -54,9 +54,9 @@ def fetch_legs(database: SqliteUtil, min_agent: int, max_agent: int):
             legs.agent_id,
             legs.agent_idx,
             legs.mode,
-            legs.start,
-            legs.end,
-            legs.duration
+            legs.abm_start,
+            legs.abm_end,
+            legs.abm_end - legs.abm_start
         FROM legs
         INNER JOIN temp.sample
         USING(agent_id)
@@ -307,7 +307,7 @@ def main():
 
     handlers = []
     handlers.append(log.StreamHandler())
-    handlers.append(log.FileHandler(logpath))
+    handlers.append(log.FileHandler(logpath, 'w'))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
     if args.level == 'debug':

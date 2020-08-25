@@ -19,14 +19,5 @@ class Event:
 
 
     def export(self, leg: int, idx: int) -> tuple:
-        return (
-            self.id,
-            leg,
-            idx,
-            self.link.id,
-            self.start,
-            self.end,
-            self.end - self.start,
-            self.exposure 
-        )
+        return self.exposure, self.id
     

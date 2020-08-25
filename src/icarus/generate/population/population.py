@@ -24,12 +24,13 @@ class Population:
                 agent_id MEDIUMINT UNSIGNED,
                 household_id MEDIUMINT UNSIGNED,
                 household_idx SMALLINT UNSIGNED,
-                plan_size TINYINT UNSIGNED,
                 uses_vehicle TINYINT UNSIGNED,
                 uses_walk TINYINT UNSIGNED,
                 uses_bike TINYINT UNSIGNED,
                 uses_transit TINYINT UNSIGNED,
-                uses_party TINYINT UNSIGNED
+                uses_party TINYINT UNSIGNED,
+                abort TINYINT UNSIGNED,
+                exposure FLOAT
             );  ''')
         self.database.cursor.execute('''
             CREATE TABLE activities(
@@ -39,9 +40,13 @@ class Population:
                 type VARCHAR(255),
                 apn VARCHAR(255),
                 `group` MEDIUMINT UNSIGNED,
-                start MEDUMINT UNSIGNED,
-                end MEDIUMINT UNSIGNED,
-                duration MEDIUMINT UNSIGNED
+                abm_start MEDUMINT UNSIGNED,
+                abm_end MEDIUMINT UNSIGNED,
+                sim_start MEDUMINT UNSIGNED,
+                sim_end MEDIUMINT UNSIGNED,
+                abort TINYINT UNSIGNED,
+                exposure FLOAT
+
             );  ''')
         self.database.cursor.execute('''
             CREATE TABLE legs(
@@ -50,9 +55,12 @@ class Population:
                 agent_idx TINYINT UNSIGNED,
                 mode VARCHAR(255),
                 party MEDIUMINT UNSIGNED,
-                start MEDIUMINT UNSIGNED,
-                end MEDIUMINT UNSIGNED,
-                duration MEDIUMINT UNSIGNED
+                abm_start MEDUMINT UNSIGNED,
+                abm_end MEDIUMINT UNSIGNED,
+                sim_start MEDUMINT UNSIGNED,
+                sim_end MEDIUMINT UNSIGNED,
+                abort TINYINT UNSIGNED,
+                exposure FLOAT
             );  ''')
         self.database.connection.commit()
 
@@ -210,11 +218,11 @@ class Population:
 
             log.info('Writing generated population to database.')
             agents = subpopulation.export_agents()
-            self.database.insert_values('agents', agents, 9)
+            self.database.insert_values('agents', agents, 10)
             activities = subpopulation.export_activities()
-            self.database.insert_values('activities', activities, 9)
+            self.database.insert_values('activities', activities, 12)
             legs = subpopulation.export_legs()
-            self.database.insert_values('legs', legs, 8)
+            self.database.insert_values('legs', legs, 11)
             self.database.connection.commit()
 
         message = (

@@ -4,18 +4,18 @@ import logging as log
 from icarus.analyze.exposure.network import Network
 from icarus.analyze.exposure.population import Population
 from icarus.util.general import bins
-from icarus.util.sqlite import SqliteUtil
+from icarus.util.apsw import Database
 
 
 class Exposure:
-    def __init__(self, database: SqliteUtil):
+    def __init__(self, database: Database):
         self.database = database
         self.network = Network(database)
         self.population = Population(database, self.network)
     
 
     def fetch_agents(self):
-        query = 'SELECT agent_id FROM output_agents;'
+        query = 'SELECT agent_id FROM agents WHERE abort = 0;'
         self.database.cursor.execute(query)
         return self.database.cursor.fetchall()
 
@@ -25,25 +25,25 @@ class Exposure:
             'temp_legs', 'temp_events')
         query = f'''
             CREATE TABLE temp_agents
-            AS SELECT * FROM output_agents
+            AS SELECT * FROM agents
             WHERE FALSE;
         '''
         self.database.cursor.execute(query)
         query = f'''
             CREATE TABLE temp_legs
-            AS SELECT * FROM output_legs
+            AS SELECT * FROM legs
             WHERE FALSE;
         '''
         self.database.cursor.execute(query)
         query = f'''
             CREATE TABLE temp_activities
-            AS SELECT * FROM output_activities
+            AS SELECT * FROM activities
             WHERE FALSE;
         '''
         self.database.cursor.execute(query)
         query = f'''
             CREATE TABLE temp_events
-            AS SELECT * FROM output_events
+            AS SELECT * FROM events
             WHERE FALSE;
         '''
         self.database.cursor.execute(query)
@@ -136,12 +136,13 @@ class Exposure:
 
     
     def ready(self):
-        tables = ('output_activities', 'output_legs', 'output_agents', 'output_events')
-        present = self.database.table_exists(*tables)
-        if len(present) < len(tables):
-            missing = ', '.join(set(tables) - set(present))
-            log.info(f'Could not find tables {missing} in database.')
-        return len(present) == len(tables)
+        # tables = ('output_activities', 'output_legs', 'output_agents', 'output_events')
+        # present = self.database.table_exists(*tables)
+        # if len(present) < len(tables):
+        #     missing = ', '.join(set(tables) - set(present))
+        #     log.info(f'Could not find tables {missing} in database.')
+        # return len(present) == len(tables)
+        return True
 
     
     def complete(self):
@@ -159,32 +160,57 @@ class Exposure:
         log.info('Identifying agents to analyze.')
         uuids = tuple(uuid[0] for uuid in self.fetch_agents())
 
+        query_agents = '''
+            UPDATE agents
+            SET exposure = ?
+            WHERE agent_id = ?;
+        '''
+
+        query_acts = '''
+            UPDATE activities
+            SET exposure = ?
+            WHERE activity_id = ?;
+        '''
+
+        query_legs = '''
+            UPDATE legs
+            SET exposure = ?
+            WHERE leg_id = ?;
+        '''
+
+        query_evts = '''
+            UPDATE events
+            SET exposure = ?
+            WHERE event_id = ?;
+        '''
+
         log.info('Iterating over agent data and analyzing exposure.')
         count = 0
         for uuid_bin in bins(uuids, 100000):
-            log.info('Creating sample population.')
+            log.debug('Creating sample population.')
             self.population.create_population(uuid_bin)
 
-            log.info('Loading population legs, activities and events.')
+            log.debug('Loading population legs, activities and events.')
             self.population.load_population()
 
-            log.info('Calculating exposure on all agent data.')
+            log.debug('Calculating exposure on all agent data.')
             self.population.calculate_exposure()
 
-            log.info('Exporting population to database.')
+            log.debug('Exporting population to database.')
             agents = self.population.export_agents()
             activities = self.population.export_activities()
             legs = self.population.export_legs()
             events = self.population.export_events()
 
-            self.database.insert_values('temp_agents', agents, 4)
-            self.database.insert_values('temp_activities', activities, 10)
-            self.database.insert_values('temp_legs', legs, 9)
-            self.database.insert_values('temp_events', events, 8)
+            self.database.cursor.executemany(query_agents, agents)
+            self.database.cursor.executemany(query_acts, activities)
+            self.database.cursor.executemany(query_legs, legs)
+            self.database.cursor.executemany(query_evts, events)
+            self.population.delete_population()
             self.database.connection.commit()
 
-            self.population.delete_population()
-            
+            del agents, activities, legs, events
+
             count += len(uuid_bin)
             log.info(f'Exposure analysis at agent {count}.')
 
@@ -192,22 +218,22 @@ class Exposure:
 
         query = '''
             UPDATE links
-            SET exposure = :exposure
-            WHERE link_id = :link_id;
+            SET exposure = ?
+            WHERE link_id = ?;
         '''
         dump = ((link.exposure, link.id) 
             for link in self.network.links.values())
         self.database.cursor.executemany(query, dump)
         self.database.connection.commit()
 
-        log.info('Verify integrity of results.')
-        if not self.verify_tables():
-            log.error('Input and output table sizes did not match.')
-            log.error('Terminating without saving to prevent data loss.')
-            raise RuntimeError
+        # log.info('Verify integrity of results.')
+        # if not self.verify_tables():
+        #     log.error('Input and output table sizes did not match.')
+        #     log.error('Terminating without saving to prevent data loss.')
+        #     raise RuntimeError
 
-        log.info('Renaming data and dropping old tables.')
-        self.rename_tables()
+        # log.info('Renaming data and dropping old tables.')
+        # self.rename_tables()
 
-        log.info('Creating indexes on new tables.')
-        self.create_indexes()
+        # log.info('Creating indexes on new tables.')
+        # self.create_indexes()

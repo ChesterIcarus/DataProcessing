@@ -174,7 +174,9 @@ def parse_roads(database: SqliteUtil, networkpath: str,
 
 def main():
     desc = (
-        ''
+        'Parse the MATSim network file and extract the basic node and '
+        'link road features and store them in the database. Other road '
+        ' relationships (ie regions) are calculated and updated later.'
     )
     parser = ArgumentParser('icarus.parse.roads', description=desc, add_help=False)
 
@@ -202,7 +204,7 @@ def main():
 
     handlers = []
     handlers.append(log.StreamHandler())
-    handlers.append(log.FileHandler(logpath))
+    handlers.append(log.FileHandler(logpath, 'w'))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
     log.basicConfig(

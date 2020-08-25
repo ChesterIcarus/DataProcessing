@@ -330,7 +330,7 @@ def parse_mrt(database: SqliteUtil, path: str, src_epsg: int, prj_epsg: int,
         for link in links.values():
             yield (link.profile, link.id)
 
-    log.info('Writing profiles to dataabse.')
+    log.info('Writing profiles to database.')
 
     query = '''
         UPDATE links
@@ -370,6 +370,8 @@ def parse_mrt(database: SqliteUtil, path: str, src_epsg: int, prj_epsg: int,
 
     log.info('Creating indexes on new/updated tables.')
     create_indexes(database)
+
+    log.info('Process complete; exiting.')
 
 
 def main():
@@ -417,11 +419,15 @@ def main():
 
     handlers = []
     handlers.append(log.StreamHandler())
-    handlers.append(log.FileHandler(logpath))
+    handlers.append(log.FileHandler(logpath, 'w'))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
+    if args.level == 'debug':
+        frmt = '%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s'
+    else:
+        frmt = '%(asctime)s %(levelname)s %(message)s'
     log.basicConfig(
-        format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s',
+        format=frmt,
         level=getattr(log, args.level.upper()),
         handlers=handlers
     )

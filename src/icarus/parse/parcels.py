@@ -234,10 +234,13 @@ def parse_parcels(database: SqliteUtil, residence_file: str, commerce_file:str,
     log.info('Creating indexes on new tables.')
     create_indexes(database)
 
+    log.info('Process complete; exiting.')
+
 
 def main():
     desc = (
-        ''
+        'Parse the parcel data from the Maricopa county assesor\'s database '
+        'files into the database. '
     )
     parser = ArgumentParser('icarus.parse.parcels', 
             description=desc, add_help=False)
@@ -266,11 +269,15 @@ def main():
 
     handlers = []
     handlers.append(log.StreamHandler())
-    handlers.append(log.FileHandler(logpath))
+    handlers.append(log.FileHandler(logpath, 'w'))
     if args.log is not None:
         handlers.append(log.FileHandler(args.log, 'w'))
+    if args.level == 'debug':
+        frmt = '%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s'
+    else:
+        frmt = '%(asctime)s %(levelname)s %(message)s'
     log.basicConfig(
-        format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s',
+        format=frmt,
         level=getattr(log, args.level.upper()),
         handlers=handlers
     )
@@ -309,4 +316,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

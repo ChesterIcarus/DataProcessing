@@ -139,7 +139,10 @@ class Agent:
             act.group.id or 0,
             act.start,
             act.end,
-            act.end - act.start
+            None,
+            None,
+            None,
+            None
         ) for idx, act in enumerate(self.activities))
         return activities
 
@@ -153,7 +156,10 @@ class Agent:
             leg.party.id or 0,
             leg.start,
             leg.end,
-            leg.end - leg.start
+            None,
+            None,
+            None,
+            None
         ) for idx, leg in enumerate(self.legs))
         return legs
 

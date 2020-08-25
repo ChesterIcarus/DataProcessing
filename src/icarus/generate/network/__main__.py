@@ -34,16 +34,20 @@ args = parser.parse_args()
 path = lambda x: os.path.abspath(os.path.join(args.dir, x))
 os.makedirs(path('logs'), exist_ok=True)
 homepath = path('')
-logpath = path('logs/parse_network.log')
+logpath = path('logs/generate_network.log')
 configpath = path('config.json')
 
 handlers = []
 handlers.append(log.StreamHandler())
-handlers.append(log.FileHandler(logpath))
+handlers.append(log.FileHandler(logpath, 'w'))
 if args.log is not None:
-    handlers.append(log.FileHandler(args.log, 'w'))
+        handlers.append(log.FileHandler(args.log, 'w'))
+if args.level == 'debug':
+    frmt = '%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s'
+else:
+    frmt = '%(asctime)s %(levelname)s %(message)s'
 log.basicConfig(
-    format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s',
+    format=frmt,
     level=getattr(log, args.level.upper()),
     handlers=handlers
 )
