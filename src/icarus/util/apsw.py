@@ -21,10 +21,11 @@ class Database:
             self.connection.__exit__(kind, value, traceback)
     
     def open(self, readonly=False):
-        flags = None
         if readonly:
             flags = apsw.SQLITE_OPEN_READONLY
-        self.connection = apsw.Connection(self.name, flags=flags)
+            self.connection = apsw.Connection(self.name, flags=flags)
+        else:
+            self.connection = apsw.Connection(self.name)
         self.cursor = self.connection.cursor()
 
     def close(self):

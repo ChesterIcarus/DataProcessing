@@ -49,9 +49,6 @@ def export_routes(database: SqliteUtil, modes: List[str],
         f'epsg:{epsg}', always_xy=True, skip_equivalent=True)
     transform = transformer.transform
 
-    # measurer = Geod(f'epsg:{epsg}')
-    # measure = lambda n1, n2: measurer.inv([n1.y], [n1.x], [n2.y], [n2.x])
-
     prjpath = os.path.splitext(filepath)[0] + '.prj'
     with open(prjpath, 'w') as prjfile:
         info = get_wkt_string(epsg)
@@ -88,7 +85,6 @@ def export_routes(database: SqliteUtil, modes: List[str],
     for link_id, source_node, terminal_node, length in result:
         src_node = nodes[source_node]
         term_node = nodes[terminal_node]
-        # length = measure(src_node, term_node)
         links[link_id] = Link(src_node, term_node, length)
 
     modes_str = ','.join((f'"{mode}"' for mode in modes))
@@ -96,21 +92,24 @@ def export_routes(database: SqliteUtil, modes: List[str],
     log.info('Loading network routing data.')
     query = f'''
         SELECT
-            output_legs.leg_id,
-            output_legs.agent_id,
-            output_legs.agent_idx,
-            output_legs.mode,
-            output_legs.duration,
-            GROUP_CONCAT(output_events.link_id, " ")
-        FROM output_legs
-        LEFT JOIN output_events
-        ON output_legs.leg_id = output_events.leg_id
-        WHERE output_legs.mode IN ({modes_str})
+            legs.leg_id,
+            legs.agent_id,
+            legs.agent_idx,
+            legs.mode,
+            legs.abm_start,
+            legs.abm_end,
+            legs.sim_start,
+            legs.sim_end,
+            GROUP_CONCAT(events.link_id, " ")
+        FROM legs
+        LEFT JOIN events
+        ON legs.leg_id = events.leg_id
+        WHERE legs.mode IN ({modes_str})
         GROUP BY
-            output_legs.leg_id
+            legs.leg_id
         ORDER BY
-            output_events.leg_id,
-            output_events.leg_idx;
+            events.leg_id,
+            events.leg_idx;
     '''
     database.cursor.execute(query)
     result = counter(database.fetch_rows(block_size=1000000),
@@ -121,20 +120,23 @@ def export_routes(database: SqliteUtil, modes: List[str],
     routes.field('agent_id', 'N')
     routes.field('agent_idx', 'N')
     routes.field('mode', 'C')
-    routes.field('duration', 'N')
+    routes.field('abm start', 'N')
+    routes.field('abm end', 'N')
+    routes.field('sim start', 'N')
+    routes.field('sim end', 'N')
     routes.field('length', 'N')
 
     log.info('Exporting simulation routes to shapefile.')
-    for leg_id, agent_id, agent_idx, mode, duration, events in result:
+    for *props, events in result:
         if events is not None:
             route = [links[l] for l in events.split(' ')]
             line = [(link.source_node.x, link.source_node.y) for link in route]
             line.append((route[-1].terminal_node.x, route[-1].terminal_node.y))
             length = sum((link.length for link in route))
-            routes.record(leg_id, agent_id, agent_idx, mode, duration, length)
+            routes.record(*props, length)
             routes.line([line])
         elif not skip_empty:
-            routes.record(leg_id, agent_id, agent_idx, mode, duration, None)
+            routes.record(*props, None)
             routes.null()
 
     if routes.recNum != routes.shpNum:
@@ -189,7 +191,7 @@ def main():
     log.info(f'Loading run data from {home}.')
 
     database = SqliteUtil(path('database.db'), readonly=True)
-    config = ConfigUtil.load_config(path('config.json'))
+    # config = ConfigUtil.load_config(path('config.json'))
 
     try:
         export_routes(database, args.modes, args.file, args.skip, args.epsg)

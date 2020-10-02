@@ -29,7 +29,7 @@ def get_proj_string(epsg: int) -> str:
     string = res.content.decode().replace('\n', '')
     return string
 
-def write_shapefile_queue(queue: Queue, filepath: str):
+def write_shapefile_queue(queue: Queue, filepath: str, filtered: bool):
     log.debug(f'Opening {filepath} for writing.')
 
     links = shapefile.Writer(filepath)
@@ -60,6 +60,9 @@ def write_shapefile_queue(queue: Queue, filepath: str):
     if links.recNum != links.shpNum:
         log.error('Record/shape misalignment; shapefile exporting failure.')
         raise RuntimeError
+
+    if filtered:
+        log.debug(f'Network has {links.recNum} links after geospatial filtering.')
 
     links.close()
 
@@ -110,7 +113,7 @@ def load_boundary(shppath: str) -> Polygon:
     return polygon
 
 def export_links(database: Database, filepath: str, bounds: str = None,
-                 epsg: int = 2223):
+                 epsg: int = 2223, merge: bool = False):
     boundary: Polygon = None
     if bounds is not None:
         boundary = load_boundary(bounds)
@@ -130,7 +133,7 @@ def export_links(database: Database, filepath: str, bounds: str = None,
             links.modes,
             links.air_temperature,
             links.mrt_temperature,
-            count(*) AS utilization,
+            count(events.event_id) AS utilization,
             sum(events.exposure) AS exposure,
             nodes1.point,
             nodes2.point
@@ -146,14 +149,35 @@ def export_links(database: Database, filepath: str, bounds: str = None,
     database.cursor.execute(query)
     rows = database.cursor.fetchall()
 
+    count = len(rows)
+    log.debug(f'Network has {count} total links.')
+
+    if merge:
+        log.info('Merging coincidental directional links.')
+        merged = {}
+        for row in rows:
+            n1, n2 = row[-2], row[-1]
+            n = frozenset((n1, n2))
+            if n in merged:
+                uuid = row[0]
+                merged[n][0] += f',{uuid}'
+                merged[n][7] = 0
+            else:
+                merged[n] = list(row)
+        rows = tuple(merged.values())
+        count = len(rows)
+        log.debug(f'Network has {count} after merging.')
+        del merged
+
     log.info('Filtering and writing links to shapefile.')
 
     manager = Manager()
     pool = Pool()
     queue = manager.Queue(4)
+    filtered = boundary is not None
     jobs = ((queue, job, boundary, epsg) for job in bins(rows, 10000))
 
-    pool.apply_async(write_shapefile_queue, (queue, filepath))
+    pool.apply_async(write_shapefile_queue, (queue, filepath, filtered))
     pool.starmap(filter_links_thread, jobs)
     queue.put('exit')
     pool.close()
@@ -176,6 +200,9 @@ def main():
         help='file path to shapefile which defines export boundary')
     main.add_argument('--epsg', dest='epsg', type=int, default=2223,
         help='epsg system to convert links to; default is 2223')
+    main.add_argument('--merge', dest='merge', action='store_true', default=False,
+        help='merge links with the same set of source and temrinal nodes; '
+             'sets directional to 0 and link_id to a comma delimited list')
         
     general = parser.add_argument_group('general options')
     general.add_argument('--help', action='help', default=SUPPRESS,
@@ -219,10 +246,8 @@ def main():
 
     database = Database(dbpath, readonly=True)
 
-    export_links(database, args.file, args.bounds, args.epsg)
+    export_links(database, args.file, args.bounds, args.epsg, args.merge)
 
 
 if __name__ == '__main__':
     main()
-
-
