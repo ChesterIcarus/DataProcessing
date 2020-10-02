@@ -1,10 +1,12 @@
 
 import os
+import math
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging as log
 
+from typing import Tuple
 from argparse import ArgumentParser
 
 from icarus.util.sqlite import SqliteUtil
@@ -14,7 +16,7 @@ def plot_income(database: SqliteUtil, savepath: str):
     query = '''
         SELECT
             households.hhIncomeDollar,
-            agents.exposure / 60
+            (agents.exposure - 26.6667 * (111600 - 14400)) / 60
         FROM households
         INNER JOIN agents
         ON households.hhid = agents.household_id
@@ -64,7 +66,7 @@ def plot_age(database: SqliteUtil, savepath: str):
         SELECT
             agents.agent_id,
             persons.age,
-            agents.exposure / 60
+            (agents.exposure - 26.6667 * (111600 - 14400)) / 60
         FROM persons
         INNER JOIN agents
         ON persons.hhid = agents.household_id
@@ -101,7 +103,8 @@ def plot_age(database: SqliteUtil, savepath: str):
     plot.clf()
 
 
-def plot_all(database: SqliteUtil, savepath: str):
+def plot_all(database: SqliteUtil, savepath: str, 
+             bounds: Tuple[float,float] = None):
     log.info('Plotting exposure by demographics.')
     log.info('Fetching agent data.')
     query = '''
@@ -111,14 +114,18 @@ def plot_all(database: SqliteUtil, savepath: str):
             persons.age,
             persons.persType,
             persons.educLevel,
-            agents.exposure / 60
+            (agents.exposure - 26.6667 * (111600 - 14400)) / 60
         FROM persons
         INNER JOIN households
         ON households.hhid = agents.household_id
         INNER JOIN agents
         ON persons.hhid = agents.household_id
         AND persons.pnum = agents.household_idx
-        WHERE agents.abort = 0;
+        WHERE agents.abort = 0
+        AND (
+            agents.uses_walk = 1
+            OR agents.uses_bike = 1
+        );
     '''
     database.cursor.execute(query)
     result = database.fetch_rows()
@@ -180,22 +187,30 @@ def plot_all(database: SqliteUtil, savepath: str):
     cols = ('uuid', 'income', 'age', 'person type', 'education type', 'exposure')
     df = pd.DataFrame(extract_agents(), columns=cols)
 
+    if bounds is None:
+        less = df['exposure'].min()
+        more = df['exposure'].max()
+        order = 10 * (round(math.log10(more - less)) - 1)
+        less = math.floor(less * order) / order
+        more = math.ceil(more * order) / order
+        bounds = (less, more)
+
     log.info('Plotting figures.')
     fig, axes = plt.subplots(1, 4, 'none', 'all')
     fig.set_size_inches(14, 5)
 
-    sns.boxplot(x='age', y='exposure', ax=axes[0], data=df, fliersize=0,
+    sns.boxplot(x='age', y='exposure', ax=axes[0], data=df, fliersize=1,
         order=('<20', '20-30', '30-60', '>60'))
-    axes[0].set_ylim(42750, 43500)
-    sns.boxplot(x='income', y='exposure', ax=axes[1], data=df, fliersize=0,
+    axes[0].set_ylim(*bounds)
+    sns.boxplot(x='income', y='exposure', ax=axes[1], data=df, fliersize=1,
         order=('<30k', '30-60k', '60-120k', '>120k'))
-    axes[1].set_ylim(42750, 43500)
+    axes[1].set_ylim(*bounds)
     axes[1].set_ylabel('')
-    sns.boxplot(x='person type', y='exposure', ax=axes[2], data=df, fliersize=0)
-    axes[2].set_ylim(42750, 43500)
+    sns.boxplot(x='person type', y='exposure', ax=axes[2], data=df, fliersize=1)
+    axes[2].set_ylim(*bounds)
     axes[2].set_ylabel('')
-    sns.boxplot(x='education type', y='exposure', ax=axes[3], data=df, fliersize=0)
-    axes[3].set_ylim(42750, 43500)
+    sns.boxplot(x='education type', y='exposure', ax=axes[3], data=df, fliersize=1)
+    axes[3].set_ylim(*bounds)
     axes[3].set_ylabel('')
 
     log.info('Combining and saving figures.')
@@ -239,6 +254,7 @@ def main():
     savepath = path('visuals/exposure/income.png')
     plot_income(database, savepath)
     savepath = path('visuals/exposure/demographics.png')
+    bounds = (-200, 200)
     plot_all(database, savepath)
 
 
