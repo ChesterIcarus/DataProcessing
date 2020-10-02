@@ -5,42 +5,46 @@ from typing import Tuple
 
 
 class Temperature:
-    __slots__ = ('id', 'values')
+    __slots__ = ('id', 'values', 'merged')
 
     def __init__(self, uuid: int, values: Tuple[float]):
         self.id = uuid
         self.values = values
+        self.merged = None not in values
 
     
-    def get_temperature(self, time: float, fallback: Temperature = None):
+    def merge_null(self, temp: Temperature):
+        for idx in range(len(self.values)):
+            if self.values[idx] is None:
+                self.values[idx] = temp.values[idx]
+        self.merged = True
+
+    
+    def get_temperature(self, time: float):
         steps = len(self.values)
         step = int(time / 86400 * steps) % steps
         value = self.values[step]
-        if fallback and not value:
-            value = fallback.get_temperature(time)
+
         return value
 
 
-    def get_exposure(self, start: float, end: float, 
-            fallback: Temperature = None) -> float:
-        steps = len(self.values)
-        step_size = int(86400 / steps)
-        start_step = int(start / 86400 * steps)
-        end_step = int(end / 86400 * steps)
-        exposure = 0
+    def get_exposure(self, start: float, end: float) -> float:
+        step_num = len(self.values)
+        step_size = int(86400 / step_num)
+        step_first = int(start / 86400 * step_num)
+        step_last = int(end / 86400 * step_num)
 
-        def temp(x: int):
-            value = self.values[x]
-            if value is None and fallback:
-                value = fallback.values[x]
-            return value
-
-        if start_step == end_step:
-            exposure = (end - start) * temp(start_step % steps)
-        else:
-            exposure = ((start_step + 1) * step_size - start) * \
-                temp(start_step % steps)
-            for step in range(start_step + 1, end_step):
-                exposure += step_size * temp(step % steps)
-            exposure += (end - end_step * step_size) * temp(end_step % steps)
+        try:
+            exposure: float = None
+            if self.merged:
+                exposure = 0
+                exposure -= (start - step_first * step_size) * self.values[step_first % step_num]
+                exposure += sum(self.values[step_idx % step_num] * step_size 
+                    for step_idx in range(step_first, step_last))
+                exposure += (end - step_last * step_size) * self.values[step_last % step_num]
+        except Exception as err:
+            print(err)
+            breakpoint()
         return exposure
+
+        

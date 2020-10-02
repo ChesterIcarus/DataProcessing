@@ -142,6 +142,7 @@ class Agent:
             None,
             None,
             None,
+            None,
             None
         ) for idx, act in enumerate(self.activities))
         return activities
@@ -156,6 +157,7 @@ class Agent:
             leg.party.id or 0,
             leg.start,
             leg.end,
+            None,
             None,
             None,
             None,

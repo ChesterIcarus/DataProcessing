@@ -5,6 +5,7 @@ from argparse import ArgumentParser, SUPPRESS
 
 from icarus.analyze.exposure.exposure import Exposure
 from icarus.util.apsw import Database
+# from icarus.util.sqlite import SqliteUtil
 from icarus.util.config import ConfigUtil
 
 desc = (
@@ -58,6 +59,7 @@ log.info('Running abm parsing module.')
 log.info(f'Loading data from {homepath}.')
 log.info('Verifying process metadata/conditions.')
 
+# database = SqliteUtil(dbpath)
 database = Database(dbpath)
 exposure = Exposure(database)
 

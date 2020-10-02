@@ -21,33 +21,34 @@ class Exposure:
 
     
     def create_tables(self):
-        self.database.drop_table('temp_agents', 'temp_activities', 
-            'temp_legs', 'temp_events')
-        query = f'''
-            CREATE TABLE temp_agents
-            AS SELECT * FROM agents
-            WHERE FALSE;
-        '''
-        self.database.cursor.execute(query)
-        query = f'''
-            CREATE TABLE temp_legs
-            AS SELECT * FROM legs
-            WHERE FALSE;
-        '''
-        self.database.cursor.execute(query)
-        query = f'''
-            CREATE TABLE temp_activities
-            AS SELECT * FROM activities
-            WHERE FALSE;
-        '''
-        self.database.cursor.execute(query)
-        query = f'''
-            CREATE TABLE temp_events
-            AS SELECT * FROM events
-            WHERE FALSE;
-        '''
-        self.database.cursor.execute(query)
-        self.database.connection.commit()
+        # self.database.drop_table('temp_agents', 'temp_activities', 
+        #     'temp_legs', 'temp_events')
+        # query = f'''
+        #     CREATE TABLE temp_agents
+        #     AS SELECT * FROM agents
+        #     WHERE FALSE;
+        # '''
+        # self.database.cursor.execute(query)
+        # query = f'''
+        #     CREATE TABLE temp_legs
+        #     AS SELECT * FROM legs
+        #     WHERE FALSE;
+        # '''
+        # self.database.cursor.execute(query)
+        # query = f'''
+        #     CREATE TABLE temp_activities
+        #     AS SELECT * FROM activities
+        #     WHERE FALSE;
+        # '''
+        # self.database.cursor.execute(query)
+        # query = f'''
+        #     CREATE TABLE temp_events
+        #     AS SELECT * FROM events
+        #     WHERE FALSE;
+        # '''
+        # self.database.cursor.execute(query)
+        # self.database.connection.commit()
+        pass
 
     
     def create_indexes(self):
@@ -162,25 +163,29 @@ class Exposure:
 
         query_agents = '''
             UPDATE agents
-            SET exposure = ?
+            SET air_exposure = ?,
+                mrt_exposure = ?
             WHERE agent_id = ?;
         '''
 
         query_acts = '''
             UPDATE activities
-            SET exposure = ?
+            SET air_exposure = ?,
+                mrt_exposure = ?
             WHERE activity_id = ?;
         '''
 
         query_legs = '''
             UPDATE legs
-            SET exposure = ?
+            SET air_exposure = ?,
+                mrt_exposure = ?
             WHERE leg_id = ?;
         '''
 
         query_evts = '''
             UPDATE events
-            SET exposure = ?
+            SET air_exposure = ?,
+                mrt_exposure = ?
             WHERE event_id = ?;
         '''
 
@@ -202,12 +207,12 @@ class Exposure:
             legs = self.population.export_legs()
             events = self.population.export_events()
 
-            self.database.cursor.executemany(query_agents, agents)
-            self.database.cursor.executemany(query_acts, activities)
-            self.database.cursor.executemany(query_legs, legs)
-            self.database.cursor.executemany(query_evts, events)
+            with self.database.connection:
+                self.database.cursor.executemany(query_agents, agents)
+                self.database.cursor.executemany(query_acts, activities)
+                self.database.cursor.executemany(query_legs, legs)
+                self.database.cursor.executemany(query_evts, events)
             self.population.delete_population()
-            self.database.connection.commit()
 
             del agents, activities, legs, events
 
@@ -218,13 +223,13 @@ class Exposure:
 
         query = '''
             UPDATE links
-            SET exposure = ?
+            SET air_exposure = ?,
+                mrt_exposure = ?
             WHERE link_id = ?;
         '''
-        dump = ((link.exposure, link.id) 
-            for link in self.network.links.values())
-        self.database.cursor.executemany(query, dump)
-        self.database.connection.commit()
+        dump = (link.export() for link in self.network.links.values())
+        with self.database.connection:
+            self.database.cursor.executemany(query, dump)
 
         # log.info('Verify integrity of results.')
         # if not self.verify_tables():

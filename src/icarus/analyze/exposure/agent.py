@@ -1,5 +1,5 @@
 
-from typing import List
+from typing import List, Tuple
 
 from icarus.analyze.exposure.leg import Leg
 from icarus.analyze.exposure.activity import Activity
@@ -7,13 +7,14 @@ from icarus.analyze.exposure.event import Event
 
 
 class Agent:
-    __slots__= ('id', 'legs', 'activities', 'exposure', 'abort')
+    __slots__= ('id', 'legs', 'activities', 'air_exposure', 'mrt_exposure', 'abort')
 
     def __init__(self, uuid: int, abort: int):
         self.id = uuid
         self.legs: List[Leg] = []
         self.activities: List[Activity] = []
-        self.exposure: float = None
+        self.air_exposure: float = None
+        self.mrt_exposure: float = None
         self.abort = abort
 
     
@@ -29,14 +30,22 @@ class Agent:
         self.legs[leg_idx].add_event(event)
 
     
-    def calculate_exposure(self) -> float:
-        self.exposure = 0
-        for activity in self.activities:
-            self.exposure += activity.calculate_exposure()
-        for leg in self.legs:
-            self.exposure += leg.calculate_exposure()
-        return self.exposure
+    def calculate_exposure(self) -> Tuple[float]:
+        acts = [ act.calculate_exposure() for act in self.activities ]
+        legs = [ leg.calculate_exposure() for leg in self.legs ]
+
+        try:
+            if not self.abort:
+                self.air_exposure = sum(acts) + sum(map(lambda x: x[0], legs))
+
+                if all(map(lambda x: (x[1] is not None), legs)):
+                    self.mrt_exposure = sum(map(lambda x: x[1], legs))
+            
+            return self.air_exposure, self.mrt_exposure
+        except Exception as err:
+            print(err)
+            breakpoint()
 
     
     def export(self):
-        return self.exposure, self.id
+        return self.air_exposure, self.mrt_exposure, self.id

@@ -99,6 +99,7 @@ class Household:
                 agent.uses_transit(),
                 agent.uses_party(),
                 None,
+                None,
                 None
             )
 

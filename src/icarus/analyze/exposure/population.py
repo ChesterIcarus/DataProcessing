@@ -143,7 +143,6 @@ class Population:
             ON {self.table}(agent_id);
         '''
         self.database.cursor.execute(query)
-        self.database.connection.commit()
 
     
     def load_population(self):

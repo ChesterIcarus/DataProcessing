@@ -30,7 +30,8 @@ class Population:
                 uses_transit TINYINT UNSIGNED,
                 uses_party TINYINT UNSIGNED,
                 abort TINYINT UNSIGNED,
-                exposure FLOAT
+                air_exposure FLOAT,
+                mrt_exposure FLOAT
             );  ''')
         self.database.cursor.execute('''
             CREATE TABLE activities(
@@ -45,7 +46,8 @@ class Population:
                 sim_start MEDUMINT UNSIGNED,
                 sim_end MEDIUMINT UNSIGNED,
                 abort TINYINT UNSIGNED,
-                exposure FLOAT
+                air_exposure FLOAT,
+                mrt_exposure FLOAT
 
             );  ''')
         self.database.cursor.execute('''
@@ -60,7 +62,8 @@ class Population:
                 sim_start MEDUMINT UNSIGNED,
                 sim_end MEDIUMINT UNSIGNED,
                 abort TINYINT UNSIGNED,
-                exposure FLOAT
+                air_exposure FLOAT,
+                mrt_exposure FLOAT
             );  ''')
         self.database.connection.commit()
 

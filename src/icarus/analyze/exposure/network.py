@@ -110,6 +110,8 @@ class Network:
             mrt_temperature = None
             if mrt_temp is not None:
                 mrt_temperature = self.mrt_temperatures[mrt_temp]
+                if not mrt_temperature.merged:
+                    mrt_temperature.merge_null(air_temperature)
             link = Link(
                 link_id,
                 length, 
@@ -119,6 +121,8 @@ class Network:
                 mrt_temperature
             )
             self.links[link_id] = link
+
+            
 
     
     def load_parcels(self):

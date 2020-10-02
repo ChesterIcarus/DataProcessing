@@ -230,7 +230,8 @@ class Events:
                 temp_events.link_id AS link_id,
                 temp_events.sim_start AS sim_start,
                 temp_events.sim_end AS sim_end,
-                CAST(NULL AS INT) AS exposure
+                CAST(NULL AS INT) AS air_exposure,
+                CAST(NULL AS INT) AS mrt_exposure
             FROM temp_events
             INNER JOIN legs
             ON temp_events.agent_id = legs.agent_id

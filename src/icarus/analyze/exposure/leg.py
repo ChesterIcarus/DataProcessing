@@ -9,7 +9,8 @@ from icarus.analyze.exposure.parcel import Parcel
 
 
 class Leg:
-    __slots__= ('id', 'mode', 'start', 'end', 'events', 'exposure', 'abort')
+    __slots__= ('id', 'mode', 'start', 'end', 'events', 
+                'air_exposure', 'mrt_exposure', 'abort')
 
     def __init__(self, uuid: str, mode: LegMode, start: int, 
             end: int, abort: int):
@@ -19,7 +20,8 @@ class Leg:
         self.end = end
         self.events: List[Event] = []
         self.abort = abort
-        self.exposure = None
+        self.air_exposure = None
+        self.mrt_exposure = None
 
 
     def add_event(self, event: Event):
@@ -27,21 +29,29 @@ class Leg:
 
     
     def calculate_exposure(self) -> float:
-        self.exposure = 0
         if self.end - self.start:
             if self.mode in (LegMode.BIKE, LegMode.WALK):
                 if len(self.events):
-                    self.exposure = 0
+                    self.air_exposure = 0
+                    self.mrt_exposure = 0
                     for event in self.events:
-                        self.exposure += event.calculate_exposure()
+                        air, mrt = event.calculate_exposure()
+                        self.air_exposure += air
+                        if mrt is None or self.mrt_exposure is None:
+                            self.mrt_exposure = None
+                        else:
+                            self.mrt_exposure += mrt
                 else:
                     log.error('Unexpected leg without any events.')
-                    breakpoint()
             else:
-                self.exposure = 25.5 * (self.end - self.start)
+                self.air_exposure = 26.6667 * (self.end - self.start)
+                self.mrt_exposure = None
+        else:
+            self.air_exposure = 0
+            self.mrt_exposure = 0
 
-        return self.exposure
+        return self.air_exposure, self.mrt_exposure
 
     
     def export(self, agent: int, idx: int) -> tuple:
-        return self.exposure, self.id
+        return self.air_exposure, self.mrt_exposure, self.id

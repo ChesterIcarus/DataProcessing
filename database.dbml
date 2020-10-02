@@ -131,7 +131,8 @@ table agents {
     uses_transit    tinyint     [note: 'if 1, agent uses a transit leg']
     uses_party      tinyint     [note: 'if 1, agent uses a leg with a party']
     abort           tinyint     [note: 'if 1, agent failed in simulation']
-    exposure        float       [note: 'total exposure in degree seconds celcius']
+    air_exposure    float       [note: 'total air temperature exposure in degree seconds celcius']
+    mrt_exposure    float       [note: 'total mrt temperature exposure in degree seconds celcius']
 
     note: 'parsed, filtered and analyzed version of persons; updated after simulation output and exposure analysis'
 
@@ -156,7 +157,8 @@ table activities {
     sim_start       mediumint   [note: 'simulated activity start time in seconds from 4:00']
     sim_end         mediumint   [note: 'simulated activity end time in seconds from 4:00']
     abort           tinyint     [note: 'if 1, leg caused agent to fail in simulation']
-    exposure        float       [note: 'exposure of activity in degree seconds celcius']
+    air_exposure    float       [note: 'air temperature exposure of activity in degree seconds celcius']
+    mrt_exposure    float       [note: 'mrt temperature exposure of activity in degree seconds celcius']
 
     note: 'activities extracted and assigned parcels from abm trips; updated after simulation and exposure analysis'
 
@@ -181,7 +183,8 @@ table legs {
     sim_start       mediumint   [note: 'leg start time as described in simulation']
     sim_end         mediumint   [note: 'leg end time as described in simulation']
     abort           tinyint     [note: 'if 1, activity caused agent to fail in simulation']
-    exposure        float       [note: 'exposure of leg in degree seconds celcius']
+    air_exposure    float       [note: 'air temperature exposure of leg in degree seconds celcius']
+    mrt_exposure    float       [note: 'air temperature exposure of leg in degree seconds celcius']
 
     note: 'legs extracted and assigned parcels from abm trips; updated after simulation and exposure analysis'
 
@@ -229,7 +232,8 @@ table links {
     modes           varchar     [note: 'stringified list of modes allowed on link']
     air_temperature int         [note: 'id of the air temperature profile of the link']
     mrt_temperature int         [note: 'id of the mrt temperature profile of the link']
-    exposure        float       [note: 'total exposure experienced on this link (networked modes only)']
+    air_exposure    float       [note: 'total air temperature exposure experienced on this link (networked modes only)']
+    mrt_exposure    float       [note: 'total mrt temperature exposure experienced on this link (networked modes only)']
 
     note: 'links extracted from network file; updated with temperature profiles and after exposure analysis'
 
@@ -311,7 +315,8 @@ table events {
     link_id         varchar
     sim_start       mediumint
     sim_end         mediumint
-    exposure        float
+    air_exposure    float
+    mrt_exposure    float
 
     note: 'events parsed from networked modes in simulation output'
 
