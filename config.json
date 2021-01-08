@@ -47,6 +47,8 @@
                 "tertiary_link":    [ "car", "bike", "walk" ],
                 "unclassified":     [ "car", "bike", "walk" ],
                 "residential":      [ "car", "bike", "walk" ],
+                "service":          [ "car", "bike", "walk" ],
+                "road":             [ "car", "bike", "walk" ],
                 "living_street":    [ "car", "bike", "walk" ],
                 "pedestrian":       [ "bike", "walk" ],
                 "footway":          [ "bike", "walk" ],

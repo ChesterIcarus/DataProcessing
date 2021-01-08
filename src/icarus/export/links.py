@@ -45,7 +45,8 @@ def write_shapefile_queue(queue: Queue, filepath: str, filtered: bool):
     links.field('air_temperature', 'N')
     links.field('mrt_temperature', 'N')
     links.field('utilization', 'N')
-    links.field('exposure', 'N')
+    links.field('air_exposure', 'N')
+    links.field('mrt_exposure', 'N')
 
     count = 0
     request = queue.get()
@@ -133,19 +134,42 @@ def export_links(database: Database, filepath: str, bounds: str = None,
             links.modes,
             links.air_temperature,
             links.mrt_temperature,
-            count(events.event_id) AS utilization,
-            sum(events.exposure) AS exposure,
+            COUNT(events.event_id) AS utilization,
+            SUM(events.air_exposure) AS air_exposure,
+            SUM(events.mrt_exposure) AS mrt_exposure,
             nodes1.point,
             nodes2.point
         FROM links
         LEFT JOIN events
         USING(link_id)
-        INNER JOIN nodes AS nodes1
+        LEFT JOIN nodes AS nodes1
         ON links.source_node = nodes1.node_id
-        INNER JOIN nodes AS nodes2
+        LEFT JOIN nodes AS nodes2
         ON links.terminal_node = nodes2.node_id
         GROUP BY link_id;
     '''
+
+    # query = '''
+    #     SELECT
+    #         links.link_id,
+    #         links.source_node,
+    #         links.terminal_node,
+    #         links.length,
+    #         links.freespeed,
+    #         links.capacity,
+    #         links.permlanes,
+    #         links.oneway,
+    #         links.modes,
+    #         nodes1.point,
+    #         nodes2.point
+    #     FROM links
+    #     LEFT JOIN nodes AS nodes1
+    #     ON links.source_node = nodes1.node_id
+    #     LEFT JOIN nodes AS nodes2
+    #     ON links.terminal_node = nodes2.node_id
+    #     GROUP BY link_id;
+    # '''
+
     database.cursor.execute(query)
     rows = database.cursor.fetchall()
 

@@ -1,4 +1,6 @@
 
+import logging as log
+
 from typing import List, Tuple
 
 from icarus.analyze.exposure.leg import Leg
@@ -31,20 +33,19 @@ class Agent:
 
     
     def calculate_exposure(self) -> Tuple[float]:
-        acts = [ act.calculate_exposure() for act in self.activities ]
-        legs = [ leg.calculate_exposure() for leg in self.legs ]
+        evts = [ act.calculate_exposure() for act in self.activities ]
+        evts += [ leg.calculate_exposure() for leg in self.legs ]
 
-        try:
-            if not self.abort:
-                self.air_exposure = sum(acts) + sum(map(lambda x: x[0], legs))
+        if not self.abort:
+            self.air_exposure = sum(map(lambda x: x[0], evts))
 
-                if all(map(lambda x: (x[1] is not None), legs)):
-                    self.mrt_exposure = sum(map(lambda x: x[1], legs))
-            
-            return self.air_exposure, self.mrt_exposure
-        except Exception as err:
-            print(err)
-            breakpoint()
+            if all(map(lambda x: (x[1] is not None), evts)):
+                self.mrt_exposure = sum(map(lambda x: x[1], evts))
+            else:
+                pass
+                # log.warn('Agent %s has a undefined MRT exposure.' % self.id)
+        
+        return self.air_exposure, self.mrt_exposure
 
     
     def export(self):

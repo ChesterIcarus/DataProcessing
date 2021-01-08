@@ -3,6 +3,8 @@ import sqlite3
 import re
 import os
 
+import apsw
+
 from icarus.util.iter import chunk
 
 

@@ -98,7 +98,7 @@ class Network:
             '--read-pbf-fast', f'workers={threads}', f'file={pbf}', 
             '--bounding-polygon', 
                 f'file={path("tmp/config_trim.poly")}', 
-            '--tag-filter', 'accept-ways', 'highway=*', 'railway=*', 
+            '--tag-filter', 'accept-ways', 'highway=*', 'railway=*', 'service=*',
             '--tag-filter', 'reject-relations',
             '--used-node', 
             '--write-xml', path('tmp/network.osm')

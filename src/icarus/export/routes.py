@@ -96,10 +96,10 @@ def export_routes(database: SqliteUtil, modes: List[str],
             legs.agent_id,
             legs.agent_idx,
             legs.mode,
-            legs.abm_start,
-            legs.abm_end,
             legs.sim_start,
             legs.sim_end,
+            legs.air_exposure,
+            legs.mrt_exposure,
             GROUP_CONCAT(events.link_id, " ")
         FROM legs
         LEFT JOIN events
@@ -120,10 +120,10 @@ def export_routes(database: SqliteUtil, modes: List[str],
     routes.field('agent_id', 'N')
     routes.field('agent_idx', 'N')
     routes.field('mode', 'C')
-    routes.field('abm start', 'N')
-    routes.field('abm end', 'N')
     routes.field('sim start', 'N')
     routes.field('sim end', 'N')
+    routes.field('air exposure', 'N')
+    routes.field('mrt Exposure', 'N')
     routes.field('length', 'N')
 
     log.info('Exporting simulation routes to shapefile.')

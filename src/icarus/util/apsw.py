@@ -6,7 +6,7 @@ import apsw
 from icarus.util.iter import chunk
 
 class Database:
-    def __init__(self, database, readonly=False):
+    def __init__(self, database: str, readonly=False):
         self.name = database
         self.connection = None
         self.cursor = None

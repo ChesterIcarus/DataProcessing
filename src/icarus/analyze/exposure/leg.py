@@ -45,7 +45,7 @@ class Leg:
                     log.error('Unexpected leg without any events.')
             else:
                 self.air_exposure = 26.6667 * (self.end - self.start)
-                self.mrt_exposure = None
+                self.mrt_exposure = self.air_exposure
         else:
             self.air_exposure = 0
             self.mrt_exposure = 0

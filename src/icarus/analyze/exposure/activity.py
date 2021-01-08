@@ -22,7 +22,8 @@ class Activity:
     def calculate_exposure(self) -> float:
         if not self.abort:
             self.air_exposure = self.parcel.get_exposure(self.start, self.end)
-        return self.air_exposure
+            self.mrt_exposure = self.air_exposure
+        return self.air_exposure, self.mrt_exposure
 
     
     def export(self, agent: int, idx: int):
